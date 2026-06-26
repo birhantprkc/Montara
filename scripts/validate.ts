@@ -1,11 +1,23 @@
-// Montara validate harness for Phase 1.1: scene-plan -> composer -> Timeline IR -> encoded MP4.
+// Montara validate harness: compose core + Phase 1.3 local provider tools.
 
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ScenePlan } from "../packages/core/src/index";
 import { secondsToFrames, validateTimeline } from "../packages/core/src/index";
 import { composeScenePlan, renderComposedTimeline } from "../packages/render-remotion/src/index";
 import { probeDuration } from "../packages/render-ffmpeg/src/index";
+import {
+  exportTimelineSubtitles,
+  generateSilentVoice,
+  generateToneScore,
+  listProviderTools,
+  probeMedia,
+  renderCaptionCardImage,
+  renderCaptionCardVideo,
+  sampleFrame,
+  stitchVideos,
+  trimVideo,
+} from "../packages/providers/src/index";
 
 let pass = 0;
 let fail = 0;
@@ -20,7 +32,7 @@ const ok = (name: string, cond: boolean, extra = ""): void => {
   }
 };
 
-console.log("== Montara validate (Phase 1.1 compose core) ==\n");
+console.log("== Montara validate ==\n");
 
 const plan: ScenePlan = {
   width: 960,
@@ -63,6 +75,50 @@ if (rendered && existsSync(mp4Path)) {
   const duration = probeDuration(mp4Path);
   ok("MP4 duration ~= 3.8s", Math.abs(duration - 3.8) < 0.45, `got ${duration.toFixed(2)}s`);
 }
+
+console.log("\n== provider tools (Phase 1.3 local/free seed) ==");
+ok("9 seed provider tools registered", listProviderTools().length === 9, `got ${listProviderTools().length}`);
+
+const imagePath = join(outDir, "validate-tool-card.png");
+const cardVideoPath = join(outDir, "validate-tool-card.mp4");
+const voicePath = join(outDir, "validate-tool-voice.wav");
+const scorePath = join(outDir, "validate-tool-score.wav");
+const srtPath = join(outDir, "validate-tool-subtitles.srt");
+const vttPath = join(outDir, "validate-tool-subtitles.vtt");
+const trimPath = join(outDir, "validate-tool-trim.mp4");
+const stitchPath = join(outDir, "validate-tool-stitch.mp4");
+const framePath = join(outDir, "validate-tool-frame.png");
+for (const p of [imagePath, cardVideoPath, voicePath, scorePath, srtPath, vttPath, trimPath, stitchPath, framePath]) {
+  try { rmSync(p, { force: true }); } catch { /* none */ }
+}
+
+renderCaptionCardImage({ title: "Image fallback", outPath: imagePath, width: 320, height: 180, background: "214f4b" });
+ok("image fallback writes a PNG", existsSync(imagePath));
+
+renderCaptionCardVideo({ title: "Video fallback", outPath: cardVideoPath, durationSec: 1.1, width: 320, height: 180, fps: 24, background: "7c3f58" });
+ok("video fallback writes an MP4", existsSync(cardVideoPath) && probeDuration(cardVideoPath) > 0.8);
+
+generateSilentVoice({ text: "A timed local placeholder voice.", outPath: voicePath, durationSec: 1.2 });
+ok("silent TTS fallback writes PCM audio", existsSync(voicePath) && Number(probeMedia({ inputPath: voicePath }).metadata.durationSec) > 1);
+
+generateToneScore({ outPath: scorePath, durationSec: 1.2, frequencyHz: 196 });
+ok("music fallback writes a tone score", existsSync(scorePath) && Number(probeMedia({ inputPath: scorePath }).metadata.durationSec) > 1);
+
+exportTimelineSubtitles({ timeline: result.timeline, srtPath, vttPath });
+ok("subtitle exporter writes SRT", existsSync(srtPath) && readFileSync(srtPath, "utf8").includes("-->"));
+ok("subtitle exporter writes VTT", existsSync(vttPath) && readFileSync(vttPath, "utf8").startsWith("WEBVTT"));
+
+trimVideo({ inputPath: mp4Path, outPath: trimPath, startSec: 0.2, durationSec: 1.0 });
+ok("video trimmer writes an MP4 segment", existsSync(trimPath) && probeDuration(trimPath) > 0.6);
+
+stitchVideos({ inputPaths: [trimPath, trimPath], outPath: stitchPath });
+ok("video stitcher writes a combined MP4", existsSync(stitchPath) && probeDuration(stitchPath) > 1.2);
+
+const probe = probeMedia({ inputPath: stitchPath });
+ok("media probe reports duration", Boolean(probe.metadata.exists) && Number(probe.metadata.durationSec) > 1.2);
+
+sampleFrame({ inputPath: stitchPath, outPath: framePath, atSec: 0.3 });
+ok("frame sampler writes a PNG", existsSync(framePath));
 
 console.log(`\nArtifact: ${mp4Path}`);
 console.log(`IR:       ${irPath}`);

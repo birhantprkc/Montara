@@ -12,6 +12,7 @@ import {
 } from "../packages/core/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
 import { listPipelines, planVideo } from "../packages/ai/src/index";
+import { listProviderTools } from "../packages/providers/src/index";
 
 let pass = 0;
 let fail = 0;
@@ -100,6 +101,12 @@ try {
   console.log("  pipeline render error:", String(e).slice(0, 400));
 }
 ok("a pipeline plan renders to MP4", pipeRendered && existsSync(pipeOut));
+
+console.log("\n== providers ==");
+const tools = listProviderTools();
+ok("phase 1.3 seed provider tools registered", tools.length === 9, `got ${tools.length}`);
+const categories = new Set(tools.map((tool) => tool.category));
+ok("provider tools cover video/image/tts/music/post/analysis", ["video", "image", "tts", "music", "post", "analysis"].every((c) => categories.has(c as never)));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

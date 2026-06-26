@@ -14,6 +14,9 @@ importers:
       '@montara/core':
         specifier: workspace:*
         version: link:packages/core
+      '@montara/providers':
+        specifier: workspace:*
+        version: link:packages/providers
       '@montara/render-ffmpeg':
         specifier: workspace:*
         version: link:packages/render-ffmpeg
@@ -32,6 +35,9 @@ importers:
       '@montara/core':
         specifier: workspace:*
         version: link:../core
+      '@montara/providers':
+        specifier: workspace:*
+        version: link:../providers
       '@montara/render-ffmpeg':
         specifier: workspace:*
         version: link:../render-ffmpeg
@@ -40,6 +46,15 @@ importers:
         version: link:../render-remotion
 
   packages/core: {}
+
+  packages/providers:
+    dependencies:
+      '@montara/core':
+        specifier: workspace:*
+        version: link:../core
+      '@montara/render-ffmpeg':
+        specifier: workspace:*
+        version: link:../render-ffmpeg
 
   packages/render-ffmpeg:
     dependencies:

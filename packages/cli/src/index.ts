@@ -5,6 +5,7 @@ import { validateTimeline } from "../../core/src/index";
 import { renderScenePlan, renderTimeline } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
+import { listProviderTools } from "../../providers/src/index";
 import { runDoctor } from "./doctor";
 
 interface MakeArgs {
@@ -92,6 +93,7 @@ function printHelp(): void {
 Commands:
   doctor                          check local render prerequisites
   pipelines                       list the available pipeline shapes
+  tools                           list local/free provider tools
   plan  [opts] <idea>             write a structured scene plan to ./out
   make  [opts] <idea>             plan + compose + render an MP4 to ./out
   render <ir.json>                render a ScenePlan or Timeline IR JSON to MP4
@@ -114,6 +116,11 @@ export function main(argv = process.argv.slice(2)): number {
 
     if (command === "pipelines") {
       for (const p of listPipelines()) console.log(`${p.id.padEnd(22)} ${p.blurb}`);
+      return 0;
+    }
+
+    if (command === "tools") {
+      for (const tool of listProviderTools()) console.log(`${tool.id.padEnd(28)} ${tool.category.padEnd(8)} ${tool.description}`);
       return 0;
     }
 
