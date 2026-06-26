@@ -13,6 +13,15 @@ import {
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
 import { listPipelines, planVideo } from "../packages/ai/src/index";
 import { listProviderTools } from "../packages/providers/src/index";
+import {
+  DecisionTrail,
+  SELECTION_WEIGHTS,
+  selectProviderTool,
+  slideshowRisk,
+  preComposeGate,
+  BudgetLedger,
+} from "../packages/quality/src/index";
+import { planResearchQueries, runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 
 let pass = 0;
 let fail = 0;
@@ -107,6 +116,48 @@ const tools = listProviderTools();
 ok("phase 1.3 seed provider tools registered", tools.length === 9, `got ${tools.length}`);
 const categories = new Set(tools.map((tool) => tool.category));
 ok("provider tools cover video/image/tts/music/post/analysis", ["video", "image", "tts", "music", "post", "analysis"].every((c) => categories.has(c as never)));
+
+console.log("\n== intelligence (§H) ==");
+const trail = new DecisionTrail();
+const queries = planResearchQueries("strait of hormuz oil chokepoint risk");
+ok("research plans 15-25 searches", queries.length >= 15 && queries.length <= 25, `got ${queries.length}`);
+const research = runResearch("strait of hormuz oil chokepoint risk", { trail });
+ok("research yields findings + angles offline", research.findings.length > 0 && research.angles.length === 5);
+
+const footage = indexFootage([
+  { id: "ocean", title: "Calm ocean waves at sunset", tags: ["ocean", "sea", "waves", "water", "calm"] },
+  { id: "city", title: "Busy city traffic at night", tags: ["city", "cars", "traffic", "street", "night"] },
+  { id: "forest", title: "Forest trail in morning fog", tags: ["forest", "trees", "trail", "fog", "nature"] },
+]);
+const top = retrieveFootage("calm ocean water waves", footage, 3)[0];
+ok("CLIP-indexed retrieval ranks the semantically closest clip", top?.item.id === "ocean", `got ${top?.item.id}`);
+
+ok("selection weights sum to 100", Object.values(SELECTION_WEIGHTS).reduce((a, b) => a + b, 0) === 100);
+const pick = selectProviderTool(tools, "video", { trail });
+ok("7-dim scored selection picks a video-category tool", pick.chosen.item.category === "video", `got ${pick.chosen.item.category}`);
+
+ok("decision audit trail records choices with confidence", trail.length >= 2 && trail.entries().every((e) => e.confidence >= 0 && e.confidence <= 1));
+
+console.log("\n== governance (§I) ==");
+const staticTl = scenePlanToTimeline({ width: 1920, height: 1080, fps: 30, scenes: [{ id: "hold", title: "One long static hold", durationSec: 12, background: "101820" }] });
+const staticRisk = slideshowRisk(staticTl);
+ok("slideshow-risk flags a long static silent hold as high", staticRisk.level === "high", `got ${staticRisk.level} (${staticRisk.score})`);
+const pacedRisk = slideshowRisk(timeline);
+ok("slideshow-risk scores a paced cut lower than a static hold", pacedRisk.score < staticRisk.score, `${pacedRisk.score} vs ${staticRisk.score}`);
+
+const goodGate = preComposeGate(timeline, { targetDurationSec: timeline.composition.durationSec }, { rendererAvailable: true });
+ok("pre-compose gate proceeds on a kept promise", goodGate.ok, goodGate.blockers.join("; "));
+const badGate = preComposeGate(timeline, { targetDurationSec: 99 }, { rendererAvailable: true });
+ok("pre-compose gate blocks a broken delivery promise", !badGate.ok && badGate.blockers.length > 0);
+const noRenderer = preComposeGate(timeline, {}, { rendererAvailable: false });
+ok("pre-compose gate blocks a missing renderer", !noRenderer.ok);
+
+const ledger = new BudgetLedger({ mode: "cap", perActionCap: 0.5, totalCap: 10 });
+ok("budget approves an in-cap reservation", ledger.reserve("tts", 0.4).approved);
+ok("budget rejects an over-per-action reservation in cap mode", !ledger.reserve("video-gen", 5).approved);
+const r = ledger.reserve("image", 0.3);
+ledger.reconcile(r.id, 0.25);
+ok("budget reconciles actuals and tracks remaining", ledger.report().remaining < 10 && ledger.report().reserved > 0);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

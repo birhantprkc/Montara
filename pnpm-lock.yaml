@@ -17,18 +17,30 @@ importers:
       '@montara/providers':
         specifier: workspace:*
         version: link:packages/providers
+      '@montara/quality':
+        specifier: workspace:*
+        version: link:packages/quality
       '@montara/render-ffmpeg':
         specifier: workspace:*
         version: link:packages/render-ffmpeg
       '@montara/render-remotion':
         specifier: workspace:*
         version: link:packages/render-remotion
+      '@montara/research':
+        specifier: workspace:*
+        version: link:packages/research
       esbuild:
         specifier: ^0.24.2
         version: 0.24.2
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
+
+  packages/ai:
+    dependencies:
+      '@montara/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/cli:
     dependencies:
@@ -38,12 +50,18 @@ importers:
       '@montara/providers':
         specifier: workspace:*
         version: link:../providers
+      '@montara/quality':
+        specifier: workspace:*
+        version: link:../quality
       '@montara/render-ffmpeg':
         specifier: workspace:*
         version: link:../render-ffmpeg
       '@montara/render-remotion':
         specifier: workspace:*
         version: link:../render-remotion
+      '@montara/research':
+        specifier: workspace:*
+        version: link:../research
 
   packages/core: {}
 
@@ -52,6 +70,18 @@ importers:
       '@montara/core':
         specifier: workspace:*
         version: link:../core
+      '@montara/render-ffmpeg':
+        specifier: workspace:*
+        version: link:../render-ffmpeg
+
+  packages/quality:
+    dependencies:
+      '@montara/core':
+        specifier: workspace:*
+        version: link:../core
+      '@montara/providers':
+        specifier: workspace:*
+        version: link:../providers
       '@montara/render-ffmpeg':
         specifier: workspace:*
         version: link:../render-ffmpeg
@@ -70,6 +100,12 @@ importers:
       '@montara/render-ffmpeg':
         specifier: workspace:*
         version: link:../render-ffmpeg
+
+  packages/research:
+    dependencies:
+      '@montara/quality':
+        specifier: workspace:*
+        version: link:../quality
 
 packages:
 

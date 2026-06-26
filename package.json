@@ -14,6 +14,8 @@
     "@montara/cli": "workspace:*",
     "@montara/core": "workspace:*",
     "@montara/providers": "workspace:*",
+    "@montara/quality": "workspace:*",
+    "@montara/research": "workspace:*",
     "@montara/render-ffmpeg": "workspace:*",
     "@montara/render-remotion": "workspace:*",
     "esbuild": "^0.24.2",

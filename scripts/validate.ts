@@ -18,6 +18,15 @@ import {
   stitchVideos,
   trimVideo,
 } from "../packages/providers/src/index";
+import {
+  DecisionTrail,
+  selectProviderTool,
+  preComposeGate,
+  postRenderSelfReview,
+  writeSelfReview,
+  BudgetLedger,
+} from "../packages/quality/src/index";
+import { runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 
 let pass = 0;
 let fail = 0;
@@ -120,7 +129,54 @@ ok("media probe reports duration", Boolean(probe.metadata.exists) && Number(prob
 sampleFrame({ inputPath: stitchPath, outPath: framePath, atSec: 0.3 });
 ok("frame sampler writes a PNG", existsSync(framePath));
 
-console.log(`\nArtifact: ${mp4Path}`);
-console.log(`IR:       ${irPath}`);
+console.log("\n== intelligence + governance (Phase 1.4 §H–I) ==");
+const trail = new DecisionTrail();
+const promised = result.timeline.composition.durationSec;
+
+// §H — research (offline brief) + CLIP-indexed footage retrieval + scored provider selection
+const research = runResearch("strait of hormuz oil chokepoint", { trail });
+ok("research plans 15-25 searches with findings", research.queries.length >= 15 && research.queries.length <= 25 && research.findings.length > 0,
+  `queries ${research.queries.length}, findings ${research.findings.length}`);
+
+const footage = indexFootage([
+  { id: "tanker", title: "Oil tanker crossing a narrow strait", tags: ["tanker", "oil", "strait", "shipping", "sea"] },
+  { id: "market", title: "Stock market trading floor", tags: ["market", "stocks", "finance", "screens"] },
+]);
+const retrieved = retrieveFootage("oil tanker shipping through the strait", footage, 2);
+ok("CLIP-indexed retrieval returns the closest footage first", retrieved[0]?.item.id === "tanker", `got ${retrieved[0]?.item.id}`);
+
+const pick = selectProviderTool(listProviderTools(), "video", { trail });
+ok("scored selection chooses a video-category provider tool", pick.chosen.item.category === "video", `got ${pick.chosen.item.category}`);
+
+// §I — budget governance (estimate → reserve → reconcile, cap mode)
+const ledger = new BudgetLedger({ mode: "cap", perActionCap: 0.5, totalCap: 10, trail });
+const approved = ledger.reserve("tts narration", 0.35).approved;
+const denied = ledger.reserve("cloud video gen", 6).approved;
+ok("budget approves in-cap and denies over-cap (cap mode)", approved && !denied);
+
+// §I — pre-compose gate: blocks a bad cut, proceeds on a kept promise
+const blocked = preComposeGate(result.timeline, { targetDurationSec: 99, requireAudio: true }, { rendererAvailable: true, trail });
+ok("pre-compose gate BLOCKS a broken delivery promise", !blocked.ok && blocked.blockers.length > 0);
+const cleared = preComposeGate(result.timeline, { targetDurationSec: promised }, { rendererAvailable: true, trail });
+ok("pre-compose gate PROCEEDS on a kept promise", cleared.ok, cleared.blockers.join("; "));
+
+// §I — post-render self-review on the REAL composed MP4, with a subtitle artifact present
+const review = postRenderSelfReview(mp4Path, { timeline: result.timeline, targetDurationSec: promised, subtitlePath: srtPath, trail });
+ok("self-review accepts the real MP4 (video + duration + frames)", review.ok && review.probe.hasVideo && review.probe.durationSec > 0,
+  review.checks.filter((c) => c.status === "fail").map((c) => c.name).join("; "));
+ok("self-review runs all four position frame checks", Boolean(review.checks.find((c) => c.name === "4-position frame checks")));
+
+const reviewPath = join(outDir, "validate-self-review.json");
+writeSelfReview(review, reviewPath);
+ok("self-review report emitted to disk", existsSync(reviewPath));
+
+const trailPath = join(outDir, "validate-decision-trail.json");
+writeFileSync(trailPath, `${JSON.stringify(trail.toJSON(), null, 2)}\n`);
+ok("decision audit trail emitted to disk", existsSync(trailPath) && trail.length >= 4, `entries ${trail.length}`);
+
+console.log(`\nArtifact:   ${mp4Path}`);
+console.log(`IR:         ${irPath}`);
+console.log(`Self-review: ${reviewPath}`);
+console.log(`Audit trail: ${trailPath}`);
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

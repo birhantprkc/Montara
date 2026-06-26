@@ -1,5 +1,5 @@
 {
-  "name": "@montara/cli",
+  "name": "@montara/quality",
   "version": "0.0.0",
   "type": "module",
   "main": "src/index.ts",
@@ -7,9 +7,6 @@
   "dependencies": {
     "@montara/core": "workspace:*",
     "@montara/providers": "workspace:*",
-    "@montara/quality": "workspace:*",
-    "@montara/research": "workspace:*",
-    "@montara/render-ffmpeg": "workspace:*",
-    "@montara/render-remotion": "workspace:*"
+    "@montara/render-ffmpeg": "workspace:*"
   }
 }
