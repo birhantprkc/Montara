@@ -11,6 +11,7 @@ import {
   type ScenePlan,
 } from "../packages/core/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
+import { listPipelines, planVideo } from "../packages/ai/src/index";
 
 let pass = 0;
 let fail = 0;
@@ -73,6 +74,32 @@ if (timelineRendered && existsSync(timelineOut)) {
   const d = probeDuration(timelineOut);
   ok("Timeline render duration ~= 3.0s", Math.abs(d - 3.0) < 0.4, `got ${d.toFixed(2)}s`);
 }
+
+console.log("\n== pipelines ==");
+const pipes = listPipelines();
+ok("12 pipelines registered", pipes.length === 12, `got ${pipes.length}`);
+let allValid = true;
+for (const p of pipes) {
+  const sp = planVideo(p.id, "verify idea", { targetSeconds: 12 });
+  const tl = scenePlanToTimeline(sp);
+  const issues = validateTimeline(tl);
+  if (sp.scenes.length === 0 || issues.length) {
+    allValid = false;
+    console.log(`    ${p.id}: ${issues.join("; ") || "no scenes"}`);
+  }
+}
+ok("every pipeline yields a valid Timeline IR", allValid);
+
+const pipeOut = join(process.cwd(), "out", "verify-pipeline.mp4");
+try { rmSync(pipeOut, { force: true }); } catch { /* none */ }
+let pipeRendered = false;
+try {
+  renderScenePlan(planVideo("cinematic", "the strait", { targetSeconds: 3 }), pipeOut);
+  pipeRendered = true;
+} catch (e) {
+  console.log("  pipeline render error:", String(e).slice(0, 400));
+}
+ok("a pipeline plan renders to MP4", pipeRendered && existsSync(pipeOut));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

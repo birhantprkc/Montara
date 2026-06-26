@@ -4,7 +4,37 @@ import type { ScenePlan, Timeline } from "../../core/src/index";
 import { validateTimeline } from "../../core/src/index";
 import { renderScenePlan, renderTimeline } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
+import { listPipelines, planVideo } from "../../ai/src/index";
 import { runDoctor } from "./doctor";
+
+interface MakeArgs {
+  pipelineId: string;
+  idea: string;
+  targetSeconds?: number;
+}
+
+function parseMakeArgs(rest: string[]): MakeArgs {
+  let pipelineId = "animated-explainer";
+  let targetSeconds: number | undefined;
+  const ideaParts: string[] = [];
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i] ?? "";
+    if (a === "--pipeline" || a === "-p") {
+      const v = rest[++i];
+      if (v) pipelineId = v;
+    } else if (a.startsWith("--pipeline=")) {
+      pipelineId = a.slice("--pipeline=".length);
+    } else if (a === "--seconds" || a === "-s") {
+      const v = rest[++i];
+      if (v) targetSeconds = Number(v);
+    } else if (a.startsWith("--seconds=")) {
+      targetSeconds = Number(a.slice("--seconds=".length));
+    } else {
+      ideaParts.push(a);
+    }
+  }
+  return { pipelineId, idea: ideaParts.join(" "), targetSeconds };
+}
 
 function slug(input: string): string {
   const s = input.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
@@ -60,10 +90,15 @@ function printHelp(): void {
   console.log(`montara <command>
 
 Commands:
-  doctor                 check local render prerequisites
-  plan <idea>            write a deterministic local scene plan to ./out
-  make <idea>            compose a scene plan and render an MP4 to ./out
-  render <ir.json>       render a ScenePlan or Timeline IR JSON to MP4
+  doctor                          check local render prerequisites
+  pipelines                       list the available pipeline shapes
+  plan  [opts] <idea>             write a structured scene plan to ./out
+  make  [opts] <idea>             plan + compose + render an MP4 to ./out
+  render <ir.json>                render a ScenePlan or Timeline IR JSON to MP4
+
+Options (plan/make):
+  --pipeline, -p <id>             pipeline shape (default: animated-explainer)
+  --seconds,  -s <n>              target runtime in seconds (default: 20)
 `);
 }
 
@@ -77,10 +112,15 @@ export function main(argv = process.argv.slice(2)): number {
 
     if (command === "doctor") return runDoctor();
 
+    if (command === "pipelines") {
+      for (const p of listPipelines()) console.log(`${p.id.padEnd(22)} ${p.blurb}`);
+      return 0;
+    }
+
     if (command === "plan") {
-      const idea = rest.join(" ");
-      const plan = fallbackPlan(idea);
-      const out = join(process.cwd(), "out", `${slug(idea)}.scene-plan.json`);
+      const { pipelineId, idea, targetSeconds } = parseMakeArgs(rest);
+      const plan = planVideo(pipelineId, idea, targetSeconds ? { targetSeconds } : {});
+      const out = join(process.cwd(), "out", `${slug(idea || pipelineId)}.scene-plan.json`);
       mkdirSync(dirname(out), { recursive: true });
       writeFileSync(out, `${JSON.stringify(plan, null, 2)}\n`);
       console.log(out);
@@ -88,12 +128,12 @@ export function main(argv = process.argv.slice(2)): number {
     }
 
     if (command === "make") {
-      const idea = rest.join(" ");
-      const plan = fallbackPlan(idea);
+      const { pipelineId, idea, targetSeconds } = parseMakeArgs(rest);
+      const plan = planVideo(pipelineId, idea, targetSeconds ? { targetSeconds } : {});
       const composed = composeScenePlan(plan);
       const issues = validateTimeline(composed.timeline);
       if (issues.length) throw new Error(`compose failed: ${issues.join("; ")}`);
-      const base = slug(idea);
+      const base = slug(idea || pipelineId);
       const ir = join(process.cwd(), "out", `${base}.timeline.json`);
       const mp4 = join(process.cwd(), "out", `${base}.mp4`);
       mkdirSync(dirname(ir), { recursive: true });
