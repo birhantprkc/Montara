@@ -4,13 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "montara": "esbuild packages/cli/src/index.ts --bundle --platform=node --format=esm --outfile=packages/cli/.montara.mjs && node packages/cli/.montara.mjs",
     "verify": "esbuild scripts/verify.ts --bundle --platform=node --format=esm --outfile=scripts/.verify.mjs && node scripts/.verify.mjs",
     "doctor": "esbuild scripts/doctor.ts --bundle --platform=node --format=esm --outfile=scripts/.doctor.mjs && node scripts/.doctor.mjs",
+    "validate": "esbuild scripts/validate.ts --bundle --platform=node --format=esm --outfile=scripts/.validate.mjs && node scripts/.validate.mjs",
     "typecheck": "tsc -b"
   },
   "devDependencies": {
+    "@montara/cli": "workspace:*",
     "@montara/core": "workspace:*",
     "@montara/render-ffmpeg": "workspace:*",
+    "@montara/render-remotion": "workspace:*",
     "esbuild": "^0.24.2",
     "typescript": "^5.6.3"
   }

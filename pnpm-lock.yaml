@@ -8,18 +8,36 @@ importers:
 
   .:
     devDependencies:
+      '@montara/cli':
+        specifier: workspace:*
+        version: link:packages/cli
       '@montara/core':
         specifier: workspace:*
         version: link:packages/core
       '@montara/render-ffmpeg':
         specifier: workspace:*
         version: link:packages/render-ffmpeg
+      '@montara/render-remotion':
+        specifier: workspace:*
+        version: link:packages/render-remotion
       esbuild:
         specifier: ^0.24.2
         version: 0.24.2
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
+
+  packages/cli:
+    dependencies:
+      '@montara/core':
+        specifier: workspace:*
+        version: link:../core
+      '@montara/render-ffmpeg':
+        specifier: workspace:*
+        version: link:../render-ffmpeg
+      '@montara/render-remotion':
+        specifier: workspace:*
+        version: link:../render-remotion
 
   packages/core: {}
 
@@ -28,6 +46,15 @@ importers:
       '@montara/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/render-remotion:
+    dependencies:
+      '@montara/core':
+        specifier: workspace:*
+        version: link:../core
+      '@montara/render-ffmpeg':
+        specifier: workspace:*
+        version: link:../render-ffmpeg
 
 packages:
 

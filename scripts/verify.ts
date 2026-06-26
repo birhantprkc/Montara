@@ -1,25 +1,30 @@
-// Montara verify harness (Phase 1.0). Contract tests for core + render-ffmpeg, including a
-// REAL ffmpeg render of a tiny scene-plan. This is the runnability gate: it must end
-// "N passed, 0 failed" or CI/merge is blocked.
+// Montara verify harness. Contract tests for core + render-ffmpeg, including real MP4 renders.
 
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { totalDuration, round3, type ScenePlan } from "../packages/core/src/types";
-import { renderScenePlan, probeDuration } from "../packages/render-ffmpeg/src/index";
+import {
+  scenePlanToTimeline,
+  timelineDuration,
+  totalDuration,
+  round3,
+  validateTimeline,
+  type ScenePlan,
+} from "../packages/core/src/index";
+import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
 
 let pass = 0;
 let fail = 0;
 const ok = (name: string, cond: boolean, extra = ""): void => {
   if (cond) {
     pass++;
-    console.log(`  ✓ ${name}`);
+    console.log(`  ok ${name}`);
   } else {
     fail++;
-    console.log(`  ✗ ${name}${extra ? "  " + extra : ""}`);
+    console.log(`  fail ${name}${extra ? "  " + extra : ""}`);
   }
 };
 
-console.log("== Montara verify (Phase 1.0) ==\n");
+console.log("== Montara verify ==\n");
 
 console.log("== core ==");
 const plan: ScenePlan = {
@@ -33,6 +38,10 @@ const plan: ScenePlan = {
 };
 ok("totalDuration sums scenes", Math.abs(totalDuration(plan) - 3.0) < 1e-6, `got ${totalDuration(plan)}`);
 ok("round3 rounds to ms", round3(1.23456) === 1.235, `got ${round3(1.23456)}`);
+const timeline = scenePlanToTimeline(plan);
+ok("scene plan compiles to Timeline IR", timeline.tracks.length === 2 && timeline.composition.durationSec === 3);
+ok("Timeline IR validates", validateTimeline(timeline).length === 0, validateTimeline(timeline).join("; "));
+ok("timelineDuration reads clip ends", timelineDuration(timeline) === 3, `got ${timelineDuration(timeline)}`);
 
 console.log("\n== render (REAL ffmpeg) ==");
 const out = join(process.cwd(), "out", "verify.mp4");
@@ -47,7 +56,22 @@ try {
 ok("scene plan produced an MP4 on disk", rendered && existsSync(out));
 if (rendered && existsSync(out)) {
   const d = probeDuration(out);
-  ok("rendered duration ≈ 3.0s", Math.abs(d - 3.0) < 0.4, `got ${d.toFixed(2)}s`);
+  ok("rendered duration ~= 3.0s", Math.abs(d - 3.0) < 0.4, `got ${d.toFixed(2)}s`);
+}
+
+const timelineOut = join(process.cwd(), "out", "verify-timeline.mp4");
+try { rmSync(timelineOut, { force: true }); } catch { /* none */ }
+let timelineRendered = false;
+try {
+  renderTimeline(timeline, timelineOut);
+  timelineRendered = true;
+} catch (e) {
+  console.log("  timeline render error:", String(e).slice(0, 500));
+}
+ok("Timeline IR produced an MP4 on disk", timelineRendered && existsSync(timelineOut));
+if (timelineRendered && existsSync(timelineOut)) {
+  const d = probeDuration(timelineOut);
+  ok("Timeline render duration ~= 3.0s", Math.abs(d - 3.0) < 0.4, `got ${d.toFixed(2)}s`);
 }
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

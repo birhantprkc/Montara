@@ -10,9 +10,12 @@ out/
 # esbuild-bundled test artifacts
 scripts/.verify.mjs
 scripts/.doctor.mjs
+scripts/.validate.mjs
+packages/cli/.montara.mjs
 
 # private strategy / planning — never committed or published
 PLAN.md
+AGENTS.md
 CLAUDE.md
 AGENT_GUIDE.md
 CURSOR.md
