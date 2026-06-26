@@ -1,0 +1,25 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+# downloaded GGUF / ONNX weights — never commit
+models/
+out/
+.montara-cache/
+# esbuild-bundled test artifacts
+scripts/.verify.mjs
+scripts/.doctor.mjs
+
+# private strategy / planning — never committed or published
+PLAN.md
+CLAUDE.md
+AGENT_GUIDE.md
+CURSOR.md
+CODEX.md
+COPILOT.md
+.windsurfrules
+README.md
+NOTICE
+LICENSE
+docs/
