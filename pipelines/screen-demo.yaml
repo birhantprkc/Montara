@@ -1,0 +1,21 @@
+# Montara pipeline manifest — Screen Demo
+id: screen-demo
+name: Screen Demo
+blurb: "Walkthrough: intro → step 1 → step 2 → step 3 → recap."
+palette:
+  - "0a0e12"
+  - "121821"
+  - "1b2430"
+  - "243140"
+  - "0e1d16"
+beats:
+  - label: Intro
+    weight: 1
+  - label: Step 1
+    weight: 1.2
+  - label: Step 2
+    weight: 1.2
+  - label: Step 3
+    weight: 1.2
+  - label: Recap
+    weight: 1

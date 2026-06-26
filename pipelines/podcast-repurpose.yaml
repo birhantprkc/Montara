@@ -1,0 +1,18 @@
+# Montara pipeline manifest — Podcast Repurpose
+id: podcast-repurpose
+name: Podcast Repurpose
+blurb: "Highlight reel: hook quote → context → punch → CTA."
+palette:
+  - "120a0a"
+  - "241313"
+  - "3a1d1d"
+  - "4f2727"
+beats:
+  - label: Hook quote
+    weight: 1
+  - label: Context
+    weight: 1.2
+  - label: The punch
+    weight: 1.4
+  - label: Full episode
+    weight: 0.8

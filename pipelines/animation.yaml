@@ -1,0 +1,19 @@
+# Montara pipeline manifest — Animation / Motion Graphics
+id: animation
+name: "Animation / Motion Graphics"
+blurb: Punchy kinetic beats for social and product demos.
+palette:
+  - "0a0a0a"
+  - "1a1030"
+  - "2b0f45"
+  - "3d1153"
+  - "120a24"
+beats:
+  - label: Title in
+    weight: 1
+  - label: Idea
+    weight: 1.3
+  - label: Detail
+    weight: 1.3
+  - label: Payoff
+    weight: 1

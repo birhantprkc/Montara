@@ -1,0 +1,15 @@
+# Montara pipeline manifest — Clip Factory
+id: clip-factory
+name: Clip Factory
+blurb: "One self-contained short: hook → payoff → CTA."
+palette:
+  - "0a0a0a"
+  - "1d1d1d"
+  - "2a1240"
+beats:
+  - label: Hook
+    weight: 1
+  - label: Payoff
+    weight: 1.4
+  - label: Follow for more
+    weight: 0.8

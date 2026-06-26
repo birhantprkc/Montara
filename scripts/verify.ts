@@ -1,6 +1,6 @@
 // Montara verify harness. Contract tests for core + render-ffmpeg, including real MP4 renders.
 
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   scenePlanToTimeline,
@@ -22,6 +22,23 @@ import {
   BudgetLedger,
 } from "../packages/quality/src/index";
 import { planResearchQueries, runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
+import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
+import {
+  renderPipelineManifest,
+  validateJson,
+  scenePlanSchema,
+  timelineSchema,
+  pipelineSchema,
+  createCheckpoint,
+  advanceCheckpoint,
+  nextStage,
+  isComplete,
+  saveCheckpoint,
+  loadCheckpoint,
+  renderAssistantConfig,
+  ASSISTANT_TARGETS,
+  SKILLS_ENTRY,
+} from "../packages/agent/src/index";
 
 let pass = 0;
 let fail = 0;
@@ -158,6 +175,34 @@ ok("budget rejects an over-per-action reservation in cap mode", !ledger.reserve(
 const r = ledger.reserve("image", 0.3);
 ledger.reconcile(r.id, 0.25);
 ok("budget reconciles actuals and tracks remaining", ledger.report().remaining < 10 && ledger.report().reserved > 0);
+
+console.log("\n== agent layer (§K) ==");
+let manifestsInSync = PIPELINE_DEFS.length === 12;
+for (const def of PIPELINE_DEFS) {
+  const path = join(process.cwd(), "pipelines", `${def.id}.yaml`);
+  if (!existsSync(path)) { manifestsInSync = false; console.log(`    missing manifest ${def.id}.yaml`); continue; }
+  const onDisk = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+  if (onDisk !== renderPipelineManifest(def)) { manifestsInSync = false; console.log(`    drift in ${def.id}.yaml`); }
+}
+ok("12 YAML pipeline manifests are in sync with code", manifestsInSync);
+
+ok("scene plan validates against its JSON schema", validateJson(plan, scenePlanSchema).length === 0, validateJson(plan, scenePlanSchema).join("; "));
+ok("a broken scene plan is rejected by the schema", validateJson({ width: 0, scenes: [] }, scenePlanSchema).length > 0);
+ok("Timeline IR validates against its JSON schema", validateJson(timeline, timelineSchema).length === 0, validateJson(timeline, timelineSchema).join("; "));
+ok("pipeline manifest validates against the pipeline schema", validateJson(getPipeline("cinematic"), pipelineSchema).length === 0);
+
+let cp = createCheckpoint("verify idea", "documentary-montage", "run-verify");
+cp = advanceCheckpoint(cp, "research");
+cp = advanceCheckpoint(cp, "plan");
+ok("checkpoint reports the next unfinished stage", nextStage(cp) === "script", `got ${nextStage(cp)}`);
+const cpPath = join(process.cwd(), "out", "verify-checkpoint.json");
+saveCheckpoint(cp, cpPath);
+let resumed = loadCheckpoint(cpPath);
+for (const stage of ["script", "populate", "enrich", "render", "qa", "master"] as const) resumed = advanceCheckpoint(resumed, stage);
+ok("a saved checkpoint resumes to completion", isComplete(resumed) && resumed.done && resumed.runId === "run-verify");
+
+ok("five per-assistant configs are generated", ASSISTANT_TARGETS.length === 5);
+ok("each assistant config points at the skills entry", ASSISTANT_TARGETS.every((t) => renderAssistantConfig(t).includes(SKILLS_ENTRY)));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

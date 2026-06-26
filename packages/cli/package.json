@@ -5,6 +5,8 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "dependencies": {
+    "@montara/agent": "workspace:*",
+    "@montara/ai": "workspace:*",
     "@montara/core": "workspace:*",
     "@montara/providers": "workspace:*",
     "@montara/quality": "workspace:*",

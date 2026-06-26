@@ -1,0 +1,19 @@
+# Montara pipeline manifest — Cinematic / Trailer
+id: cinematic
+name: "Cinematic / Trailer"
+blurb: "Mood-driven beats: open → build → reveal → resolve."
+palette:
+  - "050608"
+  - "0d1117"
+  - "161b22"
+  - "23120f"
+  - "3a0d0d"
+beats:
+  - label: Cold open
+    weight: 1
+  - label: The build
+    weight: 1.4
+  - label: The reveal
+    weight: 1.4
+  - label: Resolve
+    weight: 1

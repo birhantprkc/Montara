@@ -1,0 +1,19 @@
+# Montara pipeline manifest — Kinetic Typography
+id: kinetic-typography
+name: Kinetic Typography
+blurb: "Words are the visual — animated text to a beat."
+palette:
+  - "0a0a0a"
+  - "e23636"
+  - "0a0a0a"
+  - "9fd8ff"
+  - "0a0a0a"
+beats:
+  - label: Line one
+    weight: 1
+  - label: Line two
+    weight: 1
+  - label: Line three
+    weight: 1
+  - label: Land it
+    weight: 1.2

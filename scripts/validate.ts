@@ -27,6 +27,20 @@ import {
   BudgetLedger,
 } from "../packages/quality/src/index";
 import { runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
+import { planVideo } from "../packages/ai/src/index";
+import {
+  createCheckpoint,
+  advanceCheckpoint,
+  nextStage,
+  isComplete,
+  saveCheckpoint,
+  loadCheckpoint,
+  validateJson,
+  timelineSchema,
+  writePipelineManifests,
+  writeSchemas,
+  writeAssistantConfigs,
+} from "../packages/agent/src/index";
 
 let pass = 0;
 let fail = 0;
@@ -174,9 +188,48 @@ const trailPath = join(outDir, "validate-decision-trail.json");
 writeFileSync(trailPath, `${JSON.stringify(trail.toJSON(), null, 2)}\n`);
 ok("decision audit trail emitted to disk", existsSync(trailPath) && trail.length >= 4, `entries ${trail.length}`);
 
-console.log(`\nArtifact:   ${mp4Path}`);
-console.log(`IR:         ${irPath}`);
+console.log("\n== agent layer headless drive (Phase 1.5 §K) ==");
+// Generate the data-side artefacts an external assistant reads.
+ok("agent emits 12 YAML pipeline manifests", writePipelineManifests(join(outDir, "pipelines")).length === 12);
+ok("agent emits 3 JSON schemas", writeSchemas(join(outDir, "schemas")).length === 3);
+ok("agent emits 5 per-assistant configs", writeAssistantConfigs(join(outDir, "agent")).length === 5);
+
+// Drive the full loop headlessly with a resumable checkpoint, simulating a crash + resume mid-run.
+const driveIdea = "the strait of hormuz";
+const drivePipeline = "documentary-montage";
+const cpPath = join(outDir, "validate-checkpoint.json");
+const headlessMp4 = join(outDir, "validate-headless.mp4");
+try { rmSync(headlessMp4, { force: true }); } catch { /* none */ }
+
+let cp = createCheckpoint(driveIdea, drivePipeline, "run-validate");
+runResearch(driveIdea, { trail });                       cp = advanceCheckpoint(cp, "research");
+const drivePlan = planVideo(drivePipeline, driveIdea, { targetSeconds: 6 });   cp = advanceCheckpoint(cp, "plan");
+cp = advanceCheckpoint(cp, "script");
+const driveComposed = composeScenePlan(drivePlan);       cp = advanceCheckpoint(cp, "populate", cpPath);
+saveCheckpoint(cp, cpPath);
+
+// crash + resume: a fresh process would reload the checkpoint and continue from "enrich"
+const reloaded = loadCheckpoint(cpPath);
+ok("headless run resumes from the next unfinished stage", nextStage(reloaded) === "enrich", `got ${nextStage(reloaded)}`);
+ok("composed IR validates against the Timeline JSON schema", validateJson(driveComposed.timeline, timelineSchema).length === 0,
+  validateJson(driveComposed.timeline, timelineSchema).join("; "));
+
+let run = advanceCheckpoint(reloaded, "enrich");
+const driveGate = preComposeGate(driveComposed.timeline, { targetDurationSec: driveComposed.timeline.composition.durationSec }, { rendererAvailable: true, trail });
+ok("headless pre-compose gate clears the run", driveGate.ok, driveGate.blockers.join("; "));
+renderComposedTimeline(driveComposed.timeline, headlessMp4);   run = advanceCheckpoint(run, "render", headlessMp4);
+const driveReview = postRenderSelfReview(headlessMp4, { timeline: driveComposed.timeline, targetDurationSec: driveComposed.timeline.composition.durationSec, trail });
+run = advanceCheckpoint(run, "qa");
+run = advanceCheckpoint(run, "master");
+saveCheckpoint(run, cpPath);
+
+ok("headless drive renders a real MP4 end-to-end", existsSync(headlessMp4) && driveReview.ok);
+ok("headless run reaches a complete checkpoint", isComplete(run) && run.done, `completed ${run.completed.length}/8`);
+
+console.log(`\nArtifact:    ${mp4Path}`);
+console.log(`IR:          ${irPath}`);
 console.log(`Self-review: ${reviewPath}`);
 console.log(`Audit trail: ${trailPath}`);
+console.log(`Headless:    ${headlessMp4} (checkpoint ${cpPath})`);
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

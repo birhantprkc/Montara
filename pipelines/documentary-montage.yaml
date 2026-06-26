@@ -1,0 +1,21 @@
+# Montara pipeline manifest — Documentary Montage
+id: documentary-montage
+name: Documentary Montage
+blurb: "Narrated montage: cold-open → context → evidence → implication → close."
+palette:
+  - "07090c"
+  - "12181f"
+  - "1b2530"
+  - "26170f"
+  - "0e1d16"
+beats:
+  - label: Cold open
+    weight: 1
+  - label: Context
+    weight: 1.3
+  - label: Evidence
+    weight: 1.5
+  - label: What it means
+    weight: 1.3
+  - label: Close
+    weight: 1

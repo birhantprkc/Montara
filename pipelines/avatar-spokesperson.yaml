@@ -1,0 +1,18 @@
+# Montara pipeline manifest — Avatar Spokesperson
+id: avatar-spokesperson
+name: Avatar Spokesperson
+blurb: "Presenter-framed message: intro → message → proof → CTA."
+palette:
+  - "12161c"
+  - "1c2530"
+  - "243140"
+  - "2d3c4f"
+beats:
+  - label: Intro
+    weight: 1
+  - label: Message
+    weight: 1.6
+  - label: Proof
+    weight: 1.2
+  - label: Call to action
+    weight: 1

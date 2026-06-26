@@ -1,0 +1,18 @@
+# Montara pipeline manifest — Hybrid
+id: hybrid
+name: Hybrid
+blurb: "Source footage + AI support visuals, alternating."
+palette:
+  - "0a0f0a"
+  - "13241a"
+  - "1f3a2a"
+  - "294f38"
+beats:
+  - label: Open
+    weight: 1
+  - label: Footage
+    weight: 1.4
+  - label: Support visual
+    weight: 1.2
+  - label: Close
+    weight: 1

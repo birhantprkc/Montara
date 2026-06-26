@@ -1,0 +1,16 @@
+# Montara pipeline manifest — Localization & Dub
+id: localization-dub
+name: "Localization & Dub"
+blurb: "Restructure an existing piece for another language (caption/dub beats)."
+palette:
+  - "0a0a14"
+  - "151528"
+  - "20203c"
+  - "2b2b50"
+beats:
+  - label: Source segment
+    weight: 1.4
+  - label: Translated caption
+    weight: 1.4
+  - label: Dub note
+    weight: 1

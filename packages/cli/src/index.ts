@@ -8,6 +8,7 @@ import { listPipelines, planVideo } from "../../ai/src/index";
 import { listProviderTools } from "../../providers/src/index";
 import { preComposeGate, postRenderSelfReview, writeSelfReview } from "../../quality/src/index";
 import { runResearch } from "../../research/src/index";
+import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
 
 interface MakeArgs {
@@ -101,6 +102,7 @@ Commands:
   make  [opts] <idea>             plan + gate + compose + render + self-review to ./out
   render <ir.json>                render a ScenePlan or Timeline IR JSON to MP4
   review <mp4>                    post-render self-review report for an MP4
+  agent                           regenerate pipeline manifests + schemas + assistant configs
 
 Options (plan/make):
   --pipeline, -p <id>             pipeline shape (default: animated-explainer)
@@ -172,6 +174,18 @@ export function main(argv = process.argv.slice(2)): number {
       console.log(`${bundle.queries.length} queries · ${bundle.findings.length} findings · ${bundle.online ? "online" : "offline brief"}`);
       for (const angle of bundle.angles) console.log(`  angle: ${angle}`);
       console.log(out);
+      return 0;
+    }
+
+    if (command === "agent") {
+      const root = process.cwd();
+      const manifests = writePipelineManifests(join(root, "pipelines"));
+      const schemas = writeSchemas(join(root, "schemas"));
+      const configs = writeAssistantConfigs(join(root, "out", "agent"));
+      console.log(`pipelines:  ${manifests.length} YAML manifests -> pipelines/`);
+      console.log(`schemas:    ${schemas.length} JSON schemas -> schemas/`);
+      console.log(`assistants: ${configs.length} configs -> out/agent/`);
+      console.log(`entry:      ${SKILLS_ENTRY}`);
       return 0;
     }
 

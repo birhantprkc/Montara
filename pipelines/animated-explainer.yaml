@@ -1,0 +1,21 @@
+# Montara pipeline manifest — Animated Explainer
+id: animated-explainer
+name: Animated Explainer
+blurb: "Teach one idea clearly: hook → why → how → example → takeaway."
+palette:
+  - "101820"
+  - "16323a"
+  - "1f4d4a"
+  - "2a6f5f"
+  - "0f3d2e"
+beats:
+  - label: Hook
+    weight: 1
+  - label: Why it matters
+    weight: 1.2
+  - label: How it works
+    weight: 1.6
+  - label: In practice
+    weight: 1.2
+  - label: The takeaway
+    weight: 1
