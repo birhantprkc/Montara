@@ -12,11 +12,21 @@ import {
 } from "../packages/core/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
 import { listPipelines, planVideo } from "../packages/ai/src/index";
-import { listProviderTools } from "../packages/providers/src/index";
+import {
+  listProviderTools,
+  VIDEO_PROVIDERS,
+  listVideoProviders,
+  providerAvailable,
+  buildVideoRequest,
+  planVideoGeneration,
+  runVideoGeneration,
+  getVideoProvider,
+} from "../packages/providers/src/index";
 import {
   DecisionTrail,
   SELECTION_WEIGHTS,
   selectProviderTool,
+  selectMediaProvider,
   slideshowRisk,
   preComposeGate,
   BudgetLedger,
@@ -203,6 +213,33 @@ ok("a saved checkpoint resumes to completion", isComplete(resumed) && resumed.do
 
 ok("five per-assistant configs are generated", ASSISTANT_TARGETS.length === 5);
 ok("each assistant config points at the skills entry", ASSISTANT_TARGETS.every((t) => renderAssistantConfig(t).includes(SKILLS_ENTRY)));
+
+console.log("\n== video providers (§C) ==");
+ok("all 14 video generation providers are registered", VIDEO_PROVIDERS.length === 14, `got ${VIDEO_PROVIDERS.length}`);
+ok("video providers span cloud + local-runtime + stock tiers", ["cloud", "local-runtime", "stock"].every((t) => VIDEO_PROVIDERS.some((p) => p.tier === t)));
+ok("every video provider is category video", VIDEO_PROVIDERS.every((p) => p.category === "video"));
+
+const kling = getVideoProvider("kling")!;
+ok("provider is unavailable without its credential", !providerAvailable(kling, {}));
+ok("provider becomes available with its credential", providerAvailable(kling, { KLING_API_KEY: "k" }));
+
+const vInput = { prompt: "an oil tanker crossing a narrow strait", outPath: join(process.cwd(), "out", "verify-video.mp4"), durationSec: 4, width: 1280, height: 720 };
+const pexelsReq = buildVideoRequest(getVideoProvider("pexels-video")!, vInput, { PEXELS_API_KEY: "pk" });
+ok("stock request is a GET with the query + auth", pexelsReq.method === "GET" && pexelsReq.url.includes("query=") && pexelsReq.headers.Authorization === "pk");
+const klingReq = buildVideoRequest(kling, vInput, { KLING_API_KEY: "k" });
+ok("cloud request is a Bearer POST carrying the prompt", klingReq.method === "POST" && klingReq.headers.Authorization === "Bearer k" && Boolean(klingReq.body?.includes("strait")));
+
+const offlinePlan = planVideoGeneration(vInput, {});
+ok("with no credentials a plan falls back to local-free", offlinePlan.mode === "fallback" && offlinePlan.provider.tier === "local-free");
+const keyedPlan = planVideoGeneration({ ...vInput, providerId: "runway-gen3" }, { RUNWAY_API_KEY: "rk" });
+ok("a credentialed provider yields a request plan", keyedPlan.mode === "request" && keyedPlan.provider.id === "runway-gen3" && Boolean(keyedPlan.request));
+
+const mediaPick = selectMediaProvider(VIDEO_PROVIDERS.filter((p) => p.tier === "cloud"), { trail });
+ok("scored selection ranks a cloud video provider", mediaPick.chosen.item.tier === "cloud");
+
+const vGen = runVideoGeneration(vInput, {});
+ok("offline video generation renders a real fallback MP4", Boolean(vGen.result) && existsSync(vInput.outPath));
+void listVideoProviders;
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

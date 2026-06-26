@@ -17,6 +17,11 @@ import {
   sampleFrame,
   stitchVideos,
   trimVideo,
+  VIDEO_PROVIDERS,
+  buildVideoRequest,
+  getVideoProvider,
+  planVideoGeneration,
+  runVideoGeneration,
 } from "../packages/providers/src/index";
 import {
   DecisionTrail,
@@ -187,6 +192,19 @@ ok("self-review report emitted to disk", existsSync(reviewPath));
 const trailPath = join(outDir, "validate-decision-trail.json");
 writeFileSync(trailPath, `${JSON.stringify(trail.toJSON(), null, 2)}\n`);
 ok("decision audit trail emitted to disk", existsSync(trailPath) && trail.length >= 4, `entries ${trail.length}`);
+
+console.log("\n== video providers (Phase 1.6 §C) ==");
+ok("14 video providers registered (cloud + local-runtime + stock)", VIDEO_PROVIDERS.length === 14);
+
+const genVideoPath = join(outDir, "validate-video-gen.mp4");
+try { rmSync(genVideoPath, { force: true }); } catch { /* none */ }
+const vGen = runVideoGeneration({ prompt: "oil tanker crossing a narrow strait at dawn", outPath: genVideoPath, durationSec: 1.2, width: 640, height: 360 }, {});
+ok("offline video generation falls back to a real local MP4", vGen.plan.mode === "fallback" && existsSync(genVideoPath) && probeDuration(genVideoPath) > 0.8);
+
+const byokPlan = planVideoGeneration({ prompt: "same prompt", outPath: genVideoPath, providerId: "runway-gen3" }, { RUNWAY_API_KEY: "demo-key" });
+ok("BYOK plan builds a real provider request (no network)", byokPlan.mode === "request" && byokPlan.request?.headers.Authorization === "Bearer demo-key");
+const stockReq = buildVideoRequest(getVideoProvider("pixabay-video")!, { prompt: "narrow strait", outPath: genVideoPath }, { PIXABAY_API_KEY: "pk" });
+ok("stock provider request encodes key + query", stockReq.url.includes("key=pk") && stockReq.url.includes("q=narrow"));
 
 console.log("\n== agent layer headless drive (Phase 1.5 §K) ==");
 // Generate the data-side artefacts an external assistant reads.

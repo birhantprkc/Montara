@@ -426,3 +426,6 @@ export function timelineToCaptionCardVideos(timeline: Timeline, outDir: string):
     outPath: join(outDir, `scene-${index + 1}.mp4`),
   }));
 }
+
+// Media provider registry (§C/§D/§E parity surface).
+export * from "./registry";

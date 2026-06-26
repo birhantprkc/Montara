@@ -2,7 +2,7 @@
 // 7-dimension weighted score: task-fit 30 / quality 20 / control 15 / reliability 15 /
 // cost 10 / latency 5 / continuity 5 (sums to 100). Deterministic and fully explainable.
 
-import type { ProviderToolDefinition, ToolCategory } from "../../providers/src/index";
+import type { ProviderToolDefinition, ToolCategory, MediaProvider } from "../../providers/src/index";
 import { DecisionTrail, clamp01 } from "./audit";
 
 export interface ScoreDimensions {
@@ -113,4 +113,35 @@ export function selectProviderTool(
     dims: toolDimensions(t, taskCategory),
   }));
   return selectBest(candidates, { trail: opts.trail, kind: `provider-selection:${taskCategory}` });
+}
+
+/** Dimensions for a media generation provider (cloud / local-runtime / stock / local-free). */
+export function mediaProviderDimensions(provider: MediaProvider): ScoreDimensions {
+  const cloud = provider.tier === "cloud";
+  const localRuntime = provider.tier === "local-runtime";
+  const stock = provider.tier === "stock";
+  const localFree = provider.tier === "local-free";
+  return {
+    taskFit: 1,
+    quality: cloud ? 0.9 : localRuntime ? 0.75 : stock ? 0.5 : 0.45,
+    control: localRuntime ? 0.9 : cloud ? 0.7 : 0.5,
+    reliability: cloud ? 0.85 : stock ? 0.8 : localRuntime ? 0.7 : 0.95,
+    cost: localFree || localRuntime ? 1 : stock ? 0.9 : 0.3,
+    latency: stock ? 0.95 : cloud ? 0.6 : localRuntime ? 0.5 : 0.9,
+    continuity: cloud ? 0.7 : 0.6,
+  };
+}
+
+export function selectMediaProvider(
+  providers: MediaProvider[],
+  opts: { trail?: DecisionTrail } = {},
+): SelectionResult<MediaProvider> {
+  if (!providers.length) throw new Error("selectMediaProvider requires at least one provider");
+  const candidates: Candidate<MediaProvider>[] = providers.map((p) => ({
+    id: p.id,
+    label: p.name,
+    item: p,
+    dims: mediaProviderDimensions(p),
+  }));
+  return selectBest(candidates, { trail: opts.trail, kind: "media-provider-selection" });
 }

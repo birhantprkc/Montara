@@ -5,7 +5,7 @@ import { validateTimeline } from "../../core/src/index";
 import { renderScenePlan, renderTimeline } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
-import { listProviderTools } from "../../providers/src/index";
+import { listProviderTools, listVideoProviders, providerAvailable } from "../../providers/src/index";
 import { preComposeGate, postRenderSelfReview, writeSelfReview } from "../../quality/src/index";
 import { runResearch } from "../../research/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
@@ -97,6 +97,7 @@ Commands:
   doctor                          check local render prerequisites
   pipelines                       list the available pipeline shapes
   tools                           list local/free provider tools
+  providers                       list video generation providers + availability
   research <idea>                 plan 15-25 searches + write a research brief to ./out
   plan  [opts] <idea>             write a structured scene plan to ./out
   make  [opts] <idea>             plan + gate + compose + render + self-review to ./out
@@ -127,6 +128,14 @@ export function main(argv = process.argv.slice(2)): number {
 
     if (command === "tools") {
       for (const tool of listProviderTools()) console.log(`${tool.id.padEnd(28)} ${tool.category.padEnd(8)} ${tool.description}`);
+      return 0;
+    }
+
+    if (command === "providers") {
+      for (const p of listVideoProviders(true)) {
+        const status = providerAvailable(p) ? "available" : `needs ${p.authEnv ?? "key"}`;
+        console.log(`${p.id.padEnd(24)} ${p.tier.padEnd(13)} ${status.padEnd(22)} ${p.name}`);
+      }
       return 0;
     }
 
