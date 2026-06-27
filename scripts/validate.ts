@@ -51,6 +51,7 @@ import { runResearch, indexFootage, retrieveFootage } from "../packages/research
 import { planVideo } from "../packages/ai/src/index";
 import { analyzeReferenceVideo, transcribe } from "../packages/understand/src/index";
 import { listEngines, preferredEngine, renderWithEngine } from "../packages/render-engines/src/index";
+import { STYLE_PLAYBOOKS, OUTPUT_PROFILES, applyStyle, applyOutputProfile } from "../packages/style/src/index";
 import {
   createCheckpoint,
   advanceCheckpoint,
@@ -286,6 +287,16 @@ const enginePath = join(outDir, "validate-engine.mp4");
 try { rmSync(enginePath, { force: true }); } catch { /* none */ }
 const engResult = renderWithEngine("motion-canvas", result.timeline, enginePath, {});
 ok("a non-ffmpeg engine renders the IR (degraded) to a real MP4", existsSync(enginePath) && probeDuration(enginePath) > 1 && engResult.renderer === "degraded-ffmpeg");
+
+console.log("\n== style + output profiles (Phase 1.12 §J) ==");
+ok("3 styles + 6 output profiles registered", STYLE_PLAYBOOKS.length === 3 && OUTPUT_PROFILES.length === 6);
+const branded = applyOutputProfile(applyStyle(result.timeline, "clean-professional"), "shorts");
+ok("style + shorts profile yield a valid 9:16 IR", branded.composition.width === 1080 && branded.composition.height === 1920 && validateTimeline(branded).length === 0);
+
+const shortsPath = join(outDir, "validate-shorts.mp4");
+try { rmSync(shortsPath, { force: true }); } catch { /* none */ }
+renderComposedTimeline(branded, shortsPath);
+ok("the styled 9:16 IR renders to a real vertical MP4", existsSync(shortsPath) && probeDuration(shortsPath) > 1);
 
 console.log("\n== agent layer headless drive (Phase 1.5 §K) ==");
 // Generate the data-side artefacts an external assistant reads.

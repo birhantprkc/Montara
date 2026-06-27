@@ -56,6 +56,7 @@ import { planResearchQueries, runResearch, indexFootage, retrieveFootage } from 
 import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
 import { detectScenes, sampleKeyFrames, transcribe, understandVideo, analyzeReferenceVideo } from "../packages/understand/src/index";
 import { listEngines, getEngine, engineAvailable, preferredEngine, renderWithEngine } from "../packages/render-engines/src/index";
+import { STYLE_PLAYBOOKS, OUTPUT_PROFILES, applyStyle, applyOutputProfile, getOutputProfile } from "../packages/style/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -376,6 +377,22 @@ ok("an engine adapter degrades to ffmpeg and renders a real MP4", existsSync(eng
 const ffOut = join(process.cwd(), "out", "verify-engine-ff.mp4");
 const ffResult = renderWithEngine("ffmpeg", timeline, ffOut, {});
 ok("the ffmpeg engine renders natively", existsSync(ffOut) && ffResult.renderer === "native");
+
+console.log("\n== style + output profiles (§J) ==");
+ok("3 style playbooks + 6 output profiles registered", STYLE_PLAYBOOKS.length === 3 && OUTPUT_PROFILES.length === 6);
+ok("output profiles cover 16:9, 9:16, 1:1 and 21:9", ["16:9", "9:16", "1:1", "21:9"].every((a) => OUTPUT_PROFILES.some((p) => p.aspect === a)));
+
+const styled = applyStyle(timeline, "flat-motion");
+const styledText = styled.tracks.flatMap((t) => t.clips).find((c) => c.type === "text");
+ok("applying a style restyles text + sets the background", styled.composition.background === "111111" && styledText?.type === "text" && styledText.style?.fontFamily === "Poppins");
+ok("a styled timeline still validates", validateTimeline(styled).length === 0);
+
+const shorts = applyOutputProfile(timeline, "shorts");
+const shortsText = shorts.tracks.flatMap((t) => t.clips).find((c) => c.type === "text");
+ok("applying the shorts profile resizes to 1080x1920", shorts.composition.width === 1080 && shorts.composition.height === 1920);
+ok("output profile re-centers positioned text", shortsText?.transform?.x === 540 && shortsText.transform?.y === 960);
+ok("a re-profiled timeline still validates", validateTimeline(shorts).length === 0);
+void getOutputProfile;
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

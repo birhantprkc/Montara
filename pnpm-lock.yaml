@@ -35,6 +35,9 @@ importers:
       '@montara/research':
         specifier: workspace:*
         version: link:packages/research
+      '@montara/style':
+        specifier: workspace:*
+        version: link:packages/style
       '@montara/understand':
         specifier: workspace:*
         version: link:packages/understand
@@ -89,6 +92,9 @@ importers:
       '@montara/research':
         specifier: workspace:*
         version: link:../research
+      '@montara/style':
+        specifier: workspace:*
+        version: link:../style
       '@montara/understand':
         specifier: workspace:*
         version: link:../understand
@@ -145,6 +151,12 @@ importers:
       '@montara/quality':
         specifier: workspace:*
         version: link:../quality
+
+  packages/style:
+    dependencies:
+      '@montara/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/understand:
     dependencies:

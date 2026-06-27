@@ -10,6 +10,7 @@ import { preComposeGate, postRenderSelfReview, writeSelfReview } from "../../qua
 import { runResearch } from "../../research/src/index";
 import { analyzeReferenceVideo } from "../../understand/src/index";
 import { listEngines, engineAvailable } from "../../render-engines/src/index";
+import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
 
@@ -101,6 +102,8 @@ Commands:
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
   engines                         list composition engines + availability
+  styles                          list style playbooks
+  profiles                        list output profiles (aspect ratios)
   research <idea>                 plan 15-25 searches + write a research brief to ./out
   plan  [opts] <idea>             write a structured scene plan to ./out
   make  [opts] <idea>             plan + gate + compose + render + self-review to ./out
@@ -189,6 +192,16 @@ export function main(argv = process.argv.slice(2)): number {
         const status = engineAvailable(e) ? "available" : "degrades to ffmpeg";
         console.log(`${e.id.padEnd(14)} ${status.padEnd(20)} ${e.license.padEnd(16)} ${e.role}`);
       }
+      return 0;
+    }
+
+    if (command === "styles") {
+      for (const s of listStyles()) console.log(`${s.id.padEnd(20)} ${s.typography.fontFamily.padEnd(16)} ${s.name}`);
+      return 0;
+    }
+
+    if (command === "profiles") {
+      for (const p of listOutputProfiles()) console.log(`${p.id.padEnd(12)} ${`${p.width}x${p.height}`.padEnd(11)} ${p.aspect.padEnd(6)} ${p.name}`);
       return 0;
     }
 
