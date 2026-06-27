@@ -121,7 +121,7 @@ import {
   DoubaoTTS,
   TTSSelector,
 } from "../packages/tools/src/index";
-import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition } from "../packages/engine/src/index";
+import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders } from "../packages/engine/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -934,6 +934,22 @@ ok("Timeline IR round-trips back to engine cuts (start/end preserved)", (() => {
   return back.cuts.every((c, i) =>
     Math.abs(c.in_seconds - a[i]!.in_seconds) < 1e-6 && Math.abs(c.out_seconds - a[i]!.out_seconds) < 1e-6);
 })());
+
+console.log("\n== Provider/runtime bridge (1A.4) ==");
+const noKey = engineProviders();
+ok("engine discovers its provider surface dependency-free (no imports)",
+  Boolean(noKey) && noKey!.total >= 70 && noKey!.local > 0);
+const elevenNoKey = noKey?.providers.find((p) => p.name === "elevenlabs_tts");
+ok("no-key offline path: keyed providers are simply unconfigured, never crash",
+  Boolean(elevenNoKey) && elevenNoKey!.configured === false && elevenNoKey!.auth_env === "ELEVENLABS_API_KEY");
+const savedKey = process.env.ELEVENLABS_API_KEY;
+process.env.ELEVENLABS_API_KEY = "verify-fake-key";
+const keyed = engineProviders();
+if (savedKey == null) delete process.env.ELEVENLABS_API_KEY; else process.env.ELEVENLABS_API_KEY = savedKey;
+ok("keyed providers activate only when their env var is configured (secret-safe boolean)",
+  keyed?.providers.find((p) => p.name === "elevenlabs_tts")?.configured === true);
+ok("provider discovery never leaks secret values (env name only, boolean status)",
+  Boolean(noKey) && noKey!.providers.every((p) => typeof p.configured === "boolean" && (p.auth_env === null || /^[A-Z][A-Z0-9_]+$/.test(p.auth_env))));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

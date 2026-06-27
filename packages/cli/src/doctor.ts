@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { mediaBin } from "../../render-ffmpeg/src/index";
-import { engineReady } from "../../engine/src/index";
+import { engineReady, engineProviders } from "../../engine/src/index";
 
 const tool = (label: string, bin: string): boolean => {
   const r = spawnSync(bin, ["-version"], { encoding: "utf8" });
@@ -21,6 +21,10 @@ export function runDoctor(): number {
     console.log(
       `  ok engine   Python ${eng.info.python_version} · ${eng.info.tools} tools · ${eng.info.lib} lib · ${eng.info.pipelines.length} pipelines`,
     );
+    const prov = engineProviders();
+    if (prov) {
+      console.log(`  ok providers ${prov.total} engine providers · ${prov.local} local (no key) · ${prov.configured} configured`);
+    }
   } else {
     console.log(`  warn engine  ${eng.reasons.join("; ") || "not ready"} (TS/ffmpeg path still works)`);
   }

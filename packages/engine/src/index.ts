@@ -97,6 +97,32 @@ export function engineComposition(name: string, root: string = engineRoot()): En
   return res.ok && res.data && Array.isArray(res.data.cuts) ? res.data : null;
 }
 
+export interface EngineProvider {
+  name: string;
+  provider: string;
+  capability: string;
+  category: string;
+  auth_env: string | null;
+  configured: boolean;
+  local: boolean;
+}
+
+export interface EngineProviderReport {
+  ok: boolean;
+  total: number;
+  configured: number;
+  local: number;
+  by_capability: Record<string, number>;
+  providers: EngineProvider[];
+}
+
+/** Discover the engine's provider tools + which are configured — by env presence only,
+ * never the secret values; dependency-free so the no-key offline path never crashes. */
+export function engineProviders(root: string = engineRoot()): EngineProviderReport | null {
+  const res = runEngineBridge<EngineProviderReport>(["providers"], root);
+  return res.ok ? res.data : null;
+}
+
 export interface EngineReadiness {
   ready: boolean;
   python: string | null;

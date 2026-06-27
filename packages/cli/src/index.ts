@@ -13,7 +13,7 @@ import { listEngines, engineAvailable } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
-import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged } from "../../engine/src/index";
+import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders } from "../../engine/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -102,6 +102,7 @@ Commands:
   engine [info|smoke]             show Python engine readiness, or run the integrity smoke
   engine timeline <name>          bridge an engine composition into Montara Timeline IR
   engine render <name> [out]      render a bridged composition to MP4 (ffmpeg; --engine remotion)
+  engine providers                list engine providers + which are configured (no secrets)
   pipelines                       list the available pipeline shapes
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
@@ -157,6 +158,16 @@ export function main(argv = process.argv.slice(2)): number {
         writeFileSync(out, `${JSON.stringify(timeline, null, 2)}\n`);
         console.log(`${comp.cuts.length} cuts -> Timeline IR (${timeline.composition.durationSec}s, ${timeline.tracks.length} tracks, valid)`);
         console.log(out);
+        return 0;
+      }
+      if (sub === "providers") {
+        const p = engineProviders();
+        if (!p) { console.error("engine bridge unavailable (Python 3 required)"); return 1; }
+        console.log(`${p.total} engine providers · ${p.local} local (no key) · ${p.configured} configured`);
+        for (const x of p.providers) {
+          const status = x.local ? "local" : x.configured ? "configured" : `needs ${x.auth_env}`;
+          console.log(`  ${x.name.padEnd(26)} ${x.capability.padEnd(18)} ${status}`);
+        }
         return 0;
       }
       if (sub === "render") {

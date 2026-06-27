@@ -16,11 +16,24 @@ from __future__ import annotations
 import ast
 import glob
 import json
+import os
+import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 ENGINE_DIRS = ["lib", "tools", "skills", "schemas", "pipeline_defs", "styles", "remotion-composer"]
+PROVIDER_DIRS = [
+    "audio", "video", "graphics", "avatar", "subtitle",
+    "character", "capture", "enhancement", "publishers", "analysis",
+]
+_CRED_RE = re.compile(r'(?:os\.environ\.get|os\.getenv)\(\s*["\']([A-Z][A-Z0-9_]+)["\']|env:([A-Z][A-Z0-9_]+)')
+_CRED_HINT = re.compile(r'KEY|TOKEN|SECRET|CRED|PASSWORD')
+
+
+def _attr(text: str, name: str) -> str | None:
+    m = re.search(rf'\b{name}\s*=\s*["\']([^"\']+)["\']', text)
+    return m.group(1) if m else None
 
 
 def _count(pattern: str) -> int:
@@ -81,7 +94,47 @@ def composition(name: str) -> dict:
         return json.load(handle)
 
 
-NULLARY = {"info": info, "verify": verify, "compositions": compositions}
+def providers() -> dict:
+    """Discover the engine's provider tools WITHOUT importing them (dependency-free) and
+    report which are configured — by env-var presence only, never the secret values."""
+    out = []
+    for sub in PROVIDER_DIRS:
+        d = ROOT / "tools" / sub
+        if not d.is_dir():
+            continue
+        for f in sorted(d.glob("*.py")):
+            if f.name in ("__init__.py", "_shared.py", "base_tool.py"):
+                continue
+            text = f.read_text(encoding="utf-8", errors="ignore")
+            name = _attr(text, "name")
+            capability = _attr(text, "capability")
+            if not name or not capability:
+                continue  # not a BaseTool provider
+            creds = [a or b for a, b in _CRED_RE.findall(text)]
+            auth_env = next((c for c in creds if _CRED_HINT.search(c)), None)
+            out.append({
+                "name": name,
+                "provider": _attr(text, "provider") or name,
+                "capability": capability,
+                "category": sub,
+                "auth_env": auth_env,
+                "configured": bool(auth_env and os.environ.get(auth_env)),
+                "local": auth_env is None,
+            })
+    by_cap: dict[str, int] = {}
+    for p in out:
+        by_cap[p["capability"]] = by_cap.get(p["capability"], 0) + 1
+    return {
+        "ok": True,
+        "total": len(out),
+        "configured": sum(1 for p in out if p["configured"]),
+        "local": sum(1 for p in out if p["local"]),
+        "by_capability": by_cap,
+        "providers": out,
+    }
+
+
+NULLARY = {"info": info, "verify": verify, "compositions": compositions, "providers": providers}
 
 
 def main(argv: list[str]) -> int:
