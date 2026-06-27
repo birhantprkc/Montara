@@ -13,7 +13,7 @@ import { listEngines, engineAvailable } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
-import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders } from "../../engine/src/index";
+import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck } from "../../engine/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -103,6 +103,7 @@ Commands:
   engine timeline <name>          bridge an engine composition into Montara Timeline IR
   engine render <name> [out]      render a bridged composition to MP4 (ffmpeg; --engine remotion)
   engine providers                list engine providers + which are configured (no secrets)
+  engine check                    run the engine integrity self-check battery
   pipelines                       list the available pipeline shapes
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
@@ -159,6 +160,13 @@ export function main(argv = process.argv.slice(2)): number {
         console.log(`${comp.cuts.length} cuts -> Timeline IR (${timeline.composition.durationSec}s, ${timeline.tracks.length} tracks, valid)`);
         console.log(out);
         return 0;
+      }
+      if (sub === "check") {
+        const sc = engineSelfcheck();
+        if (!sc) { console.error("engine bridge unavailable (Python 3 required)"); return 1; }
+        console.log(`engine self-check: ${sc.passed}/${sc.total} passed`);
+        for (const c of sc.checks) console.log(`  ${c.ok ? "ok  " : "FAIL"} ${c.name} — ${c.detail}`);
+        return sc.ok ? 0 : 1;
       }
       if (sub === "providers") {
         const p = engineProviders();

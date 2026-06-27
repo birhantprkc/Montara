@@ -123,6 +123,25 @@ export function engineProviders(root: string = engineRoot()): EngineProviderRepo
   return res.ok ? res.data : null;
 }
 
+export interface EngineCheck {
+  name: string;
+  ok: boolean;
+  detail: string;
+}
+
+export interface EngineSelfcheck {
+  ok: boolean;
+  passed: number;
+  total: number;
+  checks: EngineCheck[];
+}
+
+/** High-value engine integrity smokes brought into the Montara gates (dependency-free). */
+export function engineSelfcheck(root: string = engineRoot()): EngineSelfcheck | null {
+  const res = runEngineBridge<EngineSelfcheck>(["selfcheck"], root);
+  return res.ok ? res.data : null;
+}
+
 export interface EngineReadiness {
   ready: boolean;
   python: string | null;

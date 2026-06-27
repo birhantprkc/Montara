@@ -121,7 +121,7 @@ import {
   DoubaoTTS,
   TTSSelector,
 } from "../packages/tools/src/index";
-import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders } from "../packages/engine/src/index";
+import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck } from "../packages/engine/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -950,6 +950,11 @@ ok("keyed providers activate only when their env var is configured (secret-safe 
   keyed?.providers.find((p) => p.name === "elevenlabs_tts")?.configured === true);
 ok("provider discovery never leaks secret values (env name only, boolean status)",
   Boolean(noKey) && noKey!.providers.every((p) => typeof p.configured === "boolean" && (p.auth_env === null || /^[A-Z][A-Z0-9_]+$/.test(p.auth_env))));
+
+console.log("\n== Engine test parity (1A.5) ==");
+const selfcheck = engineSelfcheck();
+ok("engine self-check battery passes inside the Montara gate", Boolean(selfcheck) && selfcheck!.ok && selfcheck!.passed === selfcheck!.total);
+for (const c of selfcheck?.checks ?? []) ok(`engine check — ${c.name}`, c.ok, c.detail);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

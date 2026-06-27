@@ -134,7 +134,58 @@ def providers() -> dict:
     }
 
 
-NULLARY = {"info": info, "verify": verify, "compositions": compositions, "providers": providers}
+def selfcheck() -> dict:
+    """High-value engine integrity smokes, dependency-free — brought into the Montara gates."""
+    checks = []
+
+    def add(name: str, ok: bool, detail: str = "") -> None:
+        checks.append({"name": name, "ok": bool(ok), "detail": detail})
+
+    schema_files = list((ROOT / "schemas").rglob("*.json"))
+    bad_schema = []
+    for s in schema_files:
+        try:
+            json.loads(s.read_text(encoding="utf-8"))
+        except Exception:
+            bad_schema.append(s.name)
+    add("schemas parse as JSON", bool(schema_files) and not bad_schema, f"{len(schema_files)} schemas, {len(bad_schema)} bad")
+
+    dp = ROOT / "remotion-composer" / "public" / "demo-props"
+    props = list(dp.glob("*.json")) if dp.is_dir() else []
+    bad_props = []
+    for p in props:
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+            if not isinstance(d.get("cuts"), list) or not d["cuts"]:
+                bad_props.append(p.name)
+        except Exception:
+            bad_props.append(p.name)
+    add("demo compositions declare cuts", bool(props) and not bad_props, f"{len(props)} props")
+
+    skills = list((ROOT / "skills").rglob("*.md"))
+    no_heading = [s.name for s in skills if not s.read_text(encoding="utf-8", errors="ignore").lstrip().startswith("#")]
+    add("skills are well-formed (markdown heading)", bool(skills) and len(no_heading) <= len(skills) * 0.1, f"{len(skills)} skills, {len(no_heading)} malformed")
+
+    tests = list((ROOT / "tests").rglob("*.py"))
+    bad_tests = []
+    for t in tests:
+        try:
+            ast.parse(t.read_text(encoding="utf-8"))
+        except SyntaxError:
+            bad_tests.append(t.name)
+    add("engine tests AST-parse", bool(tests) and not bad_tests, f"{len(tests)} tests, {len(bad_tests)} bad")
+
+    pds = list((ROOT / "pipeline_defs").glob("*.yaml"))
+    add("pipeline manifests present", len(pds) >= 10, f"{len(pds)} pipelines")
+
+    passed = sum(1 for c in checks if c["ok"])
+    return {"ok": passed == len(checks), "passed": passed, "total": len(checks), "checks": checks}
+
+
+NULLARY = {
+    "info": info, "verify": verify, "compositions": compositions,
+    "providers": providers, "selfcheck": selfcheck,
+}
 
 
 def main(argv: list[str]) -> int:
