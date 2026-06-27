@@ -7,7 +7,7 @@ import { validateTimeline } from "../../core/src/index";
 import { DecisionTrail, clamp01 } from "./audit";
 import { slideshowRisk, type SlideshowRisk } from "./slideshow";
 
-export interface DeliveryPromise {
+export interface PreComposePromise {
   targetDurationSec?: number;
   /** allowed +/- on duration, default 0.6s */
   durationTolSec?: number;
@@ -27,7 +27,7 @@ export interface PreComposeGate {
 
 export function preComposeGate(
   timeline: Timeline,
-  promise: DeliveryPromise = {},
+  promise: PreComposePromise = {},
   opts: { rendererAvailable?: boolean; trail?: DecisionTrail } = {},
 ): PreComposeGate {
   const blockers: string[] = [];

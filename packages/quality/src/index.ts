@@ -4,5 +4,8 @@ export * from "./audit";
 export * from "./selection";
 export * from "./slideshow";
 export * from "./precompose";
+export * from "./deliveryPromise";
+export * from "./env";
+export * from "./configLoader";
 export * from "./selfreview";
 export * from "./budget";

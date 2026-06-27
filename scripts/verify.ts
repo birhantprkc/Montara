@@ -1,8 +1,16 @@
 // Montara verify harness. Contract tests for core + render-ffmpeg, including real MP4 renders.
 
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  ALL_PROFILES,
+  DEFAULT_CONFIG,
+  createConfig,
+  ffmpegOutputArgs,
+  getProfile,
+  getProfilesForPlatform,
+  parseConfigText,
+  resolveConfigPath,
   scenePlanToTimeline,
   timelineDuration,
   totalDuration,
@@ -51,6 +59,15 @@ import {
   slideshowRisk,
   preComposeGate,
   BudgetLedger,
+  DeliveryPromise,
+  PromiseType,
+  PROMISE_RULES,
+  classifyFromBrief,
+  getEnv,
+  loadEnv,
+  loadConfig,
+  parseEnvText,
+  requireEnv,
 } from "../packages/quality/src/index";
 import { planResearchQueries, runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
@@ -105,6 +122,133 @@ const timeline = scenePlanToTimeline(plan);
 ok("scene plan compiles to Timeline IR", timeline.tracks.length === 2 && timeline.composition.durationSec === 3);
 ok("Timeline IR validates", validateTimeline(timeline).length === 0, validateTimeline(timeline).join("; "));
 ok("timelineDuration reads clip ends", timelineDuration(timeline) === 3, `got ${timelineDuration(timeline)}`);
+
+console.log("\n== foundation config + delivery (P1) ==");
+const defaults = createConfig();
+ok("config defaults match the source contract", JSON.stringify(defaults) === JSON.stringify(DEFAULT_CONFIG));
+
+const yamlConfig = parseConfigText([
+  "llm:",
+  "  provider: local",
+  "  model: llama",
+  "  temperature: 0.2",
+  "  max_tokens: 1024",
+  "budget:",
+  "  mode: cap",
+  "  total_usd: 2.5",
+  "paths:",
+  "  output_dir: out",
+].join("\n"));
+ok("config parser overlays nested YAML while preserving defaults",
+  yamlConfig.llm.provider === "local" &&
+  yamlConfig.llm.model === "llama" &&
+  yamlConfig.llm.max_tokens === 1024 &&
+  yamlConfig.budget.mode === "cap" &&
+  yamlConfig.output.default_codec === "libx264" &&
+  yamlConfig.paths.output_dir === "out");
+ok("config path resolver joins project root and named path",
+  resolveConfigPath(defaults, "skills_dir", join(process.cwd(), "verify-root")).replace(/\\/g, "/").endsWith("/verify-root/skills"));
+const configDir = join(process.cwd(), "out", "verify-config");
+mkdirSync(configDir, { recursive: true });
+writeFileSync(join(configDir, "config.yaml"), "output:\n  default_fps: 24\npaths:\n  output_dir: rendered\n");
+ok("config file loader reads config.yaml and falls back when missing",
+  loadConfig(undefined, configDir).output.default_fps === 24 &&
+  loadConfig(undefined, configDir).paths.output_dir === "rendered" &&
+  loadConfig(join(configDir, "missing.yaml")).output.default_fps === 30);
+
+const envText = "MONTARA_A=alpha\nexport MONTARA_B='bravo'\n# ignored\n";
+const parsedEnv = parseEnvText(envText);
+ok("env parser handles bare and export assignments", parsedEnv.MONTARA_A === "alpha" && parsedEnv.MONTARA_B === "bravo");
+const envDir = join(process.cwd(), "out", "verify-env");
+mkdirSync(envDir, { recursive: true });
+writeFileSync(join(envDir, ".env"), "MONTARA_VERIFY_ENV=from-file\nMONTARA_EXISTING=from-file\n");
+const savedExisting = process.env.MONTARA_EXISTING;
+delete process.env.MONTARA_VERIFY_ENV;
+process.env.MONTARA_EXISTING = "kept";
+loadEnv(envDir);
+ok("env loader reads .env without clobbering existing values",
+  getEnv("MONTARA_VERIFY_ENV") === "from-file" && getEnv("MONTARA_EXISTING") === "kept");
+let missingEnvThrows = false;
+try { requireEnv("MONTARA_MISSING_FOR_VERIFY"); } catch (e) { missingEnvThrows = String(e).includes("Required environment variable 'MONTARA_MISSING_FOR_VERIFY' is not set"); }
+ok("required env accessor reports missing keys", missingEnvThrows);
+delete process.env.MONTARA_VERIFY_ENV;
+if (savedExisting == null) delete process.env.MONTARA_EXISTING;
+else process.env.MONTARA_EXISTING = savedExisting;
+
+const expectedProfiles = [
+  ["youtube_landscape", 1920, 1080, "16:9", 30, "libx264", "aac", 18, null, null, "srt"],
+  ["youtube_4k", 3840, 2160, "16:9", 30, "libx264", "aac", 18, null, null, "srt"],
+  ["youtube_shorts", 1080, 1920, "9:16", 30, "libx264", "aac", 20, null, 60, "srt"],
+  ["instagram_reels", 1080, 1920, "9:16", 30, "libx264", "aac", 20, 250, 90, "srt"],
+  ["instagram_feed", 1080, 1080, "1:1", 30, "libx264", "aac", 20, 250, 60, "srt"],
+  ["tiktok", 1080, 1920, "9:16", 30, "libx264", "aac", 20, 287, 600, "srt"],
+  ["linkedin", 1920, 1080, "16:9", 30, "libx264", "aac", 20, 5120, 600, "srt"],
+  ["cinematic", 2560, 1080, "21:9", 24, "libx264", "aac", 16, null, null, "srt"],
+  ["generic_hd", 1920, 1080, "16:9", 30, "libx264", "aac", 23, null, null, "srt"],
+] as const;
+ok("9 media profiles are registered", Object.keys(ALL_PROFILES).length === 9);
+ok("media profile dimensions, fps and limits match the source table", expectedProfiles.every((row) => {
+  const p = getProfile(row[0]);
+  return p.width === row[1] &&
+    p.height === row[2] &&
+    p.aspect_ratio === row[3] &&
+    p.fps === row[4] &&
+    p.codec === row[5] &&
+    p.audio_codec === row[6] &&
+    p.crf === row[7] &&
+    p.max_file_size_mb === row[8] &&
+    p.max_duration_seconds === row[9] &&
+    p.caption_format === row[10];
+}));
+ok("platform profile lookup uses the name prefix", getProfilesForPlatform("youtube").length === 3);
+ok("FFmpeg profile args match the render contract",
+  ffmpegOutputArgs(getProfile("cinematic")).join("|") === "-c:v|libx264|-c:a|aac|-crf|16|-pix_fmt|yuv420p|-r|24|-vf|scale=2560:1080");
+
+ok("delivery promise rule table carries all 8 promise types", Object.keys(PROMISE_RULES).length === 8);
+const motionPromise = new DeliveryPromise({
+  promise_type: PromiseType.MOTION_LED,
+  motion_required: true,
+  source_required: false,
+  tone_mode: "cinematic",
+  quality_floor: "presentable",
+});
+const promiseRoundTrip = DeliveryPromise.fromDict(motionPromise.toDict());
+ok("delivery promise serializes with the original field names", promiseRoundTrip.promise_type === PromiseType.MOTION_LED && promiseRoundTrip.tone_mode === "cinematic");
+const cutCheck = motionPromise.validateCuts([
+  { source: "shot.mp4" },
+  { type: "text_card" },
+  { source: "still.png" },
+]);
+ok("delivery validator counts only real footage, animation and avatar as motion",
+  !cutCheck.valid &&
+  cutCheck.motion_cuts === 1 &&
+  cutCheck.slide_cuts === 1 &&
+  cutCheck.still_cuts === 1 &&
+  Math.abs(cutCheck.motion_ratio - (1 / 3)) < 1e-9);
+const approvedStillFallback = new DeliveryPromise({
+  promise_type: PromiseType.MOTION_LED,
+  motion_required: true,
+  source_required: false,
+  tone_mode: "cinematic",
+  quality_floor: "presentable",
+  approved_fallback: "still_led",
+}).validateCuts([{ type: "text_card" }, { source: "still.png" }]);
+ok("approved still-led fallback waives only the fallback blocker",
+  !approvedStillFallback.valid &&
+  approvedStillFallback.violations.length === 1 &&
+  approvedStillFallback.violations[0]?.startsWith("Motion ratio") === true);
+const noCuts = motionPromise.validateCuts([]);
+ok("delivery validator rejects an empty cut list", !noCuts.valid && noCuts.violations[0] === "No cuts provided");
+const avatarPromise = classifyFromBrief("talking-head", {});
+const sourceOverride = classifyFromBrief("animated-explainer", { has_footage: true });
+const softenedMotion = classifyFromBrief("cinematic", { motion_required: false });
+ok("delivery classifier maps pipeline defaults and explicit source footage",
+  avatarPromise.promise_type === PromiseType.AVATAR_PRESENTER &&
+  avatarPromise.motion_required &&
+  sourceOverride.promise_type === PromiseType.SOURCE_LED &&
+  sourceOverride.source_required);
+ok("delivery classifier softens motion-led when intent says motion is not required",
+  softenedMotion.promise_type === PromiseType.HYBRID && !softenedMotion.motion_required);
 
 console.log("\n== render (REAL ffmpeg) ==");
 const out = join(process.cwd(), "out", "verify.mp4");
@@ -402,10 +546,10 @@ ok("registry holds the ported elevenlabs_tts tool", Boolean(eleven) && eleven in
 const tts = new ElevenLabsTTS();
 ok("BaseTool contract fields are correct", tts.tier === "voice" && tts.capability === "tts" && tts.runtime === "api" && tts.fallbackTools.length === 2);
 ok("status is key-gated (unavailable without key, available with it)", tts.getStatus({}) === "unavailable" && tts.getStatus({ ELEVENLABS_API_KEY: "k" }) === "available");
-ok("cost estimate matches OM (len*0.0003)", Math.abs(tts.estimateCost({ text: "hello" }) - 0.0015) < 1e-9);
+ok("cost estimate uses the source character formula", Math.abs(tts.estimateCost({ text: "hello" }) - 0.0015) < 1e-9);
 const req = tts.buildRequest({ text: "the strait", voice_id: "VID", similarity_boost: 0.9 }, "APIKEY");
 ok("request URL hits /text-to-speech/{voice} with output_format", req.url.includes("/v1/text-to-speech/VID") && req.url.includes("output_format="));
-ok("request carries OM headers (xi-api-key + Accept: audio/mpeg)", req.headers["xi-api-key"] === "APIKEY" && req.headers.Accept === "audio/mpeg");
+ok("request carries expected headers (xi-api-key + Accept: audio/mpeg)", req.headers["xi-api-key"] === "APIKEY" && req.headers.Accept === "audio/mpeg");
 ok("request body carries voice_settings (the field our stub was missing)", req.body.includes("voice_settings") && req.body.includes("\"similarity_boost\":0.9"));
 ok("idempotency key is deterministic", tts.idempotencyKey({ text: "a", voice_id: "v", model_id: "m" }) === tts.idempotencyKey({ text: "a", voice_id: "v", model_id: "m" }));
 
