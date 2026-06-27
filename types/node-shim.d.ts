@@ -36,6 +36,7 @@ declare module "node:fs" {
   export interface Dirent {
     name: string;
     isDirectory(): boolean;
+    isFile(): boolean;
   }
 
   export interface Stats {

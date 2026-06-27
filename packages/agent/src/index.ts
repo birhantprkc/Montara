@@ -3,4 +3,7 @@
 export * from "./schema";
 export * from "./manifest";
 export * from "./checkpoint";
+export * from "./pipelineCheckpoint";
+export * from "./pipelineLoader";
+export * from "./yaml";
 export * from "./assistants";

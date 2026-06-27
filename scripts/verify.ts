@@ -84,11 +84,34 @@ import {
   type ScorableTool,
   type Scene,
 } from "../packages/quality/src/index";
-import { planResearchQueries, runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
+import {
+  planResearchQueries,
+  runResearch,
+  indexFootage,
+  retrieveFootage,
+  modelInfo,
+  embedTexts,
+  poolFrames,
+  Corpus,
+  createClipRecord,
+  normalizedVector,
+  EMBED_DIM,
+} from "../packages/research/src/index";
 import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
 import { detectScenes, sampleKeyFrames, transcribe, understandVideo, analyzeReferenceVideo } from "../packages/understand/src/index";
 import { listEngines, getEngine, engineAvailable, preferredEngine, renderWithEngine } from "../packages/render-engines/src/index";
-import { STYLE_PLAYBOOKS, OUTPUT_PROFILES, applyStyle, applyOutputProfile, getOutputProfile } from "../packages/style/src/index";
+import {
+  STYLE_PLAYBOOKS,
+  OUTPUT_PROFILES,
+  applyStyle,
+  applyOutputProfile,
+  getOutputProfile,
+  generatePlaybook,
+  buildShotPrompt,
+  buildBatchPrompts,
+  styleBridge,
+  FALLBACK_CSS_VARS,
+} from "../packages/style/src/index";
 import { buildDefaultRegistry, ElevenLabsTTS } from "../packages/tools/src/index";
 import {
   renderPipelineManifest,
@@ -102,6 +125,25 @@ import {
   isComplete,
   saveCheckpoint,
   loadCheckpoint,
+  ALL_KNOWN_STAGES,
+  CANONICAL_STAGE_ARTIFACTS,
+  STAGES,
+  checkExtensionPermitted,
+  getCompletedStages,
+  getLatestCheckpoint,
+  getNextStage,
+  getPermittedExtensions,
+  getReferenceInputConfig,
+  getRequiredTools,
+  getStageOrder,
+  getStageReviewFocus,
+  getStageSkill,
+  getStageSubStages,
+  getPipelineStages,
+  pipelineSupportsReferenceInput,
+  readCheckpoint,
+  validateCheckpoint,
+  writeCheckpoint,
   renderAssistantConfig,
   ASSISTANT_TARGETS,
   SKILLS_ENTRY,
@@ -599,7 +641,7 @@ ok("scoreProvider task_fit applies synonym overlap + cinematic bonus", approx(sp
 ok("scoreProvider output_quality caps at 1.0 with premium bonus", approx(sp2.output_quality, 1.0));
 ok("scoreProvider control weights supports features", approx(sp2.control, 0.324324, 1e-5));
 ok("scoreProvider reliability/cost/latency/continuity match source", approx(sp2.reliability, 0.95) && approx(sp2.cost_efficiency, 0.8) && approx(sp2.latency, 0.4) && approx(sp2.continuity, 0.5));
-ok("scoreProvider weighted score matches OM ground truth", approx(sp2.weighted_score, 0.801149, 1e-5));
+ok("scoreProvider weighted score matches source ground truth", approx(sp2.weighted_score, 0.801149, 1e-5));
 ok("rankProviders returns best-first", rankProviders([fakeTool], { intent: "cinematic" })[0]?.tool_name === "kling");
 
 // slideshow risk over a scene plan (6 dims, 0-5, verdict bands).
@@ -610,8 +652,8 @@ const scenePlanScenes: Scene[] = [
   { type: "video", description: "b-roll city", shot_language: { shot_size: "medium", camera_movement: "dolly_in" }, shot_intent: "reveal scale", hero_moment: true },
 ];
 const risk = scoreSlideshowRisk(scenePlanScenes);
-ok("slideshow risk average + verdict match OM", approx(risk.average, 2.52) && risk.verdict === "acceptable");
-ok("slideshow risk dimensions match OM scores",
+ok("slideshow risk average + verdict match source", approx(risk.average, 2.52) && risk.verdict === "acceptable");
+ok("slideshow risk dimensions match source scores",
   approx(risk.dimensions.repetition!.score, 3.5) &&
   approx(risk.dimensions.decorative_visuals!.score, 3.8) &&
   approx(risk.dimensions.weak_motion!.score, 0.0) &&
@@ -620,7 +662,7 @@ ok("slideshow risk fails an empty scene plan", scoreSlideshowRisk([]).verdict ==
 
 // variation checker (8 structural checks).
 const variation = checkSceneVariation(scenePlanScenes);
-ok("variation checker score + verdict match OM", approx(variation.score, 3.0) && variation.verdict === "revise");
+ok("variation checker score + verdict match source", approx(variation.score, 3.0) && variation.verdict === "revise");
 ok("variation checker flags 5 violations + 2 suggestions", variation.violations.length === 5 && variation.suggestions.length === 2);
 
 // scene pacing tracer (frame-accurate).
@@ -650,6 +692,136 @@ ok("reviewSourceMedia reports no media with the fully-generated implication",
   emptyReview.files.length === 0 &&
   emptyReview.planning_implications.length === 1 &&
   emptyReview.planning_implications[0]!.startsWith("No source media available"));
+
+console.log("\n== lib corpus/checkpoint (P3) ==");
+const clipModel = modelInfo();
+ok("clip model metadata matches source contract", clipModel.model_id === "openai/clip-vit-base-patch32" && clipModel.device === "cpu" && clipModel.dim === 512);
+ok("empty embedder calls return empty matrices", embedTexts([]).length === 0);
+const textVecs = embedTexts(["", "untitled"]);
+ok("text embedder substitutes untitled for empty strings", textVecs.length === 2 && textVecs[0]!.length === EMBED_DIM && approx(textVecs[0]!.reduce((sum, v) => sum + v * v, 0), 1.0) && JSON.stringify(textVecs[0]) === JSON.stringify(textVecs[1]));
+ok("frame pooling returns zero for empty input and normalizes means", poolFrames([]).every((v) => v === 0) && approx(poolFrames([normalizedVector(0), normalizedVector(0)])[0]!, 1.0));
+
+const corpusDir = join(process.cwd(), "out", "verify-corpus-p3");
+try { rmSync(corpusDir, { recursive: true, force: true }); } catch { /* none */ }
+const corpus = new Corpus(corpusDir);
+corpus.add(createClipRecord({ clip_id: "source_a", source: "pexels", source_id: "a", source_url: "https://example.test/a", local_path: "clips/a.mp4", motion_score: 0.9 }), normalizedVector(0), normalizedVector(1));
+corpus.add(createClipRecord({ clip_id: "source_b", source: "nasa", source_id: "b", source_url: "https://example.test/b", local_path: "clips/b.mp4", motion_score: 0.4 }), normalizedVector(1), normalizedVector(0));
+corpus.add(createClipRecord({ clip_id: "source_c", source: "archive", source_id: "c", source_url: "https://example.test/c", local_path: "clips/c.mp4", motion_score: 0.8 }), normalizedVector(0), normalizedVector(0));
+corpus.add(createClipRecord({ clip_id: "source_a", source: "pexels", source_id: "a", source_url: "https://example.test/a", local_path: "clips/a.mp4" }), normalizedVector(2), normalizedVector(2));
+ok("corpus add is idempotent by clip_id and fills defaults", corpus.length === 3 && corpus.get("source_a")?.kind === "video" && Boolean(corpus.get("source_a")?.added_at));
+const rankedCorpus = corpus.rankByText(normalizedVector(0), { k: 3 });
+ok("corpus fused score uses visual/tag blend", rankedCorpus[0]?.[0].clip_id === "source_c" && approx(rankedCorpus[0]?.[1] ?? 0, 1.0) && approx(rankedCorpus[1]?.[1] ?? 0, 0.7) && approx(rankedCorpus[2]?.[1] ?? 0, 0.3));
+ok("corpus filters by motion floor and exclusions", corpus.rankByText(normalizedVector(0), { motionMin: 0.85, excludeIds: ["source_c"] }).map(([rec]) => rec.clip_id).join(",") === "source_a");
+ok("corpus KNN excludes the seed itself", corpus.knn("source_a", 2)[0]?.[0].clip_id === "source_c");
+ok("corpus similar-set uses MMR and diversify keeps first candidate", corpus.findSimilarSet("source_a", 2).length === 2 && corpus.diversify(["source_a", "source_b", "source_c"], 2)[0] === "source_a");
+corpus.save();
+const loadedCorpus = new Corpus(corpusDir);
+loadedCorpus.load();
+ok("corpus save/load preserves JSONL rows and embedding banks", loadedCorpus.length === 3 && loadedCorpus.get("source_b")?.source === "nasa" && loadedCorpus.clipEmbeddings.length === 3 && loadedCorpus.tagEmbeddings.length === 3);
+const driftDir = join(process.cwd(), "out", "verify-corpus-drift-p3");
+try { rmSync(driftDir, { recursive: true, force: true }); } catch { /* none */ }
+mkdirSync(driftDir, { recursive: true });
+writeFileSync(join(driftDir, "index.jsonl"), `${JSON.stringify(createClipRecord({ clip_id: "one", source: "s", source_id: "1", source_url: "u", local_path: "clips/1.mp4" }))}\n${JSON.stringify(createClipRecord({ clip_id: "two", source: "s", source_id: "2", source_url: "u", local_path: "clips/2.mp4" }))}\n`);
+writeFileSync(join(driftDir, "embeddings.npy"), `${JSON.stringify([normalizedVector(0)])}\n`);
+writeFileSync(join(driftDir, "tag_embeddings.npy"), `${JSON.stringify([normalizedVector(0), normalizedVector(1)])}\n`);
+const driftCorpus = new Corpus(driftDir);
+driftCorpus.load();
+ok("corpus load truncates drifted rows to the shortest bank", driftCorpus.length === 1 && driftCorpus.get("two") === null);
+
+const manifest = {
+  name: "verify-pipeline",
+  reference_input: { supported: true, analysis_tools: ["video_understand"] },
+  extensions: { custom_scripts: false, custom_playbooks: true },
+  stages: [
+    {
+      name: "research",
+      skill: "skills/research.md",
+      review_focus: ["sources"],
+      preferred_tools: ["web"],
+      fallback_tools: ["offline"],
+      sub_stages: [
+        { name: "scan", tools_available: ["reader"] },
+        { name: "deep", condition: "deep_mode", tools_available: ["clip"] },
+      ],
+    },
+    { name: "proposal", tools_available: ["writer"] },
+  ],
+};
+ok("pipeline manifest helpers expose reference-input config", getReferenceInputConfig(manifest).supported === true && pipelineSupportsReferenceInput(manifest));
+ok("pipeline stage order includes active sub-stages when requested",
+  JSON.stringify(getStageOrder(manifest, { includeSubStages: true, context: { deep_mode: false } })) === JSON.stringify(["research", "research.scan", "proposal"]));
+ok("pipeline stage helpers return sub-stages, skill and review focus",
+  getStageSubStages(manifest, "research").length === 2 &&
+  getStageSkill(manifest, "research") === "skills/research.md" &&
+  getStageReviewFocus(manifest, "research")[0] === "sources");
+ok("pipeline required-tools collector spans stages, sub-stages and reference input",
+  ["web", "offline", "reader", "clip", "writer", "video_understand"].every((tool) => getRequiredTools(manifest).has(tool)));
+let extensionBlocked = false;
+try { checkExtensionPermitted(manifest, "custom_scripts"); } catch { extensionBlocked = true; }
+ok("pipeline extension guard blocks unpermitted extension types", extensionBlocked);
+checkExtensionPermitted(manifest, "custom_playbooks");
+ok("pipeline permitted-extension defaults are false", getPermittedExtensions(manifest).custom_tools === false);
+ok("checkpoint stage constants match source canonical stages", STAGES.length === 9 && ALL_KNOWN_STAGES.has("scene_plan") && CANONICAL_STAGE_ARTIFACTS.compose === "render_report");
+ok("checkpoint stage fallback returns canonical order", getPipelineStages(null).join("|") === STAGES.join("|"));
+
+const checkpointDir = join(process.cwd(), "out", "verify-checkpoints-p3");
+try { rmSync(checkpointDir, { recursive: true, force: true }); } catch { /* none */ }
+writeCheckpoint(checkpointDir, "project-a", "research", "completed", { research_brief: { summary: "ok" } });
+const proposalArtifacts: Record<string, any> = {
+  proposal_packet: { production_plan: {} },
+  decision_log: { decisions: [{ decision_id: "d1", label: "choose" }] },
+};
+const proposalPath = writeCheckpoint(checkpointDir, "project-a", "proposal", "completed", proposalArtifacts);
+const proposalCheckpoint = readCheckpoint(checkpointDir, "project-a", "proposal");
+ok("checkpoint writer emits stage file and validates canonical artifacts", existsSync(proposalPath) && proposalCheckpoint?.stage === "proposal");
+ok("checkpoint writer merges decision log refs into proposal packets",
+  typeof proposalArtifacts.proposal_packet.production_plan.decision_log_ref === "string" &&
+  existsSync(proposalArtifacts.proposal_packet.production_plan.decision_log_ref));
+ok("checkpoint readers report completed and next stages", getCompletedStages(checkpointDir, "project-a").join("|") === "research|proposal" && getNextStage(checkpointDir, "project-a") === "idea");
+ok("latest checkpoint is chosen by timestamp", getLatestCheckpoint(checkpointDir, "project-a")?.stage === "proposal");
+let missingArtifactBlocked = false;
+try { validateCheckpoint({ version: "1.0", project_id: "p", pipeline_type: "unknown", stage: "compose", status: "completed", artifacts: {} }); } catch { missingArtifactBlocked = true; }
+ok("checkpoint validator blocks completed stages without canonical artifacts", missingArtifactBlocked);
+
+const darkPlaybook = generatePlaybook("Noir Launch", { mood: "dark", tone: "cinematic", pace: "slow", colors: { primary: "#111111", accent: ["#222222"], background: "#000000", text: "#eeeeee" }, fonts: { headings: "Archivo", body: "Source Sans 3" } });
+ok("playbook generator creates minimal schema-shaped playbook with mood defaults",
+  darkPlaybook.identity.name === "Noir Launch" &&
+  darkPlaybook.identity.category === "cinematic" &&
+  darkPlaybook.visual_language.color_palette.primary[0] === "#111111" &&
+  darkPlaybook.typography.headings.font === "Archivo" &&
+  darkPlaybook.asset_generation.consistency_anchors[0] === "dark color palette");
+const prompt = buildShotPrompt({
+  description: "A tanker crossing the strait at dawn",
+  texture_keywords: ["steel hull", "sea mist"],
+  shot_language: {
+    lens_mm: 35,
+    depth_of_field: "shallow",
+    shot_size: "wide",
+    camera_movement: "dolly_in",
+    lighting_key: "golden_hour",
+    color_temperature: "warm",
+  },
+}, { mood: "cinematic", visual_language: { aesthetic: "high contrast documentary" } });
+ok("shot prompt builder preserves the 5-layer phrase order",
+  prompt === "35mm lens, shallow depth of field with bokeh. wide shot capturing full scene, slow dolly in toward subject. A tanker crossing the strait at dawn. steel hull, sea mist. warm golden hour sunlight, warm amber-toned color palette. Style: high contrast documentary");
+const batchPrompts = buildBatchPrompts([{ id: "s1", description: "keep", hero_moment: true }, { id: "t", type: "transition", description: "skip" }]);
+ok("batch prompt builder skips transition scenes and carries hero flag", batchPrompts.length === 1 && batchPrompts[0]?.scene_id === "s1" && batchPrompts[0]?.hero_moment === true);
+
+const [cssVars, designMd] = styleBridge({
+  id: "pb",
+  visual_language: { color_palette: { background: "#101010", text: "#fafafa", accent: ["#ffcc00"], primary: ["#3366ff"], secondary: ["#22cc88"], surface: "#202020", muted_text: "#999999" } },
+  typography: { heading: { font: "Sora" }, body: { family: "Inter" }, code: "JetBrains Mono" },
+  motion: { pace: "fast" },
+}, { metadata: { accent_color: "#ff00ff" } });
+ok("style bridge maps playbook palette, fonts and motion to CSS vars",
+  cssVars["--color-bg"] === "#101010" &&
+  cssVars["--color-accent"] === "#ff00ff" &&
+  cssVars["--font-heading"] === "Sora" &&
+  cssVars["--duration-entrance"] === "0.4s" &&
+  FALLBACK_CSS_VARS["--duration-transition"] === "0.5s");
+ok("style bridge renders DESIGN markdown without source-project branding",
+  designMd.startsWith("# DESIGN - pb") &&
+  designMd.includes("Generated by Montara HyperFrames style bridge"));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);
