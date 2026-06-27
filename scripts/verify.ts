@@ -121,7 +121,7 @@ import {
   DoubaoTTS,
   TTSSelector,
 } from "../packages/tools/src/index";
-import { engineInfo, engineVerify } from "../packages/engine/src/index";
+import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition } from "../packages/engine/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -915,6 +915,25 @@ ok("engine reports the full tool + lib + pipeline surface",
 const eVerify = engineVerify();
 ok("engine integrity smoke AST-parses lib + tools with zero errors",
   Boolean(eVerify) && eVerify!.ok && eVerify!.parsed >= 100 && eVerify!.errors === 0);
+
+console.log("\n== Timeline bridge (1A.2) ==");
+const eComp = engineComposition("world-in-numbers");
+ok("engine emits a real composition through the bridge", Boolean(eComp) && eComp!.cuts.length === 5);
+const bridgedTimeline = eComp ? engineCompositionToTimeline(eComp) : null;
+ok("engine composition compiles to a VALID Montara Timeline IR (no parallel format)",
+  Boolean(bridgedTimeline) && validateTimeline(bridgedTimeline!).length === 0);
+ok("bridged IR preserves cut count + duration on the one IR",
+  Boolean(bridgedTimeline) &&
+  bridgedTimeline!.tracks.find((t) => t.type === "video")!.clips.length === 5 &&
+  bridgedTimeline!.composition.durationSec > 0);
+ok("Timeline IR round-trips back to engine cuts (start/end preserved)", (() => {
+  if (!eComp || !bridgedTimeline) return false;
+  const back = timelineToEngineComposition(bridgedTimeline);
+  if (back.cuts.length !== eComp.cuts.length) return false;
+  const a = [...eComp.cuts].sort((x, y) => x.in_seconds - y.in_seconds);
+  return back.cuts.every((c, i) =>
+    Math.abs(c.in_seconds - a[i]!.in_seconds) < 1e-6 && Math.abs(c.out_seconds - a[i]!.out_seconds) < 1e-6);
+})());
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

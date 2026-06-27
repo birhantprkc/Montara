@@ -13,7 +13,7 @@ import { listEngines, engineAvailable } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
-import { engineReady, engineVerify } from "../../engine/src/index";
+import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline } from "../../engine/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -100,6 +100,7 @@ function printHelp(): void {
 Commands:
   doctor                          check local render prerequisites + Python engine
   engine [info|smoke]             show Python engine readiness, or run the integrity smoke
+  engine timeline <name>          bridge an engine composition into Montara Timeline IR
   pipelines                       list the available pipeline shapes
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
@@ -138,6 +139,24 @@ export function main(argv = process.argv.slice(2)): number {
         console.log(`engine smoke: AST-parsed ${v.parsed} module(s), ${v.errors} error(s)`);
         for (const b of v.bad) console.log(`  ${b.file}:${b.line} ${b.msg}`);
         return v.ok ? 0 : 1;
+      }
+      if (sub === "timeline") {
+        const name = rest[1];
+        if (!name) {
+          console.error(`engine timeline <name> — available: ${engineCompositionNames().join(", ")}`);
+          return 1;
+        }
+        const comp = engineComposition(name);
+        if (!comp) { console.error(`engine composition not found: ${name}`); return 1; }
+        const timeline = engineCompositionToTimeline(comp);
+        const issues = validateTimeline(timeline);
+        if (issues.length) { console.error(`bridged IR invalid:\n  ${issues.join("\n  ")}`); return 1; }
+        const out = join(process.cwd(), "out", `${slug(name)}.timeline.json`);
+        mkdirSync(dirname(out), { recursive: true });
+        writeFileSync(out, `${JSON.stringify(timeline, null, 2)}\n`);
+        console.log(`${comp.cuts.length} cuts -> Timeline IR (${timeline.composition.durationSec}s, ${timeline.tracks.length} tracks, valid)`);
+        console.log(out);
+        return 0;
       }
       const r = engineReady();
       if (r.ready && r.info) {

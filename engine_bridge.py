@@ -65,14 +65,36 @@ def verify() -> dict:
     return {"ok": not bad, "parsed": len(targets), "errors": len(bad), "bad": bad[:10]}
 
 
-COMMANDS = {"info": info, "verify": verify}
+def compositions() -> dict:
+    """List the engine's checked-in zero-key compositions (Remotion demo props)."""
+    d = ROOT / "remotion-composer" / "public" / "demo-props"
+    names = sorted(p.stem for p in d.glob("*.json")) if d.is_dir() else []
+    return {"ok": True, "compositions": names}
+
+
+def composition(name: str) -> dict:
+    """Emit one engine composition (cuts/theme/audio) for the Timeline-IR bridge."""
+    path = ROOT / "remotion-composer" / "public" / "demo-props" / f"{name}.json"
+    if not path.is_file():
+        return {"ok": False, "error": f"composition not found: {name}"}
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+NULLARY = {"info": info, "verify": verify, "compositions": compositions}
 
 
 def main(argv: list[str]) -> int:
     cmd = argv[1] if len(argv) > 1 else "info"
-    fn = COMMANDS.get(cmd)
+    if cmd == "composition":
+        if len(argv) < 3:
+            print(json.dumps({"ok": False, "error": "composition requires a name"}))
+            return 2
+        print(json.dumps(composition(argv[2])))
+        return 0
+    fn = NULLARY.get(cmd)
     if fn is None:
-        print(json.dumps({"ok": False, "error": f"unknown command: {cmd}", "commands": sorted(COMMANDS)}))
+        print(json.dumps({"ok": False, "error": f"unknown command: {cmd}", "commands": sorted([*NULLARY, "composition"])}))
         return 2
     print(json.dumps(fn()))
     return 0

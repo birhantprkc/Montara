@@ -6,6 +6,9 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import type { EngineComposition } from "./timeline";
+
+export * from "./timeline";
 
 const BRIDGE_SCRIPT = "engine_bridge.py";
 
@@ -79,6 +82,18 @@ export function engineInfo(root: string = engineRoot()): EngineInfo | null {
 export function engineVerify(root: string = engineRoot()): EngineVerify | null {
   const res = runEngineBridge<EngineVerify>(["verify"], root);
   return res.ok ? res.data : null;
+}
+
+/** Names of the engine's checked-in zero-key compositions. */
+export function engineCompositionNames(root: string = engineRoot()): string[] {
+  const res = runEngineBridge<{ ok: boolean; compositions: string[] }>(["compositions"], root);
+  return res.ok && res.data ? res.data.compositions : [];
+}
+
+/** Pull one engine composition (cuts/theme/audio) through the JSON bridge. */
+export function engineComposition(name: string, root: string = engineRoot()): EngineComposition | null {
+  const res = runEngineBridge<EngineComposition>(["composition", name], root);
+  return res.ok && res.data && Array.isArray(res.data.cuts) ? res.data : null;
 }
 
 export interface EngineReadiness {
