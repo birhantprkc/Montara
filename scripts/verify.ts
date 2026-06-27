@@ -26,6 +26,15 @@ import {
   buildImageRequest,
   planImageGeneration,
   runImageGeneration,
+  TTS_PROVIDERS,
+  MUSIC_PROVIDERS,
+  getTtsProvider,
+  buildTtsRequest,
+  planSpeechGeneration,
+  runSpeechGeneration,
+  runMusicGeneration,
+  mixAudioTracks,
+  enhanceAudio,
 } from "../packages/providers/src/index";
 import {
   DecisionTrail,
@@ -264,6 +273,33 @@ ok("a credentialed image provider yields a request plan", keyedImg.mode === "req
 
 const iGen = runImageGeneration(iInput, {});
 ok("offline image generation writes a real fallback PNG", Boolean(iGen.result) && existsSync(iInput.outPath));
+
+console.log("\n== audio: tts + music + mix + enhance (§E) ==");
+ok("4 TTS providers registered (incl. local Piper)", TTS_PROVIDERS.length === 4 && TTS_PROVIDERS.some((p) => p.id === "piper"));
+ok("3 music/SFX providers registered", MUSIC_PROVIDERS.length === 3);
+
+const ttsReq = buildTtsRequest(getTtsProvider("openai-tts")!, { text: "the strait carries a fifth of seaborne oil", outPath: "x" }, { OPENAI_API_KEY: "ok" });
+ok("OpenAI TTS request is a Bearer POST carrying the text", ttsReq.method === "POST" && ttsReq.headers.Authorization === "Bearer ok" && Boolean(ttsReq.body?.includes("seaborne")));
+const elevenReq = buildTtsRequest(getTtsProvider("elevenlabs-tts")!, { text: "hi", outPath: "x", voice: "VOICEID" }, { ELEVENLABS_API_KEY: "ek" });
+ok("ElevenLabs TTS request uses xi-api-key + voice in the URL", elevenReq.headers["xi-api-key"] === "ek" && elevenReq.url.includes("VOICEID"));
+
+const speechPlan = planSpeechGeneration({ text: "hello", outPath: "x" }, {});
+ok("with no key speech falls back to the silent voice bed", speechPlan.mode === "fallback" && speechPlan.provider.id === "local.silent-voice");
+
+const voicePath = join(process.cwd(), "out", "verify-tts.wav");
+const musicPath = join(process.cwd(), "out", "verify-music.wav");
+const speech = runSpeechGeneration({ text: "a measured line of narration about the strait", outPath: voicePath, durationSec: 1.2 }, {});
+ok("offline TTS writes a real PCM voice bed", Boolean(speech.result) && existsSync(voicePath) && probeDuration(voicePath) > 0.8);
+const music = runMusicGeneration({ prompt: "tense documentary underscore", outPath: musicPath, durationSec: 1.2 }, {});
+ok("offline music writes a real tone score", Boolean(music.result) && existsSync(musicPath) && probeDuration(musicPath) > 0.8);
+
+const mixPath = join(process.cwd(), "out", "verify-mix.wav");
+mixAudioTracks({ tracks: [{ path: voicePath, volume: 1 }, { path: musicPath, volume: 0.5, delaySec: 0.2 }], outPath: mixPath, duckUnderFirst: true });
+ok("audio mixer combines voice + music into a real track", existsSync(mixPath) && probeDuration(mixPath) > 0.8);
+
+const enhancedPath = join(process.cwd(), "out", "verify-enhanced.wav");
+enhanceAudio({ inputPath: mixPath, outPath: enhancedPath, targetLufs: -14 });
+ok("audio enhancer normalizes to a real output track", existsSync(enhancedPath) && probeDuration(enhancedPath) > 0.8);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

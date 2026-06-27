@@ -26,6 +26,12 @@ import {
   getImageProvider,
   buildImageRequest,
   runImageGeneration,
+  TTS_PROVIDERS,
+  MUSIC_PROVIDERS,
+  runSpeechGeneration,
+  runMusicGeneration,
+  mixAudioTracks,
+  enhanceAudio,
 } from "../packages/providers/src/index";
 import {
   DecisionTrail,
@@ -219,6 +225,25 @@ const iGen = runImageGeneration({ prompt: "a narrow strait from orbit", outPath:
 ok("offline image generation falls back to a real local PNG", iGen.plan.mode === "fallback" && existsSync(genImagePath));
 const dalleReq = buildImageRequest(getImageProvider("dalle3")!, { prompt: "x", outPath: genImagePath }, { OPENAI_API_KEY: "demo-key" });
 ok("BYOK image request is a real Bearer POST", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer demo-key");
+
+console.log("\n== audio: tts + music + mixer + enhance (Phase 1.8 §E) ==");
+ok("4 TTS + 3 music providers registered", TTS_PROVIDERS.length === 4 && MUSIC_PROVIDERS.length === 3);
+
+const vVoice = join(outDir, "validate-voice.wav");
+const vMusic = join(outDir, "validate-music.wav");
+const vMix = join(outDir, "validate-mix.wav");
+const vEnh = join(outDir, "validate-enhanced.wav");
+for (const p of [vVoice, vMusic, vMix, vEnh]) { try { rmSync(p, { force: true }); } catch { /* none */ } }
+
+runSpeechGeneration({ text: "a fifth of the world's seaborne oil passes through the strait", outPath: vVoice, durationSec: 1.4 }, {});
+runMusicGeneration({ prompt: "tense documentary underscore", outPath: vMusic, durationSec: 1.4 }, {});
+ok("offline TTS + music fallbacks both write real audio", existsSync(vVoice) && existsSync(vMusic) && probeDuration(vVoice) > 1 && probeDuration(vMusic) > 1);
+
+mixAudioTracks({ tracks: [{ path: vVoice }, { path: vMusic, volume: 0.4, delaySec: 0.1 }], outPath: vMix, duckUnderFirst: true });
+ok("audio mixer ducks a music bed under the voice", existsSync(vMix) && probeDuration(vMix) > 1);
+
+enhanceAudio({ inputPath: vMix, outPath: vEnh, targetLufs: -14 });
+ok("audio enhancer normalizes the mix to -14 LUFS", existsSync(vEnh) && probeDuration(vEnh) > 1);
 
 console.log("\n== agent layer headless drive (Phase 1.5 §K) ==");
 // Generate the data-side artefacts an external assistant reads.

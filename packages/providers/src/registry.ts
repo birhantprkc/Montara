@@ -6,7 +6,7 @@
 // BYOK and is exercised by the caller's executor, not by these unit-tested builders.
 
 import type { ToolRunResult } from "./index";
-import { renderCaptionCardVideo, renderCaptionCardImage } from "./index";
+import { renderCaptionCardVideo, renderCaptionCardImage, generateSilentVoice, generateToneScore } from "./index";
 
 export type MediaCategory = "video" | "image" | "tts" | "music";
 export type ProviderTier = "cloud" | "local-runtime" | "stock" | "local-free";
@@ -314,6 +314,164 @@ export function runImageGeneration(
       height: input.height,
     });
     return { plan, result };
+  }
+  return { plan };
+}
+
+// ---- speech (TTS) providers -----------------------------------------------
+export interface SpeechGenInput {
+  text: string;
+  outPath: string;
+  voice?: string;
+  durationSec?: number;
+  providerId?: string;
+}
+
+export const TTS_PROVIDERS: MediaProvider[] = [
+  { id: "elevenlabs-tts", name: "ElevenLabs TTS", vendor: "ElevenLabs", category: "tts", tier: "cloud", authEnv: "ELEVENLABS_API_KEY", endpoint: "https://api.elevenlabs.io/v1/text-to-speech", notes: "High-fidelity expressive voices." },
+  { id: "google-tts", name: "Google TTS", vendor: "Google", category: "tts", tier: "cloud", authEnv: "GOOGLE_TTS_API_KEY", endpoint: "https://texttospeech.googleapis.com/v1/text:synthesize", notes: "WaveNet/Neural2 voices." },
+  { id: "openai-tts", name: "OpenAI TTS", vendor: "OpenAI", category: "tts", tier: "cloud", authEnv: "OPENAI_API_KEY", endpoint: "https://api.openai.com/v1/audio/speech", notes: "Natural multi-voice speech." },
+  { id: "piper", name: "Piper", vendor: "Rhasspy", category: "tts", tier: "local-runtime", authEnv: "PIPER_BIN", endpoint: "piper", notes: "Local, free, offline neural TTS." },
+];
+
+export const LOCAL_TTS_FALLBACK: MediaProvider = {
+  id: "local.silent-voice",
+  name: "Silent Voice Bed",
+  vendor: "Montara",
+  category: "tts",
+  tier: "local-free",
+  notes: "Offline silent PCM placeholder that preserves timing.",
+};
+
+// ---- music / SFX providers ------------------------------------------------
+export interface MusicGenInput {
+  prompt: string;
+  outPath: string;
+  durationSec?: number;
+  providerId?: string;
+}
+
+export const MUSIC_PROVIDERS: MediaProvider[] = [
+  { id: "suno", name: "Suno", vendor: "Suno", category: "music", tier: "cloud", authEnv: "SUNO_API_KEY", endpoint: "https://studio-api.suno.ai/api/generate/v2/", notes: "Full songs from a prompt." },
+  { id: "elevenlabs-music", name: "ElevenLabs Music", vendor: "ElevenLabs", category: "music", tier: "cloud", authEnv: "ELEVENLABS_API_KEY", endpoint: "https://api.elevenlabs.io/v1/music", notes: "Prompted instrumental score." },
+  { id: "elevenlabs-sfx", name: "ElevenLabs SFX", vendor: "ElevenLabs", category: "music", tier: "cloud", authEnv: "ELEVENLABS_API_KEY", endpoint: "https://api.elevenlabs.io/v1/sound-generation", notes: "Prompted sound effects." },
+];
+
+export const LOCAL_MUSIC_FALLBACK: MediaProvider = {
+  id: "local.tone-score",
+  name: "Tone Score",
+  vendor: "Montara",
+  category: "music",
+  tier: "local-free",
+  notes: "Offline quiet generated tone bed for timing.",
+};
+
+export function listTtsProviders(includeFallback = false): MediaProvider[] {
+  return includeFallback ? [...TTS_PROVIDERS, LOCAL_TTS_FALLBACK] : [...TTS_PROVIDERS];
+}
+
+export function listMusicProviders(includeFallback = false): MediaProvider[] {
+  return includeFallback ? [...MUSIC_PROVIDERS, LOCAL_MUSIC_FALLBACK] : [...MUSIC_PROVIDERS];
+}
+
+export function getTtsProvider(id: string): MediaProvider | undefined {
+  return listTtsProviders(true).find((p) => p.id === id);
+}
+
+export function getMusicProvider(id: string): MediaProvider | undefined {
+  return listMusicProviders(true).find((p) => p.id === id);
+}
+
+export function buildTtsRequest(
+  provider: MediaProvider,
+  input: SpeechGenInput,
+  secrets: Record<string, string | undefined> = process.env,
+): HttpRequestSpec {
+  const key = provider.authEnv ? secrets[provider.authEnv] ?? "" : "";
+  const text = input.text.slice(0, 5000);
+  const endpoint = provider.endpoint ?? "";
+
+  if (provider.id === "elevenlabs-tts") {
+    const voice = input.voice ?? "21m00Tcm4TlvDq8ikWAM";
+    return { method: "POST", url: `${endpoint}/${voice}`, headers: { "xi-api-key": key, "Content-Type": "application/json" }, body: JSON.stringify({ text, model_id: "eleven_multilingual_v2" }) };
+  }
+  if (provider.id === "google-tts") {
+    return { method: "POST", url: `${endpoint}?key=${encodeURIComponent(key)}`, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ input: { text }, voice: { languageCode: "en-US" }, audioConfig: { audioEncoding: "MP3" } }) };
+  }
+  if (provider.id === "openai-tts") {
+    return { method: "POST", url: endpoint, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: "tts-1", input: text, voice: input.voice ?? "alloy" }) };
+  }
+  // piper (local)
+  return { method: "POST", url: "local://piper", headers: {}, body: JSON.stringify({ bin: secrets.PIPER_BIN ?? "piper", text, voice: input.voice ?? "en_US-amy-medium" }) };
+}
+
+export function buildMusicRequest(
+  provider: MediaProvider,
+  input: MusicGenInput,
+  secrets: Record<string, string | undefined> = process.env,
+): HttpRequestSpec {
+  const key = provider.authEnv ? secrets[provider.authEnv] ?? "" : "";
+  const prompt = sanitize(input.prompt);
+  const duration = Math.max(1, Math.round(input.durationSec ?? 10));
+  const endpoint = provider.endpoint ?? "";
+
+  if (provider.id === "suno") {
+    return { method: "POST", url: endpoint, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ prompt, make_instrumental: true }) };
+  }
+  if (provider.id === "elevenlabs-sfx") {
+    return { method: "POST", url: endpoint, headers: { "xi-api-key": key, "Content-Type": "application/json" }, body: JSON.stringify({ text: prompt, duration_seconds: duration }) };
+  }
+  // elevenlabs-music
+  return { method: "POST", url: endpoint, headers: { "xi-api-key": key, "Content-Type": "application/json" }, body: JSON.stringify({ prompt, music_length_ms: duration * 1000 }) };
+}
+
+export interface AudioGenerationPlan {
+  provider: MediaProvider;
+  mode: GenerationMode;
+  request?: HttpRequestSpec;
+  unavailable: string[];
+}
+
+export function planSpeechGeneration(input: SpeechGenInput, secrets: Record<string, string | undefined> = process.env): AudioGenerationPlan {
+  const pool = input.providerId ? listTtsProviders(true).filter((p) => p.id === input.providerId) : listTtsProviders(false);
+  const unavailable: string[] = [];
+  for (const provider of pool) {
+    if (provider.tier === "local-free") return { provider, mode: "fallback", unavailable };
+    if (providerAvailable(provider, secrets)) return { provider, mode: "request", request: buildTtsRequest(provider, input, secrets), unavailable };
+    unavailable.push(provider.id);
+  }
+  return { provider: LOCAL_TTS_FALLBACK, mode: "fallback", unavailable };
+}
+
+export function planMusicGeneration(input: MusicGenInput, secrets: Record<string, string | undefined> = process.env): AudioGenerationPlan {
+  const pool = input.providerId ? listMusicProviders(true).filter((p) => p.id === input.providerId) : listMusicProviders(false);
+  const unavailable: string[] = [];
+  for (const provider of pool) {
+    if (provider.tier === "local-free") return { provider, mode: "fallback", unavailable };
+    if (providerAvailable(provider, secrets)) return { provider, mode: "request", request: buildMusicRequest(provider, input, secrets), unavailable };
+    unavailable.push(provider.id);
+  }
+  return { provider: LOCAL_MUSIC_FALLBACK, mode: "fallback", unavailable };
+}
+
+export function runSpeechGeneration(
+  input: SpeechGenInput,
+  secrets: Record<string, string | undefined> = process.env,
+): { plan: AudioGenerationPlan; result?: ToolRunResult } {
+  const plan = planSpeechGeneration(input, secrets);
+  if (plan.mode === "fallback") {
+    return { plan, result: generateSilentVoice({ text: input.text, outPath: input.outPath, durationSec: input.durationSec }) };
+  }
+  return { plan };
+}
+
+export function runMusicGeneration(
+  input: MusicGenInput,
+  secrets: Record<string, string | undefined> = process.env,
+): { plan: AudioGenerationPlan; result?: ToolRunResult } {
+  const plan = planMusicGeneration(input, secrets);
+  if (plan.mode === "fallback") {
+    return { plan, result: generateToneScore({ outPath: input.outPath, durationSec: input.durationSec }) };
   }
   return { plan };
 }
