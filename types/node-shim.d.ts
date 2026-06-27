@@ -8,6 +8,19 @@ declare const process: {
   version: string;
 };
 
+interface FetchResponse {
+  ok: boolean;
+  status: number;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  json(): Promise<unknown>;
+  text(): Promise<string>;
+}
+
+declare function fetch(
+  url: string,
+  init?: { method?: string; headers?: Record<string, string>; body?: string },
+): Promise<FetchResponse>;
+
 declare module "node:child_process" {
   export interface SpawnSyncResult {
     status: number | null;
@@ -37,7 +50,7 @@ declare module "node:fs" {
   export function readdirSync(path: string, options: { withFileTypes: true }): Dirent[];
   export function rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void;
   export function statSync(path: string): Stats;
-  export function writeFileSync(path: string, data: string): void;
+  export function writeFileSync(path: string, data: string | Uint8Array): void;
 }
 
 declare module "node:os" {

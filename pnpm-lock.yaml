@@ -38,6 +38,9 @@ importers:
       '@montara/style':
         specifier: workspace:*
         version: link:packages/style
+      '@montara/tools':
+        specifier: workspace:*
+        version: link:packages/tools
       '@montara/understand':
         specifier: workspace:*
         version: link:packages/understand
@@ -157,6 +160,8 @@ importers:
       '@montara/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/tools: {}
 
   packages/understand:
     dependencies:

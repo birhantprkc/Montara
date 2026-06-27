@@ -57,6 +57,7 @@ import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
 import { detectScenes, sampleKeyFrames, transcribe, understandVideo, analyzeReferenceVideo } from "../packages/understand/src/index";
 import { listEngines, getEngine, engineAvailable, preferredEngine, renderWithEngine } from "../packages/render-engines/src/index";
 import { STYLE_PLAYBOOKS, OUTPUT_PROFILES, applyStyle, applyOutputProfile, getOutputProfile } from "../packages/style/src/index";
+import { buildDefaultRegistry, ElevenLabsTTS } from "../packages/tools/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -393,6 +394,20 @@ ok("applying the shorts profile resizes to 1080x1920", shorts.composition.width 
 ok("output profile re-centers positioned text", shortsText?.transform?.x === 540 && shortsText.transform?.y === 960);
 ok("a re-profiled timeline still validates", validateTimeline(shorts).length === 0);
 void getOutputProfile;
+
+console.log("\n== tool contract (P0) ==");
+const registry = buildDefaultRegistry();
+const eleven = registry.get("elevenlabs_tts");
+ok("registry holds the ported elevenlabs_tts tool", Boolean(eleven) && eleven instanceof ElevenLabsTTS);
+const tts = new ElevenLabsTTS();
+ok("BaseTool contract fields are correct", tts.tier === "voice" && tts.capability === "tts" && tts.runtime === "api" && tts.fallbackTools.length === 2);
+ok("status is key-gated (unavailable without key, available with it)", tts.getStatus({}) === "unavailable" && tts.getStatus({ ELEVENLABS_API_KEY: "k" }) === "available");
+ok("cost estimate matches OM (len*0.0003)", Math.abs(tts.estimateCost({ text: "hello" }) - 0.0015) < 1e-9);
+const req = tts.buildRequest({ text: "the strait", voice_id: "VID", similarity_boost: 0.9 }, "APIKEY");
+ok("request URL hits /text-to-speech/{voice} with output_format", req.url.includes("/v1/text-to-speech/VID") && req.url.includes("output_format="));
+ok("request carries OM headers (xi-api-key + Accept: audio/mpeg)", req.headers["xi-api-key"] === "APIKEY" && req.headers.Accept === "audio/mpeg");
+ok("request body carries voice_settings (the field our stub was missing)", req.body.includes("voice_settings") && req.body.includes("\"similarity_boost\":0.9"));
+ok("idempotency key is deterministic", tts.idempotencyKey({ text: "a", voice_id: "v", model_id: "m" }) === tts.idempotencyKey({ text: "a", voice_id: "v", model_id: "m" }));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

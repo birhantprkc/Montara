@@ -21,6 +21,7 @@
     "@montara/render-ffmpeg": "workspace:*",
     "@montara/render-remotion": "workspace:*",
     "@montara/style": "workspace:*",
+    "@montara/tools": "workspace:*",
     "@montara/understand": "workspace:*",
     "esbuild": "^0.24.2",
     "typescript": "^5.6.3"
