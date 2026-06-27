@@ -121,7 +121,7 @@ import {
   DoubaoTTS,
   TTSSelector,
 } from "../packages/tools/src/index";
-import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck } from "../packages/engine/src/index";
+import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck, engineCompliance } from "../packages/engine/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -955,6 +955,12 @@ console.log("\n== Engine test parity (1A.5) ==");
 const selfcheck = engineSelfcheck();
 ok("engine self-check battery passes inside the Montara gate", Boolean(selfcheck) && selfcheck!.ok && selfcheck!.passed === selfcheck!.total);
 for (const c of selfcheck?.checks ?? []) ok(`engine check — ${c.name}`, c.ok, c.detail);
+
+console.log("\n== Compliance gate (1A.6) ==");
+const compliance = engineCompliance();
+ok("no legacy source-project branding in committable source", Boolean(compliance) && compliance!.legacy_tokens.length === 0);
+ok("no hardcoded secrets in committable source", Boolean(compliance) && compliance!.hardcoded_secrets.length === 0);
+ok("compliance scan covers the whole source tree", Boolean(compliance) && compliance!.ok && compliance!.scanned > 300, `scanned ${compliance?.scanned ?? 0}`);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

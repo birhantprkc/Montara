@@ -142,6 +142,19 @@ export function engineSelfcheck(root: string = engineRoot()): EngineSelfcheck | 
   return res.ok ? res.data : null;
 }
 
+export interface EngineCompliance {
+  ok: boolean;
+  scanned: number;
+  legacy_tokens: string[];
+  hardcoded_secrets: string[];
+}
+
+/** Enforced compliance scan: no legacy branding and no hardcoded secrets in committable source. */
+export function engineCompliance(root: string = engineRoot()): EngineCompliance | null {
+  const res = runEngineBridge<EngineCompliance>(["compliance"], root);
+  return res.ok ? res.data : null;
+}
+
 export interface EngineReadiness {
   ready: boolean;
   python: string | null;

@@ -182,9 +182,47 @@ def selfcheck() -> dict:
     return {"ok": passed == len(checks), "passed": passed, "total": len(checks), "checks": checks}
 
 
+# Patterns assembled from fragments so the literal upstream tokens never live in committed source.
+_LEGACY_RE = re.compile("|".join(["open" + "montage", "cales" + "thio"]), re.I)
+_SECRET_RE = re.compile(r'(api[_-]?key|secret|password|access[_-]?token)\s*[=:]\s*["\'][A-Za-z0-9_\-]{16,}["\']', re.I)
+_SCAN_DIRS = ["lib", "tools", "skills", "schemas", "pipeline_defs", "styles", "packages", "scripts"]
+_SCAN_EXT = {".py", ".ts", ".tsx", ".js", ".md", ".json", ".yaml", ".yml"}
+
+
+def compliance() -> dict:
+    """Enforced compliance scan: no legacy source-project branding and no hardcoded secrets
+    in committable source. Keeps the merge gate honest about attribution + secret hygiene."""
+    legacy: list[str] = []
+    secrets: list[str] = []
+    scanned = 0
+    for d in _SCAN_DIRS:
+        base = ROOT / d
+        if not base.is_dir():
+            continue
+        for f in base.rglob("*"):
+            if not f.is_file() or f.suffix not in _SCAN_EXT or "node_modules" in f.parts:
+                continue
+            try:
+                text = f.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                continue
+            scanned += 1
+            rel = str(f.relative_to(ROOT))
+            if _LEGACY_RE.search(text):
+                legacy.append(rel)
+            if _SECRET_RE.search(text):
+                secrets.append(rel)
+    return {
+        "ok": not legacy and not secrets,
+        "scanned": scanned,
+        "legacy_tokens": legacy[:20],
+        "hardcoded_secrets": secrets[:20],
+    }
+
+
 NULLARY = {
     "info": info, "verify": verify, "compositions": compositions,
-    "providers": providers, "selfcheck": selfcheck,
+    "providers": providers, "selfcheck": selfcheck, "compliance": compliance,
 }
 
 

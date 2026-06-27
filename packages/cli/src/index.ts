@@ -13,7 +13,7 @@ import { listEngines, engineAvailable } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
-import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck } from "../../engine/src/index";
+import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance } from "../../engine/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -104,6 +104,7 @@ Commands:
   engine render <name> [out]      render a bridged composition to MP4 (ffmpeg; --engine remotion)
   engine providers                list engine providers + which are configured (no secrets)
   engine check                    run the engine integrity self-check battery
+  engine compliance               scan source for legacy branding + hardcoded secrets
   pipelines                       list the available pipeline shapes
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
@@ -160,6 +161,14 @@ export function main(argv = process.argv.slice(2)): number {
         console.log(`${comp.cuts.length} cuts -> Timeline IR (${timeline.composition.durationSec}s, ${timeline.tracks.length} tracks, valid)`);
         console.log(out);
         return 0;
+      }
+      if (sub === "compliance") {
+        const c = engineCompliance();
+        if (!c) { console.error("engine bridge unavailable (Python 3 required)"); return 1; }
+        console.log(`compliance: scanned ${c.scanned} files — ${c.legacy_tokens.length} legacy token(s), ${c.hardcoded_secrets.length} hardcoded secret(s)`);
+        for (const f of c.legacy_tokens) console.log(`  legacy: ${f}`);
+        for (const f of c.hardcoded_secrets) console.log(`  secret: ${f}`);
+        return c.ok ? 0 : 1;
       }
       if (sub === "check") {
         const sc = engineSelfcheck();
