@@ -68,6 +68,21 @@ import {
   loadConfig,
   parseEnvText,
   requireEnv,
+  ProviderScore,
+  ProductionPathScore,
+  scoreProvider,
+  rankProviders,
+  scoreSlideshowRisk,
+  checkSceneVariation,
+  stepDuration,
+  trace,
+  assertAlignment,
+  detectMediaType,
+  parseFps,
+  sampleTimestamps,
+  reviewSourceMedia,
+  type ScorableTool,
+  type Scene,
 } from "../packages/quality/src/index";
 import { planResearchQueries, runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
@@ -552,6 +567,89 @@ ok("request URL hits /text-to-speech/{voice} with output_format", req.url.includ
 ok("request carries expected headers (xi-api-key + Accept: audio/mpeg)", req.headers["xi-api-key"] === "APIKEY" && req.headers.Accept === "audio/mpeg");
 ok("request body carries voice_settings (the field our stub was missing)", req.body.includes("voice_settings") && req.body.includes("\"similarity_boost\":0.9"));
 ok("idempotency key is deterministic", tts.idempotencyKey({ text: "a", voice_id: "v", model_id: "m" }) === tts.idempotencyKey({ text: "a", voice_id: "v", model_id: "m" }));
+
+console.log("\n== lib intelligence (P2) ==");
+const approx = (a: number, b: number, eps = 1e-6): boolean => Math.abs(a - b) < eps;
+
+// Weighted-score fidelity (provider 30/20/15/15/10/5/5, path 25/20/15/10/10/8/7/5).
+const pScore = new ProviderScore({
+  tool_name: "t", provider: "p", task_fit: 0.8, output_quality: 0.6, control: 0.5,
+  reliability: 0.9, cost_efficiency: 0.7, latency: 0.4, continuity: 0.5,
+});
+ok("provider weighted score matches source weights", approx(pScore.weighted_score, 0.685));
+const pathScore = new ProductionPathScore({
+  path_label: "x", delivery_fit: 0.9, quality_fit: 0.8, capability_confidence: 0.7,
+  fallback_integrity: 0.6, budget_fit: 0.5, speed_fit: 0.4, controllability: 0.3, consistency_fit: 0.2,
+});
+ok("production path weighted score matches source weights", approx(pathScore.weighted_score, 0.663));
+
+// score_provider end-to-end: synonym task-fit, control from supports, premium-cinematic bonus.
+const fakeTool: ScorableTool = {
+  getInfo: () => ({
+    name: "kling", provider: "kling",
+    best_for: ["cinematic film trailers", "dramatic motion"],
+    supports: { reference_image: true, camera_direction: true, native_audio: true, multi_shot: true, cinematic_quality: true },
+    stability: "production", tier: "generate", capability: "video_generation", runtime: "api",
+  }),
+  getStatus: () => "available",
+  estimateCost: () => 0.5,
+};
+const sp2 = scoreProvider(fakeTool, { intent: "cinematic trailer", asset_type: "video", motion_required: true, budget_remaining_usd: 10.0 });
+ok("scoreProvider task_fit applies synonym overlap + cinematic bonus", approx(sp2.task_fit, 0.95));
+ok("scoreProvider output_quality caps at 1.0 with premium bonus", approx(sp2.output_quality, 1.0));
+ok("scoreProvider control weights supports features", approx(sp2.control, 0.324324, 1e-5));
+ok("scoreProvider reliability/cost/latency/continuity match source", approx(sp2.reliability, 0.95) && approx(sp2.cost_efficiency, 0.8) && approx(sp2.latency, 0.4) && approx(sp2.continuity, 0.5));
+ok("scoreProvider weighted score matches OM ground truth", approx(sp2.weighted_score, 0.801149, 1e-5));
+ok("rankProviders returns best-first", rankProviders([fakeTool], { intent: "cinematic" })[0]?.tool_name === "kling");
+
+// slideshow risk over a scene plan (6 dims, 0-5, verdict bands).
+const scenePlanScenes: Scene[] = [
+  { type: "text_card", description: "intro", shot_language: { shot_size: "wide", camera_movement: "static" } },
+  { type: "text_card", description: "point one", shot_language: { shot_size: "wide", camera_movement: "static" } },
+  { type: "text_card", description: "point two", shot_language: { shot_size: "wide" } },
+  { type: "video", description: "b-roll city", shot_language: { shot_size: "medium", camera_movement: "dolly_in" }, shot_intent: "reveal scale", hero_moment: true },
+];
+const risk = scoreSlideshowRisk(scenePlanScenes);
+ok("slideshow risk average + verdict match OM", approx(risk.average, 2.52) && risk.verdict === "acceptable");
+ok("slideshow risk dimensions match OM scores",
+  approx(risk.dimensions.repetition!.score, 3.5) &&
+  approx(risk.dimensions.decorative_visuals!.score, 3.8) &&
+  approx(risk.dimensions.weak_motion!.score, 0.0) &&
+  approx(risk.dimensions.typography_overreliance!.score, 4.0));
+ok("slideshow risk fails an empty scene plan", scoreSlideshowRisk([]).verdict === "fail" && scoreSlideshowRisk([]).average === 5.0);
+
+// variation checker (8 structural checks).
+const variation = checkSceneVariation(scenePlanScenes);
+ok("variation checker score + verdict match OM", approx(variation.score, 3.0) && variation.verdict === "revise");
+ok("variation checker flags 5 violations + 2 suggestions", variation.violations.length === 5 && variation.suggestions.length === 2);
+
+// scene pacing tracer (frame-accurate).
+const pacingSteps = [
+  { kind: "cmd", text: "git clone repo", typeSpeed: 0.035 },
+  { kind: "out", text: "Cloning..." },
+  { kind: "pause", seconds: 2.0 },
+  { kind: "cmd", text: "make setup" },
+];
+ok("stepDuration is frame-accurate for cmd/out/pause", approx(stepDuration(pacingSteps[0]!), 0.8) && approx(stepDuration(pacingSteps[1]!), 0.25) && approx(stepDuration(pacingSteps[2]!), 2.0));
+const landmarks = trace(pacingSteps, 0.0, 30, { quiet: true });
+ok("trace emits landmarks at exact video-times", landmarks.length === 3 && approx(landmarks[0]!.video_time, 0.0) && approx(landmarks[1]!.video_time, 0.8) && approx(landmarks[2]!.video_time, 3.05));
+let alignRaised = false;
+try { assertAlignment(pacingSteps, 0.0, 5.0, [[0.5, "cue"], [4.5, "late cue"]], { tolerance: 1.0 }); } catch { alignRaised = true; }
+ok("assertAlignment throws when a cue has no nearby landmark", alignRaised);
+let alignPassed = true;
+try { assertAlignment(pacingSteps, 0.0, 3.5, [[0.0, "a"], [3.0, "b"]], { tolerance: 1.0 }); } catch { alignPassed = false; }
+ok("assertAlignment passes when cues line up", alignPassed);
+
+// source media review pure helpers.
+ok("parseFps handles fractional + integer + bad rates", approx(parseFps("24000/1001"), 23.98) && approx(parseFps("30/1"), 30.0) && approx(parseFps("bad"), 0.0));
+ok("sampleTimestamps spaces evenly", JSON.stringify(sampleTimestamps(10, 4)) === JSON.stringify([2.0, 4.0, 6.0, 8.0]));
+ok("detectMediaType classifies by extension", detectMediaType("a.mp4") === "video" && detectMediaType("b.wav") === "audio" && detectMediaType("c.png") === "image" && detectMediaType("d.txt") === null);
+const emptyReview = reviewSourceMedia([], {});
+ok("reviewSourceMedia reports no media with the fully-generated implication",
+  emptyReview.version === "1.0" &&
+  emptyReview.files.length === 0 &&
+  emptyReview.planning_implications.length === 1 &&
+  emptyReview.planning_implications[0]!.startsWith("No source media available"));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

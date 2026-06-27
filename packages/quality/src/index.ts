@@ -2,7 +2,12 @@
 // Quality governance (§I slideshow-risk, pre-compose gate, post-render self-review, budget).
 export * from "./audit";
 export * from "./selection";
+export * from "./scoring";
 export * from "./slideshow";
+export * from "./slideshowRisk";
+export * from "./variationChecker";
+export * from "./scenePacing";
+export * from "./sourceMediaReview";
 export * from "./precompose";
 export * from "./deliveryPromise";
 export * from "./env";
