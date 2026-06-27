@@ -55,6 +55,7 @@ import {
 import { planResearchQueries, runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
 import { detectScenes, sampleKeyFrames, transcribe, understandVideo, analyzeReferenceVideo } from "../packages/understand/src/index";
+import { listEngines, getEngine, engineAvailable, preferredEngine, renderWithEngine } from "../packages/render-engines/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -361,6 +362,20 @@ ok("video understanding emits frame descriptors + tags", understanding.frames.le
 
 const refAnalysis = analyzeReferenceVideo(sceneClip, {});
 ok("reference analysis proposes 2-3 concepts + a cost estimate", refAnalysis.concepts.length >= 2 && refAnalysis.concepts.length <= 3 && refAnalysis.costEstimateUsd > 0);
+
+console.log("\n== render engines (§A) ==");
+ok("7 composition engines registered", listEngines().length === 7);
+ok("engines include revideo/motion-canvas/three/manim/blender", ["revideo", "motion-canvas", "three", "manim", "blender"].every((id) => Boolean(getEngine(id))));
+ok("scene-type auto-pick maps kinetic-typography to Motion Canvas", preferredEngine("kinetic-typography").id === "motion-canvas");
+ok("scene-type auto-pick maps 3d to three.js and math to Manim", preferredEngine("3d").id === "three" && preferredEngine("math").id === "manim");
+ok("an engine is unavailable without its runtime, ffmpeg always available", !engineAvailable(getEngine("three")!, {}) && engineAvailable(getEngine("ffmpeg")!, {}));
+
+const engineOut = join(process.cwd(), "out", "verify-engine.mp4");
+const engResult = renderWithEngine("motion-canvas", timeline, engineOut, {});
+ok("an engine adapter degrades to ffmpeg and renders a real MP4", existsSync(engineOut) && engResult.renderer === "degraded-ffmpeg");
+const ffOut = join(process.cwd(), "out", "verify-engine-ff.mp4");
+const ffResult = renderWithEngine("ffmpeg", timeline, ffOut, {});
+ok("the ffmpeg engine renders natively", existsSync(ffOut) && ffResult.renderer === "native");
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

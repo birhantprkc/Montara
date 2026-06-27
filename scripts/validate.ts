@@ -50,6 +50,7 @@ import {
 import { runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 import { planVideo } from "../packages/ai/src/index";
 import { analyzeReferenceVideo, transcribe } from "../packages/understand/src/index";
+import { listEngines, preferredEngine, renderWithEngine } from "../packages/render-engines/src/index";
 import {
   createCheckpoint,
   advanceCheckpoint,
@@ -277,6 +278,14 @@ ok("transcriber degrades to an empty transcript offline", transcribe({ inputPath
 const analysisPath = join(outDir, "validate-reference-analysis.json");
 writeFileSync(analysisPath, `${JSON.stringify(refAnalysis, null, 2)}\n`);
 ok("reference analysis emitted to disk", existsSync(analysisPath));
+
+console.log("\n== render engines (Phase 1.11 §A) ==");
+ok("7 composition engines registered", listEngines().length === 7);
+ok("auto-pick maps scene types to engines", preferredEngine("kinetic-typography").id === "motion-canvas" && preferredEngine("3d").id === "three");
+const enginePath = join(outDir, "validate-engine.mp4");
+try { rmSync(enginePath, { force: true }); } catch { /* none */ }
+const engResult = renderWithEngine("motion-canvas", result.timeline, enginePath, {});
+ok("a non-ffmpeg engine renders the IR (degraded) to a real MP4", existsSync(enginePath) && probeDuration(enginePath) > 1 && engResult.renderer === "degraded-ffmpeg");
 
 console.log("\n== agent layer headless drive (Phase 1.5 §K) ==");
 // Generate the data-side artefacts an external assistant reads.

@@ -11,6 +11,7 @@
     "@montara/providers": "workspace:*",
     "@montara/quality": "workspace:*",
     "@montara/research": "workspace:*",
+    "@montara/render-engines": "workspace:*",
     "@montara/render-ffmpeg": "workspace:*",
     "@montara/render-remotion": "workspace:*",
     "@montara/understand": "workspace:*"

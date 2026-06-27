@@ -9,6 +9,7 @@ import { listProviderTools, listVideoProviders, listImageProviders, listTtsProvi
 import { preComposeGate, postRenderSelfReview, writeSelfReview } from "../../quality/src/index";
 import { runResearch } from "../../research/src/index";
 import { analyzeReferenceVideo } from "../../understand/src/index";
+import { listEngines, engineAvailable } from "../../render-engines/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
 
@@ -99,6 +100,7 @@ Commands:
   pipelines                       list the available pipeline shapes
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
+  engines                         list composition engines + availability
   research <idea>                 plan 15-25 searches + write a research brief to ./out
   plan  [opts] <idea>             write a structured scene plan to ./out
   make  [opts] <idea>             plan + gate + compose + render + self-review to ./out
@@ -180,6 +182,14 @@ export function main(argv = process.argv.slice(2)): number {
       console.log(mp4);
       console.log(reportPath);
       return existsSync(mp4) && review.ok ? 0 : 1;
+    }
+
+    if (command === "engines") {
+      for (const e of listEngines()) {
+        const status = engineAvailable(e) ? "available" : "degrades to ffmpeg";
+        console.log(`${e.id.padEnd(14)} ${status.padEnd(20)} ${e.license.padEnd(16)} ${e.role}`);
+      }
+      return 0;
     }
 
     if (command === "research") {
