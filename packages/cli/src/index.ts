@@ -13,6 +13,7 @@ import { listEngines, engineAvailable } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
+import { engineReady, engineVerify } from "../../engine/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -97,7 +98,8 @@ function printHelp(): void {
   console.log(`montara <command>
 
 Commands:
-  doctor                          check local render prerequisites
+  doctor                          check local render prerequisites + Python engine
+  engine [info|smoke]             show Python engine readiness, or run the integrity smoke
   pipelines                       list the available pipeline shapes
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
@@ -127,6 +129,26 @@ export function main(argv = process.argv.slice(2)): number {
     }
 
     if (command === "doctor") return runDoctor();
+
+    if (command === "engine") {
+      const sub = rest[0] ?? "info";
+      if (sub === "verify" || sub === "smoke") {
+        const v = engineVerify();
+        if (!v) { console.error("engine bridge unavailable (Python 3 required)"); return 1; }
+        console.log(`engine smoke: AST-parsed ${v.parsed} module(s), ${v.errors} error(s)`);
+        for (const b of v.bad) console.log(`  ${b.file}:${b.line} ${b.msg}`);
+        return v.ok ? 0 : 1;
+      }
+      const r = engineReady();
+      if (r.ready && r.info) {
+        console.log(`Python engine ready — ${r.info.python_version} @ ${r.info.engine_root}`);
+        console.log(`  ${r.info.tools} tools · ${r.info.lib} lib · ${r.info.skills} skills · ${r.info.schemas} schemas`);
+        console.log(`  pipelines: ${r.info.pipelines.join(", ")}`);
+        return 0;
+      }
+      console.error(`Python engine not ready: ${r.reasons.join("; ")}`);
+      return 1;
+    }
 
     if (command === "pipelines") {
       for (const p of listPipelines()) console.log(`${p.id.padEnd(22)} ${p.blurb}`);

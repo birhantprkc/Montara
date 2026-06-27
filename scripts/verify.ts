@@ -121,6 +121,7 @@ import {
   DoubaoTTS,
   TTSSelector,
 } from "../packages/tools/src/index";
+import { engineInfo, engineVerify } from "../packages/engine/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -904,6 +905,16 @@ ok("selector rank mode returns all providers scored best-first",
   ranked.success && rankings.length === 5 &&
   rankings.every((r, i) => i === 0 || rankings[i - 1]!.weighted_score >= r.weighted_score) &&
   typeof rankings[0]!.tool_name === "string");
+
+console.log("\n== Python engine bridge (1A.1) ==");
+const eInfo = engineInfo();
+ok("engine bridge discovers the rooted engine via JSON contract",
+  Boolean(eInfo) && eInfo!.ok && eInfo!.missing.length === 0);
+ok("engine reports the full tool + lib + pipeline surface",
+  Boolean(eInfo) && eInfo!.tools >= 100 && eInfo!.lib >= 15 && eInfo!.pipelines.length >= 10);
+const eVerify = engineVerify();
+ok("engine integrity smoke AST-parses lib + tools with zero errors",
+  Boolean(eVerify) && eVerify!.ok && eVerify!.parsed >= 100 && eVerify!.errors === 0);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);
