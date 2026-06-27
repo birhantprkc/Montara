@@ -8,6 +8,7 @@ import { listPipelines, planVideo } from "../../ai/src/index";
 import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable } from "../../providers/src/index";
 import { preComposeGate, postRenderSelfReview, writeSelfReview } from "../../quality/src/index";
 import { runResearch } from "../../research/src/index";
+import { analyzeReferenceVideo } from "../../understand/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
 
@@ -103,6 +104,7 @@ Commands:
   make  [opts] <idea>             plan + gate + compose + render + self-review to ./out
   render <ir.json>                render a ScenePlan or Timeline IR JSON to MP4
   review <mp4>                    post-render self-review report for an MP4
+  analyze <mp4>                   scene/understanding analysis + concept variants for a video
   agent                           regenerate pipeline manifests + schemas + assistant configs
 
 Options (plan/make):
@@ -188,6 +190,21 @@ export function main(argv = process.argv.slice(2)): number {
       writeFileSync(out, `${JSON.stringify(bundle, null, 2)}\n`);
       console.log(`${bundle.queries.length} queries · ${bundle.findings.length} findings · ${bundle.online ? "online" : "offline brief"}`);
       for (const angle of bundle.angles) console.log(`  angle: ${angle}`);
+      console.log(out);
+      return 0;
+    }
+
+    if (command === "analyze") {
+      const input = rest[0];
+      if (!input) throw new Error("analyze requires a video path");
+      const a = analyzeReferenceVideo(input, {});
+      console.log(`${a.durationSec.toFixed(2)}s · ${a.width}x${a.height} · ${a.sceneCount} scene(s) · ${a.cutsPerMinute} cuts/min`);
+      console.log(`tags: ${a.understanding.tags.join(", ")}`);
+      for (const c of a.concepts) console.log(`  concept ${c.id}: ${c.angle}`);
+      console.log(`est. cost: $${a.costEstimateUsd}`);
+      const out = join(process.cwd(), "out", `${slug(input.replace(/\.[a-z0-9]+$/i, ""))}.analysis.json`);
+      mkdirSync(dirname(out), { recursive: true });
+      writeFileSync(out, `${JSON.stringify(a, null, 2)}\n`);
       console.log(out);
       return 0;
     }

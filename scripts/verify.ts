@@ -54,6 +54,7 @@ import {
 } from "../packages/quality/src/index";
 import { planResearchQueries, runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
+import { detectScenes, sampleKeyFrames, transcribe, understandVideo, analyzeReferenceVideo } from "../packages/understand/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -334,6 +335,32 @@ ok("6 model enhancement tools registered", ENHANCEMENT_TOOLS.length === 6);
 ok("enhancement tools cover upscale/bg-remove/face/avatar/lip-sync", ["upscale", "bg-remove", "face-enhance", "face-restore", "talking-head", "lip-sync"].every((k) => ENHANCEMENT_TOOLS.some((t) => t.kind === k)));
 const esrgan = getEnhancementTool("real-esrgan")!;
 ok("enhancer is unavailable without its runtime, available with it", !enhancementAvailable(esrgan, {}) && enhancementAvailable(esrgan, { REALESRGAN_BIN: "x" }) && esrgan.hasLocalFallback);
+
+console.log("\n== analysis / understanding (§G) ==");
+const sceneClip = join(process.cwd(), "out", "verify-scenes.mp4");
+renderScenePlan({ width: 480, height: 270, fps: 30, scenes: [
+  { id: "r", title: "Red", durationSec: 0.8, background: "cc1111" },
+  { id: "g", title: "Green", durationSec: 0.8, background: "11cc11" },
+  { id: "b", title: "Blue", durationSec: 0.8, background: "1111cc" },
+] }, sceneClip);
+
+const multiScenes = detectScenes(sceneClip);
+const singleScenes = detectScenes(clipA);
+ok("scene detect finds cuts in a multi-scene clip", multiScenes.cuts.length >= 1, `cuts ${multiScenes.cuts.length}`);
+ok("scene detect finds fewer cuts in a single-scene clip", singleScenes.cuts.length < multiScenes.cuts.length);
+
+const framesDir = join(process.cwd(), "out", "verify-frames");
+const sampled = sampleKeyFrames(sceneClip, framesDir, { maxFrames: 5 });
+ok("intelligent frame sampler writes real frames", sampled.length >= 2 && sampled.every((f) => existsSync(f.path)));
+
+const transcript = transcribe({ inputPath: sceneClip }, {});
+ok("transcriber degrades to an empty transcript with no runtime", transcript.engine === "none" && transcript.segments.length === 0);
+
+const understanding = understandVideo(sceneClip, { maxFrames: 3 });
+ok("video understanding emits frame descriptors + tags", understanding.frames.length >= 2 && understanding.tags.length === 3 && understanding.sceneCount >= 2);
+
+const refAnalysis = analyzeReferenceVideo(sceneClip, {});
+ok("reference analysis proposes 2-3 concepts + a cost estimate", refAnalysis.concepts.length >= 2 && refAnalysis.concepts.length <= 3 && refAnalysis.costEstimateUsd > 0);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

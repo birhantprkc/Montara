@@ -49,6 +49,7 @@ import {
 } from "../packages/quality/src/index";
 import { runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 import { planVideo } from "../packages/ai/src/index";
+import { analyzeReferenceVideo, transcribe } from "../packages/understand/src/index";
 import {
   createCheckpoint,
   advanceCheckpoint,
@@ -267,6 +268,15 @@ ok("crossfade stitch overlaps two clips", existsSync(xfadePath) && probeDuration
 upscaleVideo({ inputPath: genVideoPath, outPath: upscaledPath, factor: 2 });
 ok("lanczos upscale produces a real MP4", existsSync(upscaledPath) && probeDuration(upscaledPath) > 0.8);
 ok("6 model enhancement tools registered + runtime-gated", ENHANCEMENT_TOOLS.length === 6 && !enhancementAvailable(getEnhancementTool("rembg")!, {}));
+
+console.log("\n== analysis / understanding (Phase 1.10 §G) ==");
+const refAnalysis = analyzeReferenceVideo(mp4Path, {});
+ok("reference analysis reads pacing + look from the real MP4", refAnalysis.durationSec > 0 && refAnalysis.understanding.frames.length >= 2);
+ok("reference analysis proposes 2-3 differentiated concepts + cost", refAnalysis.concepts.length >= 2 && refAnalysis.concepts.length <= 3 && refAnalysis.costEstimateUsd > 0);
+ok("transcriber degrades to an empty transcript offline", transcribe({ inputPath: mp4Path }, {}).engine === "none");
+const analysisPath = join(outDir, "validate-reference-analysis.json");
+writeFileSync(analysisPath, `${JSON.stringify(refAnalysis, null, 2)}\n`);
+ok("reference analysis emitted to disk", existsSync(analysisPath));
 
 console.log("\n== agent layer headless drive (Phase 1.5 §K) ==");
 // Generate the data-side artefacts an external assistant reads.

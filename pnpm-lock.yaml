@@ -32,6 +32,9 @@ importers:
       '@montara/research':
         specifier: workspace:*
         version: link:packages/research
+      '@montara/understand':
+        specifier: workspace:*
+        version: link:packages/understand
       esbuild:
         specifier: ^0.24.2
         version: 0.24.2
@@ -80,6 +83,9 @@ importers:
       '@montara/research':
         specifier: workspace:*
         version: link:../research
+      '@montara/understand':
+        specifier: workspace:*
+        version: link:../understand
 
   packages/core: {}
 
@@ -124,6 +130,12 @@ importers:
       '@montara/quality':
         specifier: workspace:*
         version: link:../quality
+
+  packages/understand:
+    dependencies:
+      '@montara/render-ffmpeg':
+        specifier: workspace:*
+        version: link:../render-ffmpeg
 
 packages:
 
