@@ -22,6 +22,10 @@ import {
   getVideoProvider,
   planVideoGeneration,
   runVideoGeneration,
+  IMAGE_PROVIDERS,
+  getImageProvider,
+  buildImageRequest,
+  runImageGeneration,
 } from "../packages/providers/src/index";
 import {
   DecisionTrail,
@@ -205,6 +209,16 @@ const byokPlan = planVideoGeneration({ prompt: "same prompt", outPath: genVideoP
 ok("BYOK plan builds a real provider request (no network)", byokPlan.mode === "request" && byokPlan.request?.headers.Authorization === "Bearer demo-key");
 const stockReq = buildVideoRequest(getVideoProvider("pixabay-video")!, { prompt: "narrow strait", outPath: genVideoPath }, { PIXABAY_API_KEY: "pk" });
 ok("stock provider request encodes key + query", stockReq.url.includes("key=pk") && stockReq.url.includes("q=narrow"));
+
+console.log("\n== image providers (Phase 1.7 §D) ==");
+ok("10 image providers registered (cloud + local-runtime + stock)", IMAGE_PROVIDERS.length === 10);
+
+const genImagePath = join(outDir, "validate-image-gen.png");
+try { rmSync(genImagePath, { force: true }); } catch { /* none */ }
+const iGen = runImageGeneration({ prompt: "a narrow strait from orbit", outPath: genImagePath, width: 320, height: 180 }, {});
+ok("offline image generation falls back to a real local PNG", iGen.plan.mode === "fallback" && existsSync(genImagePath));
+const dalleReq = buildImageRequest(getImageProvider("dalle3")!, { prompt: "x", outPath: genImagePath }, { OPENAI_API_KEY: "demo-key" });
+ok("BYOK image request is a real Bearer POST", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer demo-key");
 
 console.log("\n== agent layer headless drive (Phase 1.5 §K) ==");
 // Generate the data-side artefacts an external assistant reads.

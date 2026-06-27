@@ -21,6 +21,11 @@ import {
   planVideoGeneration,
   runVideoGeneration,
   getVideoProvider,
+  IMAGE_PROVIDERS,
+  getImageProvider,
+  buildImageRequest,
+  planImageGeneration,
+  runImageGeneration,
 } from "../packages/providers/src/index";
 import {
   DecisionTrail,
@@ -240,6 +245,25 @@ ok("scored selection ranks a cloud video provider", mediaPick.chosen.item.tier =
 const vGen = runVideoGeneration(vInput, {});
 ok("offline video generation renders a real fallback MP4", Boolean(vGen.result) && existsSync(vInput.outPath));
 void listVideoProviders;
+
+console.log("\n== image providers (§D) ==");
+ok("all 10 image generation providers are registered", IMAGE_PROVIDERS.length === 10, `got ${IMAGE_PROVIDERS.length}`);
+ok("image providers span cloud + local-runtime + stock tiers", ["cloud", "local-runtime", "stock"].every((t) => IMAGE_PROVIDERS.some((p) => p.tier === t)));
+ok("every image provider is category image", IMAGE_PROVIDERS.every((p) => p.category === "image"));
+
+const iInput = { prompt: "a narrow strait seen from orbit", outPath: join(process.cwd(), "out", "verify-image.png"), width: 512, height: 512 };
+const dalleReq = buildImageRequest(getImageProvider("dalle3")!, iInput, { OPENAI_API_KEY: "ok" });
+ok("DALL·E request is a Bearer POST with model + prompt", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer ok" && Boolean(dalleReq.body?.includes("dall-e-3")));
+const unsplashReq = buildImageRequest(getImageProvider("unsplash")!, iInput, { UNSPLASH_ACCESS_KEY: "uk" });
+ok("Unsplash request is a GET with Client-ID auth", unsplashReq.method === "GET" && unsplashReq.headers.Authorization === "Client-ID uk");
+
+const offlineImg = planImageGeneration(iInput, {});
+ok("with no credentials an image plan falls back to local-free", offlineImg.mode === "fallback" && offlineImg.provider.tier === "local-free");
+const keyedImg = planImageGeneration({ ...iInput, providerId: "flux" }, { BFL_API_KEY: "bk" });
+ok("a credentialed image provider yields a request plan", keyedImg.mode === "request" && keyedImg.provider.id === "flux");
+
+const iGen = runImageGeneration(iInput, {});
+ok("offline image generation writes a real fallback PNG", Boolean(iGen.result) && existsSync(iInput.outPath));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

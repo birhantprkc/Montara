@@ -6,7 +6,7 @@
 // BYOK and is exercised by the caller's executor, not by these unit-tested builders.
 
 import type { ToolRunResult } from "./index";
-import { renderCaptionCardVideo } from "./index";
+import { renderCaptionCardVideo, renderCaptionCardImage } from "./index";
 
 export type MediaCategory = "video" | "image" | "tts" | "music";
 export type ProviderTier = "cloud" | "local-runtime" | "stock" | "local-free";
@@ -188,6 +188,130 @@ export function runVideoGeneration(
       width: input.width,
       height: input.height,
       fps: input.fps,
+    });
+    return { plan, result };
+  }
+  return { plan };
+}
+
+// ---- the 10 image generation providers ------------------------------------
+export interface ImageGenInput {
+  prompt: string;
+  outPath: string;
+  width?: number;
+  height?: number;
+  providerId?: string;
+}
+
+export const IMAGE_PROVIDERS: MediaProvider[] = [
+  // cloud (5)
+  { id: "flux", name: "FLUX", vendor: "Black Forest Labs", category: "image", tier: "cloud", authEnv: "BFL_API_KEY", endpoint: "https://api.bfl.ai/v1/flux-pro-1.1", notes: "High-quality text-to-image." },
+  { id: "imagen", name: "Google Imagen", vendor: "Google", category: "image", tier: "cloud", authEnv: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict", notes: "Photoreal text-to-image." },
+  { id: "grok-image", name: "Grok Imagine Image", vendor: "xAI", category: "image", tier: "cloud", authEnv: "XAI_API_KEY", endpoint: "https://api.x.ai/v1/images/generations", notes: "Stylised text-to-image." },
+  { id: "dalle3", name: "DALL·E 3", vendor: "OpenAI", category: "image", tier: "cloud", authEnv: "OPENAI_API_KEY", endpoint: "https://api.openai.com/v1/images/generations", notes: "Text-to-image with strong prompt following." },
+  { id: "recraft", name: "Recraft", vendor: "Recraft", category: "image", tier: "cloud", authEnv: "RECRAFT_API_KEY", endpoint: "https://external.api.recraft.ai/v1/images/generations", notes: "Vector / brand-style image generation." },
+  // local GPU (2)
+  { id: "stable-diffusion", name: "Stable Diffusion", vendor: "Stability", category: "image", tier: "local-runtime", authEnv: "COMFYUI_URL", endpoint: "/prompt", notes: "Local SD/SDXL/FLUX via ComfyUI or A1111." },
+  { id: "manim-ce", name: "ManimCE", vendor: "Manim", category: "image", tier: "local-runtime", authEnv: "MANIM_BIN", endpoint: "manim", notes: "Local programmatic diagram/figure frames." },
+  // stock (3)
+  { id: "pexels-image", name: "Pexels Photos", vendor: "Pexels", category: "image", tier: "stock", authEnv: "PEXELS_API_KEY", endpoint: "https://api.pexels.com/v1/search", notes: "Free stock photo search." },
+  { id: "pixabay-image", name: "Pixabay Photos", vendor: "Pixabay", category: "image", tier: "stock", authEnv: "PIXABAY_API_KEY", endpoint: "https://pixabay.com/api/", notes: "Free stock photo search." },
+  { id: "unsplash", name: "Unsplash", vendor: "Unsplash", category: "image", tier: "stock", authEnv: "UNSPLASH_ACCESS_KEY", endpoint: "https://api.unsplash.com/search/photos", notes: "Free stock photo search." },
+];
+
+export const LOCAL_IMAGE_FALLBACK: MediaProvider = {
+  id: "local.caption-card-image",
+  name: "Caption Card Image",
+  vendor: "Montara",
+  category: "image",
+  tier: "local-free",
+  notes: "Offline designed solid-card PNG for missing imagery.",
+};
+
+export function listImageProviders(includeFallback = false): MediaProvider[] {
+  return includeFallback ? [...IMAGE_PROVIDERS, LOCAL_IMAGE_FALLBACK] : [...IMAGE_PROVIDERS];
+}
+
+export function getImageProvider(id: string): MediaProvider | undefined {
+  return listImageProviders(true).find((p) => p.id === id);
+}
+
+export function buildImageRequest(
+  provider: MediaProvider,
+  input: ImageGenInput,
+  secrets: Record<string, string | undefined> = process.env,
+): HttpRequestSpec {
+  const key = provider.authEnv ? secrets[provider.authEnv] ?? "" : "";
+  const prompt = sanitize(input.prompt);
+  const size = `${input.width ?? 1024}x${input.height ?? 1024}`;
+  const endpoint = provider.endpoint ?? "";
+
+  if (provider.tier === "stock") {
+    if (provider.id === "unsplash") {
+      return { method: "GET", url: `${endpoint}?query=${encodeURIComponent(prompt)}&per_page=15`, headers: { Authorization: `Client-ID ${key}` } };
+    }
+    if (provider.id === "pixabay-image") {
+      return { method: "GET", url: `${endpoint}?key=${encodeURIComponent(key)}&q=${encodeURIComponent(prompt)}&per_page=15`, headers: {} };
+    }
+    // pexels
+    return { method: "GET", url: `${endpoint}?query=${encodeURIComponent(prompt)}&per_page=15`, headers: { Authorization: key } };
+  }
+
+  if (provider.tier === "local-runtime") {
+    if (provider.id === "manim-ce") {
+      return { method: "POST", url: "local://manim", headers: {}, body: JSON.stringify({ bin: secrets.MANIM_BIN ?? "manim", prompt }) };
+    }
+    const base = (secrets.COMFYUI_URL ?? "http://127.0.0.1:8188").replace(/\/$/, "");
+    return {
+      method: "POST",
+      url: `${base}${endpoint}`,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: { model: provider.id, text: prompt, width: input.width ?? 1024, height: input.height ?? 1024 } }),
+      poll: { kind: "status-url", field: "prompt_id" },
+    };
+  }
+
+  // cloud
+  const headers: Record<string, string> = { "Content-Type": "application/json", Authorization: `Bearer ${key}` };
+  const body: Record<string, unknown> = { prompt, size };
+  if (provider.id === "dalle3") body.model = "dall-e-3";
+  if (provider.id === "imagen") { headers["x-goog-api-key"] = key; delete headers.Authorization; }
+  return { method: "POST", url: endpoint, headers, body: JSON.stringify(body) };
+}
+
+export interface ImageGenerationPlan {
+  provider: MediaProvider;
+  mode: GenerationMode;
+  request?: HttpRequestSpec;
+  unavailable: string[];
+}
+
+export function planImageGeneration(input: ImageGenInput, secrets: Record<string, string | undefined> = process.env): ImageGenerationPlan {
+  const pool = input.providerId
+    ? listImageProviders(true).filter((p) => p.id === input.providerId)
+    : listImageProviders(false);
+  const unavailable: string[] = [];
+  for (const provider of pool) {
+    if (provider.tier === "local-free") return { provider, mode: "fallback", unavailable };
+    if (providerAvailable(provider, secrets)) {
+      return { provider, mode: "request", request: buildImageRequest(provider, input, secrets), unavailable };
+    }
+    unavailable.push(provider.id);
+  }
+  return { provider: LOCAL_IMAGE_FALLBACK, mode: "fallback", unavailable };
+}
+
+export function runImageGeneration(
+  input: ImageGenInput,
+  secrets: Record<string, string | undefined> = process.env,
+): { plan: ImageGenerationPlan; result?: ToolRunResult } {
+  const plan = planImageGeneration(input, secrets);
+  if (plan.mode === "fallback") {
+    const result = renderCaptionCardImage({
+      title: input.prompt.slice(0, 54),
+      outPath: input.outPath,
+      width: input.width,
+      height: input.height,
     });
     return { plan, result };
   }
