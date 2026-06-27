@@ -16,6 +16,13 @@ import {
   totalDuration,
   round3,
   validateTimeline,
+  splitClip,
+  trimClip,
+  moveClip,
+  removeClip,
+  recolorClip,
+  setClipText,
+  findClip,
   type ScenePlan,
 } from "../packages/core/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
@@ -961,6 +968,48 @@ const compliance = engineCompliance();
 ok("no legacy source-project branding in committable source", Boolean(compliance) && compliance!.legacy_tokens.length === 0);
 ok("no hardcoded secrets in committable source", Boolean(compliance) && compliance!.hardcoded_secrets.length === 0);
 ok("compliance scan covers the whole source tree", Boolean(compliance) && compliance!.ok && compliance!.scanned > 300, `scanned ${compliance?.scanned ?? 0}`);
+
+console.log("\n== Editable Timeline IR (2.1) ==");
+const editBase = scenePlanToTimeline({
+  width: 1280, height: 720, fps: 30,
+  scenes: [
+    { id: "a", title: "Alpha", durationSec: 2, background: "101820" },
+    { id: "b", title: "Beta", durationSec: 2, background: "214f4b" },
+    { id: "c", title: "Gamma", durationSec: 2, background: "7c3f58" },
+  ],
+});
+ok("base IR is valid (6s, 2 tracks)", validateTimeline(editBase).length === 0 && editBase.composition.durationSec === 6);
+
+const split = splitClip(editBase, "a-solid", 1);
+ok("splitClip cuts one clip into two, IR stays valid", (() => {
+  const vid = split.tracks.find((t) => t.type === "video")!;
+  return validateTimeline(split).length === 0 && vid.clips.length === 4 &&
+    Boolean(findClip(split, "a-solid-a")) && Boolean(findClip(split, "a-solid-b"));
+})());
+
+const trimmed = trimClip(editBase, "b-solid", { durationSec: 5 });
+ok("trimClip retimes a clip and recomputes composition duration",
+  validateTimeline(trimmed).length === 0 && findClip(trimmed, "b-solid")!.clip.durationSec === 5);
+
+const moved = moveClip(editBase, "c-solid", 0.5);
+ok("moveClip repositions a clip (clamped >= 0), IR stays valid",
+  validateTimeline(moved).length === 0 && findClip(moved, "c-solid")!.clip.startSec === 0.5);
+
+const removed = removeClip(editBase, "b-solid");
+ok("removeClip drops a clip, IR stays valid",
+  validateTimeline(removed).length === 0 && findClip(removed, "b-solid") === null);
+
+const recolored = recolorClip(editBase, "a-solid", "#FF8800");
+ok("recolorClip recolors a solid clip (hex normalized)", (() => {
+  const c = findClip(recolored, "a-solid")!.clip;
+  return c.type === "video" && c.source.kind === "solid" && c.source.color === "ff8800";
+})());
+
+const retext = setClipText(editBase, "a-title", "Edited");
+ok("setClipText edits a text clip", findClip(retext, "a-title")!.clip.type === "text" && (findClip(retext, "a-title")!.clip as { text: string }).text === "Edited");
+
+ok("edit ops are immutable (original IR untouched)",
+  editBase.tracks.find((t) => t.type === "video")!.clips.length === 3 && editBase.composition.durationSec === 6);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

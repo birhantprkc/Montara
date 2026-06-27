@@ -1,0 +1,93 @@
+{
+  "theme": "flat-motion-graphics",
+  "cuts": [
+    {
+      "id": "montara-hook",
+      "source": "",
+      "type": "hero_title",
+      "in_seconds": 0,
+      "out_seconds": 3.5,
+      "text": "Montara",
+      "subtitle": "Local-first video — drive it with any agent, or edit it yourself",
+      "backgroundColor": "#0B0F1A"
+    },
+    {
+      "id": "montara-tools",
+      "source": "",
+      "type": "stat_card",
+      "in_seconds": 3.5,
+      "out_seconds": 7.5,
+      "stat": "115",
+      "subtitle": "Provider tools on one editable Timeline IR",
+      "accentColor": "#22D3EE",
+      "backgroundColor": "#0B0F1A"
+    },
+    {
+      "id": "montara-surface",
+      "source": "",
+      "type": "bar_chart",
+      "in_seconds": 7.5,
+      "out_seconds": 13,
+      "title": "What ships in Montara",
+      "chartData": [
+        { "label": "Skills", "value": 158 },
+        { "label": "Tools", "value": 115 },
+        { "label": "Schemas", "value": 27 },
+        { "label": "Pipelines", "value": 13 }
+      ],
+      "chartColors": ["#A78BFA", "#22D3EE", "#F59E0B", "#34D399"],
+      "showGrid": true,
+      "showValues": true,
+      "backgroundColor": "#0B0F1A"
+    },
+    {
+      "id": "montara-providers",
+      "source": "",
+      "type": "pie_chart",
+      "in_seconds": 13,
+      "out_seconds": 18,
+      "title": "Providers: local-first by default",
+      "chartData": [
+        { "label": "Local (no key)", "value": 53 },
+        { "label": "Cloud (BYOK)", "value": 27 }
+      ],
+      "chartColors": ["#34D399", "#22D3EE"],
+      "donut": true,
+      "centerLabel": "Local",
+      "centerValue": "66%",
+      "showLegend": true,
+      "backgroundColor": "#0B0F1A"
+    },
+    {
+      "id": "montara-close",
+      "source": "",
+      "type": "text_card",
+      "in_seconds": 18,
+      "out_seconds": 22,
+      "text": "Make it. Edit the IR. Render anywhere.",
+      "color": "#F5F5F5",
+      "backgroundColor": "#0B0F1A"
+    }
+  ],
+  "overlays": [
+    {
+      "type": "section_title",
+      "in_seconds": 7.8,
+      "out_seconds": 10.8,
+      "text": "The bridge",
+      "subtitle": "Python engine, TypeScript boundary",
+      "accentColor": "#22D3EE"
+    },
+    {
+      "type": "stat_reveal",
+      "in_seconds": 14.2,
+      "out_seconds": 17.6,
+      "text": "0 keys",
+      "subtitle": "Renders with no API keys",
+      "accentColor": "#34D399",
+      "position": "bottom-right"
+    }
+  ],
+  "captions": [],
+  "audio": {}
+}
