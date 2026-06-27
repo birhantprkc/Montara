@@ -55,7 +55,7 @@ export function toolResult(partial: Partial<ToolResult> & { success: boolean }):
 
 export class DependencyError extends Error {}
 
-function commandExists(cmd: string): boolean {
+export function commandExists(cmd: string): boolean {
   const finder = process.platform === "win32" ? "where" : "which";
   const r = spawnSync(finder, [cmd], { encoding: "utf8" });
   return r.status === 0;
@@ -85,7 +85,10 @@ function fnv1aHex(input: string): string {
   return a + (h2 >>> 0).toString(16).padStart(8, "0");
 }
 
+/** Full tool contract info for registry/discovery. Keys mirror the reference
+ * contract (snake_case) so the scoring engine reads them directly. */
 export interface ToolInfo {
+  [key: string]: unknown;
   name: string;
   version: string;
   tier: ToolTier;
@@ -93,16 +96,32 @@ export interface ToolInfo {
   provider: string;
   stability: ToolStability;
   status: ToolStatus;
+  execution_mode: ExecutionMode;
+  determinism: Determinism;
   runtime: ToolRuntime;
+  module_path: string;
+  usage_location: string;
   dependencies: string[];
+  install_instructions: string;
   capabilities: string[];
-  inputSchema: Record<string, unknown>;
-  bestFor: string[];
-  notGoodFor: string[];
+  input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown>;
+  artifact_schema: Record<string, unknown>;
+  supports: Record<string, unknown>;
+  best_for: string[];
+  not_good_for: string[];
+  provider_matrix: Record<string, unknown>;
+  resource_profile: ResourceProfile;
+  resume_support: ResumeSupport;
+  side_effects: string[];
   fallback: string | null;
-  fallbackTools: string[];
-  agentSkills: string[];
-  resourceProfile: ResourceProfile;
+  fallback_tools: string[];
+  agent_skills: string[];
+  related_skills: string[];
+  user_visible_verification: string[];
+  quality_score: number | null;
+  historical_success_rate: number | null;
+  latency_p50_seconds: number | null;
 }
 
 /** Abstract base class for all Montara tools. */
@@ -135,6 +154,14 @@ export abstract class BaseTool {
   fallbackTools: string[] = [];
   agentSkills: string[] = [];
   userVisibleVerification: string[] = [];
+  outputSchema: Record<string, unknown> = {};
+  artifactSchema: Record<string, unknown> = {};
+  providerMatrix: Record<string, unknown> = {};
+  qualityScore: number | null = null;
+  historicalSuccessRate: number | null = null;
+  latencyP50Seconds: number | null = null;
+  usageLocation = "";
+  modulePath = "";
 
   /** Default status: available iff dependencies are satisfied. Override for API key checks. */
   getStatus(secrets: Record<string, string | undefined> = process.env): ToolStatus {
@@ -194,16 +221,32 @@ export abstract class BaseTool {
       provider: this.provider,
       stability: this.stability,
       status: this.getStatus(),
+      execution_mode: this.executionMode,
+      determinism: this.determinism,
       runtime: this.runtime,
+      module_path: this.modulePath,
+      usage_location: this.usageLocation,
       dependencies: this.dependencies,
+      install_instructions: this.installInstructions,
       capabilities: this.capabilities,
-      inputSchema: this.inputSchema,
-      bestFor: this.bestFor,
-      notGoodFor: this.notGoodFor,
+      input_schema: this.inputSchema,
+      output_schema: this.outputSchema,
+      artifact_schema: this.artifactSchema,
+      supports: this.supports,
+      best_for: this.bestFor,
+      not_good_for: this.notGoodFor,
+      provider_matrix: this.providerMatrix,
+      resource_profile: this.resourceProfile,
+      resume_support: this.resumeSupport,
+      side_effects: this.sideEffects,
       fallback: this.fallback,
-      fallbackTools: this.fallbackTools.length ? this.fallbackTools : (this.fallback ? [this.fallback] : []),
-      agentSkills: this.agentSkills,
-      resourceProfile: this.resourceProfile,
+      fallback_tools: this.fallbackTools.length ? this.fallbackTools : (this.fallback ? [this.fallback] : []),
+      agent_skills: this.agentSkills,
+      related_skills: this.agentSkills,
+      user_visible_verification: this.userVisibleVerification,
+      quality_score: this.qualityScore,
+      historical_success_rate: this.historicalSuccessRate,
+      latency_p50_seconds: this.latencyP50Seconds,
     };
   }
 }

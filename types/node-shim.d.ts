@@ -21,6 +21,10 @@ declare function fetch(
   init?: { method?: string; headers?: Record<string, string>; body?: string },
 ): Promise<FetchResponse>;
 
+declare function setTimeout(callback: () => void, ms: number): unknown;
+declare function clearTimeout(handle: unknown): void;
+declare function atob(data: string): string;
+
 declare module "node:child_process" {
   export interface SpawnSyncResult {
     status: number | null;
