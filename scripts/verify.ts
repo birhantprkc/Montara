@@ -35,6 +35,13 @@ import {
   runMusicGeneration,
   mixAudioTracks,
   enhanceAudio,
+  colorGrade,
+  crossfadeStitch,
+  pictureInPicture,
+  upscaleVideo,
+  ENHANCEMENT_TOOLS,
+  getEnhancementTool,
+  enhancementAvailable,
 } from "../packages/providers/src/index";
 import {
   DecisionTrail,
@@ -300,6 +307,33 @@ ok("audio mixer combines voice + music into a real track", existsSync(mixPath) &
 const enhancedPath = join(process.cwd(), "out", "verify-enhanced.wav");
 enhanceAudio({ inputPath: mixPath, outPath: enhancedPath, targetLufs: -14 });
 ok("audio enhancer normalizes to a real output track", existsSync(enhancedPath) && probeDuration(enhancedPath) > 0.8);
+
+console.log("\n== post / enhancement (§F) ==");
+const clipA = join(process.cwd(), "out", "verify-clipA.mp4");
+const clipB = join(process.cwd(), "out", "verify-clipB.mp4");
+renderScenePlan({ width: 480, height: 270, fps: 30, scenes: [{ id: "a", title: "Clip A", durationSec: 1, background: "101820" }] }, clipA);
+renderScenePlan({ width: 480, height: 270, fps: 30, scenes: [{ id: "b", title: "Clip B", durationSec: 1, background: "214f4b" }] }, clipB);
+
+const gradePath = join(process.cwd(), "out", "verify-grade.mp4");
+colorGrade({ inputPath: clipA, outPath: gradePath });
+ok("color grade writes a real graded MP4", existsSync(gradePath) && probeDuration(gradePath) > 0.8);
+
+const xfadePath = join(process.cwd(), "out", "verify-xfade.mp4");
+crossfadeStitch({ inputPaths: [clipA, clipB], outPath: xfadePath, crossfadeSec: 0.3 });
+ok("crossfade stitch overlaps two clips into one", existsSync(xfadePath) && probeDuration(xfadePath) > 1.4);
+
+const pipPath = join(process.cwd(), "out", "verify-pip.mp4");
+pictureInPicture({ basePath: clipA, overlayPath: clipB, outPath: pipPath, scale: 0.3, position: "bottom-right" });
+ok("picture-in-picture overlays a clip", existsSync(pipPath) && probeDuration(pipPath) > 0.8);
+
+const upPath = join(process.cwd(), "out", "verify-upscale.mp4");
+upscaleVideo({ inputPath: clipA, outPath: upPath, factor: 2 });
+ok("lanczos upscale writes a real MP4", existsSync(upPath) && probeDuration(upPath) > 0.8);
+
+ok("6 model enhancement tools registered", ENHANCEMENT_TOOLS.length === 6);
+ok("enhancement tools cover upscale/bg-remove/face/avatar/lip-sync", ["upscale", "bg-remove", "face-enhance", "face-restore", "talking-head", "lip-sync"].every((k) => ENHANCEMENT_TOOLS.some((t) => t.kind === k)));
+const esrgan = getEnhancementTool("real-esrgan")!;
+ok("enhancer is unavailable without its runtime, available with it", !enhancementAvailable(esrgan, {}) && enhancementAvailable(esrgan, { REALESRGAN_BIN: "x" }) && esrgan.hasLocalFallback);
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

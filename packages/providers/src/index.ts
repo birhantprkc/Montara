@@ -431,3 +431,5 @@ export function timelineToCaptionCardVideos(timeline: Timeline, outDir: string):
 export * from "./registry";
 // Local audio mixer + enhancer (§E, real ffmpeg).
 export * from "./audio";
+// Post-production / enhancement (§F): real ffmpeg passes + model-enhancer catalogue.
+export * from "./post";

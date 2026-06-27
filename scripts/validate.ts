@@ -32,6 +32,12 @@ import {
   runMusicGeneration,
   mixAudioTracks,
   enhanceAudio,
+  colorGrade,
+  crossfadeStitch,
+  upscaleVideo,
+  ENHANCEMENT_TOOLS,
+  getEnhancementTool,
+  enhancementAvailable,
 } from "../packages/providers/src/index";
 import {
   DecisionTrail,
@@ -244,6 +250,23 @@ ok("audio mixer ducks a music bed under the voice", existsSync(vMix) && probeDur
 
 enhanceAudio({ inputPath: vMix, outPath: vEnh, targetLufs: -14 });
 ok("audio enhancer normalizes the mix to -14 LUFS", existsSync(vEnh) && probeDuration(vEnh) > 1);
+
+console.log("\n== post / enhancement (Phase 1.9 §F) ==");
+// A second small clip at the same dims as the §C generated clip, for crossfade.
+const clip2 = join(outDir, "validate-clip2.mp4");
+runVideoGeneration({ prompt: "stock-style strait b-roll", outPath: clip2, durationSec: 1.2, width: 640, height: 360 }, {});
+const gradedPath = join(outDir, "validate-graded.mp4");
+const xfadePath = join(outDir, "validate-xfade.mp4");
+const upscaledPath = join(outDir, "validate-upscaled.mp4");
+for (const p of [gradedPath, xfadePath, upscaledPath]) { try { rmSync(p, { force: true }); } catch { /* none */ } }
+
+colorGrade({ inputPath: genVideoPath, outPath: gradedPath });
+ok("color grade produces a real graded MP4", existsSync(gradedPath) && probeDuration(gradedPath) > 0.8);
+crossfadeStitch({ inputPaths: [genVideoPath, clip2], outPath: xfadePath, crossfadeSec: 0.3 });
+ok("crossfade stitch overlaps two clips", existsSync(xfadePath) && probeDuration(xfadePath) > 1.4);
+upscaleVideo({ inputPath: genVideoPath, outPath: upscaledPath, factor: 2 });
+ok("lanczos upscale produces a real MP4", existsSync(upscaledPath) && probeDuration(upscaledPath) > 0.8);
+ok("6 model enhancement tools registered + runtime-gated", ENHANCEMENT_TOOLS.length === 6 && !enhancementAvailable(getEnhancementTool("rembg")!, {}));
 
 console.log("\n== agent layer headless drive (Phase 1.5 §K) ==");
 // Generate the data-side artefacts an external assistant reads.
