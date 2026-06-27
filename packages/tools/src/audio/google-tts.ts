@@ -93,6 +93,23 @@ export class GoogleTTS extends BaseTool {
     return Math.round(text.length * ratePerChar * 10000) / 10000;
   }
 
+  /** Pure result-data builder — mirrors the Google TTS success payload exactly. */
+  resultData(inputs: Record<string, unknown>, output: string): Record<string, unknown> {
+    const voiceName = typeof inputs.voice === "string" ? inputs.voice : "en-US-Chirp3-HD-Orus";
+    const languageCode = typeof inputs.language_code === "string" ? inputs.language_code : "en-US";
+    const audioEncoding = typeof inputs.audio_encoding === "string" ? inputs.audio_encoding : "MP3";
+    return {
+      provider: this.provider,
+      voice: voiceName,
+      language_code: languageCode,
+      text_length: String(inputs.text ?? "").length,
+      output,
+      format: audioEncoding,
+      speaking_rate: typeof inputs.speaking_rate === "number" ? inputs.speaking_rate : 1.0,
+      pitch: typeof inputs.pitch === "number" ? inputs.pitch : 0.0,
+    };
+  }
+
   /** Pure request builder — mirrors the Google TTS REST endpoint exactly. */
   buildRequest(inputs: Record<string, unknown>, auth: { apiKey?: string; bearerToken?: string }): GoogleTTSRequest {
     const text = String(inputs.text ?? "");

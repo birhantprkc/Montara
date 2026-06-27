@@ -836,7 +836,7 @@ const ttsText = "the strait of hormuz"; // 20 chars — clean cost rounding
 const reg = buildDefaultRegistry();
 ok("registry holds all 5 TTS providers + selector",
   Boolean(reg.get("openai_tts") && reg.get("google_tts") && reg.get("piper_tts") && reg.get("doubao_tts") && reg.get("tts_selector")));
-ok("getInfo exposes OM-faithful snake_case keys", (() => {
+ok("getInfo exposes source-faithful snake_case keys", (() => {
   const info = new OpenAITTS().getInfo();
   return "best_for" in info && "agent_skills" in info && "supports" in info && info.execution_mode === "sync";
 })());
