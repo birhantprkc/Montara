@@ -9,6 +9,7 @@ import { join } from "node:path";
 import type { EngineComposition } from "./timeline";
 
 export * from "./timeline";
+export * from "./render";
 
 const BRIDGE_SCRIPT = "engine_bridge.py";
 

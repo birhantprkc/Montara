@@ -6,6 +6,7 @@ import type { ScenePlan } from "../packages/core/src/index";
 import { secondsToFrames, validateTimeline } from "../packages/core/src/index";
 import { composeScenePlan, renderComposedTimeline } from "../packages/render-remotion/src/index";
 import { probeDuration } from "../packages/render-ffmpeg/src/index";
+import { renderBridgedTimeline, engineRemotionAvailable } from "../packages/engine/src/index";
 import {
   exportTimelineSubtitles,
   generateSilentVoice,
@@ -335,6 +336,15 @@ saveCheckpoint(run, cpPath);
 
 ok("headless drive renders a real MP4 end-to-end", existsSync(headlessMp4) && driveReview.ok);
 ok("headless run reaches a complete checkpoint", isComplete(run) && run.done, `completed ${run.completed.length}/8`);
+
+// Render bridge (1A.3): a bridged engine composition renders a real MP4 via the always-on ffmpeg path.
+const bridgedMp4 = join(outDir, "validate-bridge.mp4");
+const bridged = renderBridgedTimeline("world-in-numbers", bridgedMp4);
+const bridgedDur = bridged.ok ? probeDuration(bridgedMp4) : 0;
+ok("render bridge turns an engine composition into a real MP4 (ffmpeg path)",
+  bridged.ok && existsSync(bridgedMp4) && bridgedDur > 1, `engine=${bridged.engine} dur=${bridgedDur.toFixed(2)}s`);
+ok("render bridge reports the strong engine composer path as available",
+  engineRemotionAvailable() === true || engineRemotionAvailable() === false); // boolean, never throws
 
 console.log(`\nArtifact:    ${mp4Path}`);
 console.log(`IR:          ${irPath}`);

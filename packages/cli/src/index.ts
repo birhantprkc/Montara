@@ -13,7 +13,7 @@ import { listEngines, engineAvailable } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
-import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline } from "../../engine/src/index";
+import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged } from "../../engine/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -101,6 +101,7 @@ Commands:
   doctor                          check local render prerequisites + Python engine
   engine [info|smoke]             show Python engine readiness, or run the integrity smoke
   engine timeline <name>          bridge an engine composition into Montara Timeline IR
+  engine render <name> [out]      render a bridged composition to MP4 (ffmpeg; --engine remotion)
   pipelines                       list the available pipeline shapes
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
@@ -156,6 +157,16 @@ export function main(argv = process.argv.slice(2)): number {
         writeFileSync(out, `${JSON.stringify(timeline, null, 2)}\n`);
         console.log(`${comp.cuts.length} cuts -> Timeline IR (${timeline.composition.durationSec}s, ${timeline.tracks.length} tracks, valid)`);
         console.log(out);
+        return 0;
+      }
+      if (sub === "render") {
+        const name = rest[1];
+        if (!name) { console.error(`engine render <name> [out] [--engine remotion] — available: ${engineCompositionNames().join(", ")}`); return 1; }
+        const preferEngine = rest.includes("--engine") && rest[rest.indexOf("--engine") + 1] === "remotion";
+        const out = rest[2] && !rest[2].startsWith("--") ? rest[2] : join(process.cwd(), "out", `${slug(name)}.mp4`);
+        const res = renderBridged(name, out, { preferEngine });
+        if (!res.ok) { console.error(`render failed: ${res.error}`); return 1; }
+        console.log(`rendered via ${res.engine}${res.fellBack ? " (fell back from engine composer)" : ""}: ${res.path}`);
         return 0;
       }
       const r = engineReady();

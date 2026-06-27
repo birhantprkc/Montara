@@ -49,6 +49,7 @@ declare module "node:fs" {
     isFile(): boolean;
   }
 
+  export function copyFileSync(src: string, dest: string): void;
   export function existsSync(path: string): boolean;
   export function mkdirSync(path: string, options?: { recursive?: boolean }): void;
   export function readFileSync(path: string, encoding: "utf8"): string;
