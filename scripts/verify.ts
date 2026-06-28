@@ -115,7 +115,8 @@ import {
 } from "../packages/research/src/index";
 import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
 import { detectScenes, sampleKeyFrames, transcribe, understandVideo, analyzeReferenceVideo } from "../packages/understand/src/index";
-import { listEngines, getEngine, engineAvailable, preferredEngine, renderWithEngine } from "../packages/render-engines/src/index";
+import { listEngines, getEngine, engineAvailable, preferredEngine, renderWithEngine, recommendEngine, engineReallyAvailable, availableEngines } from "../packages/render-engines/src/index";
+import { threeAvailable } from "../packages/render-three/src/index";
 import {
   STYLE_PLAYBOOKS,
   OUTPUT_PROFILES,
@@ -1113,6 +1114,23 @@ ok("voice director infers emotion from text keywords", resolveEmotion({ text: "B
 ok("voice director always returns a usable plan with zero keys", (() => {
   const plan = directScript([{ emotion: "warm" }, { text: "a victory for the team" }], []);
   return plan.length === 2 && plan.every((d) => d.provider === "system") && plan[1]!.emotion === "triumphant";
+})());
+
+// ---- Auto engine picker: pick the best INSTALLED renderer per scene type ----
+ok("recommendEngine maps a 3D title to the three.js engine", recommendEngine("title-3d").preferred === "three");
+ok("recommendEngine picks native when installed, else degrades to ffmpeg", (() => {
+  const rec = recommendEngine("title-3d");
+  return rec.engine === (threeAvailable() ? "three" : "ffmpeg") && rec.native === (rec.engine !== "ffmpeg");
+})());
+ok("recommendEngine always resolves assembly to ffmpeg (the universal floor)", (() => {
+  const rec = recommendEngine("assembly");
+  return rec.engine === "ffmpeg" && rec.native === false;
+})());
+ok("recommendEngine degrades an unknown scene type to ffmpeg", recommendEngine("totally-made-up-type").engine === "ffmpeg");
+ok("availableEngines marks ffmpeg always-available and is consistent with the probe", (() => {
+  const list = availableEngines();
+  const ff = list.find((e) => e.engine.id === "ffmpeg")!;
+  return ff.available === true && list.every((e) => e.available === engineReallyAvailable(e.engine.id));
 })());
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

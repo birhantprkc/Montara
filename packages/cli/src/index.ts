@@ -11,12 +11,13 @@ import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, dir
 import { TTSSelector } from "../../tools/src/audio/tts-selector";
 import { runResearch } from "../../research/src/index";
 import { analyzeReferenceVideo } from "../../understand/src/index";
-import { listEngines, engineAvailable } from "../../render-engines/src/index";
+import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
 import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
+import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback } from "../../hear/src/index";
 
 interface MakeArgs {
@@ -177,7 +178,15 @@ export function main(argv = process.argv.slice(2)): number {
         console.log(`blender: ${res.frames} frames -> ${res.path}`);
         return 0;
       }
-      console.error(`unknown 3d renderer: ${kind} (supported: blender)`);
+      if (kind === "three") {
+        if (!threeAvailable()) { console.error("three render needs a Chrome/Edge browser + three (pnpm add -w three)."); return 1; }
+        const secEi = rest.indexOf("--seconds");
+        const res = renderThreeScene(out, { title: "MONTARA", seconds: secEi >= 0 ? Number(rest[secEi + 1]) : 1.5 });
+        if (!res.ok) { console.error(`three render failed: ${res.error}`); return 1; }
+        console.log(`three (WebGL): ${res.frames} frames -> ${res.path}`);
+        return 0;
+      }
+      console.error(`unknown 3d renderer: ${kind} (supported: blender, three)`);
       return 1;
     }
 
@@ -444,8 +453,22 @@ export function main(argv = process.argv.slice(2)): number {
 
     if (command === "engines") {
       for (const e of listEngines()) {
-        const status = engineAvailable(e) ? "available" : "degrades to ffmpeg";
+        const status = engineReallyAvailable(e.id) ? (e.id === "ffmpeg" ? "native" : "native ✓ installed") : "degrades to ffmpeg";
         console.log(`${e.id.padEnd(14)} ${status.padEnd(20)} ${e.license.padEnd(16)} ${e.role}`);
+      }
+      return 0;
+    }
+
+    if (command === "recommend") {
+      const sceneType = rest[0];
+      if (!sceneType) { console.error("usage: montara recommend <sceneType>  (e.g. 3d, title-3d, math, kinetic-typography, explainer, assembly)"); return 1; }
+      const out = (rest[1] && !rest[1].startsWith("--")) ? rest[1] : "";
+      const rec = recommendEngine(sceneType);
+      console.log(`recommend '${sceneType}': use ${rec.engine}${rec.native ? " (native)" : ""} — ${rec.reason}`);
+      if (out) {
+        const r = autoRenderScene({ sceneType, outPath: out, title: rest.includes("--title") ? rest[rest.indexOf("--title") + 1] : "MONTARA" });
+        if (!r.ok) { console.error(`auto-render failed: ${r.error}`); return 1; }
+        console.log(`auto-rendered via ${r.engine}${r.native ? " (native)" : ""}: ${r.path}`);
       }
       return 0;
     }

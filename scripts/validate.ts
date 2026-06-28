@@ -8,6 +8,7 @@ import { secondsToFrames, validateTimeline, pictureInPicture, collage } from "..
 import { composeScenePlan, renderComposedTimeline } from "../packages/render-remotion/src/index";
 import { probeDuration, compositeTimeline, mediaBin, masterAudio, generateThumbnails, cutShort } from "../packages/render-ffmpeg/src/index";
 import { qaPlayback } from "../packages/hear/src/index";
+import { threeAvailable, renderThreeScene } from "../packages/render-three/src/index";
 import { renderBridgedTimeline, engineRemotionAvailable } from "../packages/engine/src/index";
 import {
   exportTimelineSubtitles,
@@ -393,6 +394,16 @@ const shortOut = join(outDir, "vc-short.mp4");
 const shortOk = cutShort(qaClip, { startSec: 0, endSec: 1.2, caption: "HOOK" }, shortOut);
 const shortRes = (spawnSync(mediaBin("ffprobe"), ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", shortOut], { encoding: "utf8" }).stdout || "").trim();
 ok("cutShort renders a real 9:16 vertical Short", shortOk && shortRes === "1080x1920", `res=${shortRes}`);
+
+// Native three.js adapter (C/D): a real WebGL render when a browser+three are present (else skip honestly).
+if (threeAvailable()) {
+  const threeOut = join(outDir, "validate-three.mp4");
+  const tr = renderThreeScene(threeOut, { width: 320, height: 180, fps: 10, seconds: 0.2, title: "M" });
+  const threeRes = (spawnSync(mediaBin("ffprobe"), ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", threeOut], { encoding: "utf8" }).stdout || "").trim();
+  ok("render-three produces a real WebGL MP4 (headless Chrome)", tr.ok && tr.renderer === "three-webgl" && threeRes === "320x180", `frames=${tr.frames} res=${threeRes} err=${tr.error ?? ""}`);
+} else {
+  ok("render-three reports unavailable honestly when no browser/three", threeAvailable() === false);
+}
 
 console.log(`\nArtifact:    ${mp4Path}`);
 console.log(`IR:          ${irPath}`);

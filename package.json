@@ -16,14 +16,17 @@
     "@montara/core": "workspace:*",
     "@montara/providers": "workspace:*",
     "@montara/quality": "workspace:*",
-    "@montara/research": "workspace:*",
     "@montara/render-engines": "workspace:*",
     "@montara/render-ffmpeg": "workspace:*",
     "@montara/render-remotion": "workspace:*",
+    "@montara/research": "workspace:*",
     "@montara/style": "workspace:*",
     "@montara/tools": "workspace:*",
     "@montara/understand": "workspace:*",
     "esbuild": "^0.24.2",
     "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "three": "^0.185.0"
   }
 }

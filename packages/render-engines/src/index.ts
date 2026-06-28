@@ -35,6 +35,8 @@ export const RENDER_ENGINES: RenderEngine[] = [
   { id: "blender", name: "Blender", role: "pro 3D (shell)", sceneTypes: ["3d-pro"], availabilityEnv: "BLENDER_BIN", license: "GPL" },
 ];
 
+export * from "./autoRender";
+
 export function listEngines(): RenderEngine[] {
   return [...RENDER_ENGINES];
 }

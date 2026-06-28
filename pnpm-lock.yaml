@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      three:
+        specifier: ^0.185.0
+        version: 0.185.0
     devDependencies:
       '@montara/agent':
         specifier: workspace:*
@@ -104,6 +108,10 @@ importers:
 
   packages/core: {}
 
+  packages/engine: {}
+
+  packages/hear: {}
+
   packages/providers:
     dependencies:
       '@montara/core':
@@ -124,6 +132,8 @@ importers:
       '@montara/render-ffmpeg':
         specifier: workspace:*
         version: link:../render-ffmpeg
+
+  packages/render-blender: {}
 
   packages/render-engines:
     dependencies:
@@ -326,6 +336,9 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  three@0.185.0:
+    resolution: {integrity: sha512-+yRrcRO2iZa8uzvNNl0d7cL4huhgKgBvVJ0njcTe8xFqZ6DMAFZdCKDP91SEAuj25bNAj7k1QQdf+srZywVK6w==}
+
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
@@ -435,5 +448,7 @@ snapshots:
       '@esbuild/win32-arm64': 0.24.2
       '@esbuild/win32-ia32': 0.24.2
       '@esbuild/win32-x64': 0.24.2
+
+  three@0.185.0: {}
 
   typescript@5.9.3: {}
