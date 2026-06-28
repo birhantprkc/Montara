@@ -6,6 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { mediaBin } from "../../render-ffmpeg/src/index";
 
 const VOICE_ID_SCRIPT = "voice_id.py";
 
@@ -76,4 +77,67 @@ export function voiceVerify(a: string, b: string, threshold = 0.75, root: string
   } catch {
     return null;
   }
+}
+
+// ---- Playback QA (the craft layer's "inspect the actual file, not the plan" gate) ----
+
+export interface QaReport {
+  ok: boolean;
+  durationSec: number;
+  hasVideo: boolean;
+  hasAudio: boolean;
+  width: number;
+  height: number;
+  meanVolumeDb: number | null;
+  maxVolumeDb: number | null;
+  clipping: boolean;
+  sceneChanges: number;
+  isStatic: boolean;
+  issues: string[];
+}
+
+function probeJson(path: string): { streams?: { codec_type?: string; width?: number; height?: number }[]; format?: { duration?: string } } {
+  const r = spawnSync(mediaBin("ffprobe"), ["-v", "error", "-show_streams", "-show_format", "-of", "json", path], { encoding: "utf8", maxBuffer: 1 << 24 });
+  try { return JSON.parse(r.stdout || "{}"); } catch { return {}; }
+}
+
+/** Inspect a rendered file: duration, streams, loudness/clipping, and visual variety (scene cuts). */
+export function qaPlayback(video: string): QaReport {
+  const issues: string[] = [];
+  const meta = probeJson(video);
+  const streams = meta.streams ?? [];
+  const vstream = streams.find((s) => s.codec_type === "video");
+  const hasVideo = Boolean(vstream);
+  const hasAudio = streams.some((s) => s.codec_type === "audio");
+  const durationSec = parseFloat(meta.format?.duration ?? "0") || 0;
+  const width = vstream?.width ?? 0;
+  const height = vstream?.height ?? 0;
+
+  // loudness / clipping via volumedetect
+  let meanVolumeDb: number | null = null, maxVolumeDb: number | null = null;
+  if (hasAudio) {
+    const r = spawnSync(mediaBin("ffmpeg"), ["-hide_banner", "-i", video, "-af", "volumedetect", "-f", "null", "-"], { encoding: "utf8", maxBuffer: 1 << 24 });
+    const err = r.stderr || "";
+    const mean = err.match(/mean_volume:\s*(-?\d+(?:\.\d+)?)\s*dB/);
+    const max = err.match(/max_volume:\s*(-?\d+(?:\.\d+)?)\s*dB/);
+    if (mean) meanVolumeDb = parseFloat(mean[1]!);
+    if (max) maxVolumeDb = parseFloat(max[1]!);
+  }
+  const clipping = maxVolumeDb != null && maxVolumeDb >= -0.3;
+
+  // visual variety: count scene changes
+  let sceneChanges = 0;
+  if (hasVideo) {
+    const r = spawnSync(mediaBin("ffmpeg"), ["-hide_banner", "-i", video, "-vf", "select='gt(scene,0.25)',showinfo", "-f", "null", "-"], { encoding: "utf8", maxBuffer: 1 << 26 });
+    sceneChanges = ((r.stderr || "").match(/Parsed_showinfo/g) || []).length;
+  }
+  const isStatic = hasVideo && durationSec > 3 && sceneChanges === 0;
+
+  if (durationSec <= 0) issues.push("no readable duration");
+  if (!hasVideo) issues.push("no video stream");
+  if (!hasAudio) issues.push("no audio stream");
+  if (clipping) issues.push(`audio clipping (max ${maxVolumeDb} dB)`);
+  if (isStatic) issues.push("no visible motion/cuts across the file (static)");
+
+  return { ok: issues.length === 0, durationSec, hasVideo, hasAudio, width, height, meanVolumeDb, maxVolumeDb, clipping, sceneChanges, isStatic, issues };
 }

@@ -13,6 +13,8 @@ import { mediaBin } from "./ffmpegPath";
 
 export { mediaBin };
 export { compositeTimeline } from "./composite";
+export { masterAudio, measureLoudness, type LoudnessStats, type MasterOptions, type MasterResult } from "./master";
+export { generateThumbnails, cutShort, cutShorts, type ThumbConcept, type ShortCut } from "./craft";
 
 const FONT = "C\\:/Windows/Fonts/arialbd.ttf";
 

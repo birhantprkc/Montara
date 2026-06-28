@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import type { ScenePlan, Timeline } from "../../core/src/index";
 import { validateTimeline, pictureInPicture, collage, type Corner, type MediaSpec } from "../../core/src/index";
-import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin } from "../../render-ffmpeg/src/index";
+import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
 import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable } from "../../providers/src/index";
@@ -16,7 +16,7 @@ import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENT
 import { runDoctor } from "./doctor";
 import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
-import { voiceIdAvailable, voiceCompare, voiceVerify } from "../../hear/src/index";
+import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback } from "../../hear/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -178,6 +178,53 @@ export function main(argv = process.argv.slice(2)): number {
       }
       console.error(`unknown 3d renderer: ${kind} (supported: blender)`);
       return 1;
+    }
+
+    if (command === "master") {
+      const input = rest[0];
+      if (!input || !existsSync(input)) { console.error("usage: montara master <audio> [out] [--lufs -14]"); return 1; }
+      const out = (rest[1] && !rest[1].startsWith("--")) ? rest[1] : join(process.cwd(), "out", "mastered.wav");
+      const li = rest.indexOf("--lufs");
+      const lufs = li >= 0 ? Number(rest[li + 1]) : -14;
+      const res = masterAudio(input, out, { lufs });
+      if (!res.ok) { console.error(`master failed: ${res.error}`); return 1; }
+      console.log(`master -> ${out}  before ${res.measuredBefore?.inputI?.toFixed(1) ?? "?"} LUFS  after ${res.measuredAfter?.toFixed(1) ?? "?"} LUFS (target ${lufs})`);
+      return 0;
+    }
+
+    if (command === "qa") {
+      const video = rest[0];
+      if (!video || !existsSync(video)) { console.error("usage: montara qa <video>"); return 1; }
+      const r = qaPlayback(video);
+      console.log(`qa ${r.ok ? "PASS" : "ISSUES"}: ${r.width}x${r.height} ${r.durationSec.toFixed(2)}s  audio=${r.hasAudio ? `${r.meanVolumeDb}dB mean/${r.maxVolumeDb}dB peak` : "none"}  cuts=${r.sceneChanges}`);
+      for (const i of r.issues) console.log(`  - ${i}`);
+      return r.ok ? 0 : 1;
+    }
+
+    if (command === "thumbnail") {
+      const video = rest[0];
+      if (!video || !existsSync(video)) { console.error("usage: montara thumbnail <video> [outDir]"); return 1; }
+      const outDir = rest[1] || join(process.cwd(), "out", "thumbnails");
+      const dur = probeDuration(video);
+      const paths = generateThumbnails(video, outDir, [
+        { hook: "WAIT FOR IT", accent: "ff3b3b", atSec: dur * 0.15 },
+        { hook: "THE PART NOBODY SHOWS", accent: "12dce8", atSec: dur * 0.5 },
+        { hook: "HOW IT ACTUALLY ENDS", accent: "f2c14e", atSec: dur * 0.8 },
+      ]);
+      console.log(`thumbnails -> ${paths.length} distinct concepts in ${outDir}`);
+      return paths.length ? 0 : 1;
+    }
+
+    if (command === "shorts") {
+      const video = rest[0];
+      if (!video || !existsSync(video)) { console.error("usage: montara shorts <video> [outDir]"); return 1; }
+      const outDir = rest[1] || join(process.cwd(), "out", "shorts");
+      const dur = probeDuration(video);
+      const seg = Math.min(20, Math.max(6, dur / 3));
+      const cuts = [0, dur / 2].filter((s) => s + seg <= dur + 0.5).map((s, i) => ({ startSec: s, endSec: Math.min(dur, s + seg), caption: i === 0 ? "THE HOOK" : "THE PAYOFF", captionAccent: "f2c14e" }));
+      const paths = cutShorts(video, cuts.length ? cuts : [{ startSec: 0, endSec: Math.min(dur, seg) }], outDir);
+      console.log(`shorts -> ${paths.length} vertical 9:16 cut(s) in ${outDir}`);
+      return paths.length ? 0 : 1;
     }
 
     if (command === "fx") {

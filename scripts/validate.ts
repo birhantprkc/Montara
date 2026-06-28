@@ -6,7 +6,8 @@ import { join } from "node:path";
 import type { ScenePlan } from "../packages/core/src/index";
 import { secondsToFrames, validateTimeline, pictureInPicture, collage } from "../packages/core/src/index";
 import { composeScenePlan, renderComposedTimeline } from "../packages/render-remotion/src/index";
-import { probeDuration, compositeTimeline, mediaBin } from "../packages/render-ffmpeg/src/index";
+import { probeDuration, compositeTimeline, mediaBin, masterAudio, generateThumbnails, cutShort } from "../packages/render-ffmpeg/src/index";
+import { qaPlayback } from "../packages/hear/src/index";
 import { renderBridgedTimeline, engineRemotionAvailable } from "../packages/engine/src/index";
 import {
   exportTimelineSubtitles,
@@ -367,6 +368,31 @@ const colOut = join(outDir, "validate-collage.mp4");
 const colTl = collage({ width: 640, height: 360, fps: 24, durationSec: 1.5, cells: [{ path: baseClip }, { path: camClip }, { path: baseClip }, { path: camClip }], cols: 2, rows: 2 });
 compositeTimeline(colTl, colOut);
 ok("compositor renders a 2x2 collage to a real MP4", existsSync(colOut) && probeDuration(colOut) > 0.5, `dur=${probeDuration(colOut).toFixed(2)}`);
+
+// Warfront craft (2.7): mastering hits the loudness target; QA inspects playback; thumbnails + Shorts render.
+const loudWav = join(outDir, "vc-loud.wav");
+spawnSync(ff, ["-y", "-f", "lavfi", "-i", "sine=frequency=220:duration=3", "-af", "volume=6dB", loudWav], { encoding: "utf8" });
+const masteredWav = join(outDir, "vc-mastered.wav");
+const masterRes = masterAudio(loudWav, masteredWav, { lufs: -14 });
+ok("masterAudio normalizes to the -14 LUFS target (two-pass loudnorm)",
+  masterRes.ok && masterRes.measuredAfter != null && Math.abs(masterRes.measuredAfter + 14) < 1.5,
+  `after=${masterRes.measuredAfter?.toFixed(2)} LUFS`);
+
+const qaClip = genClip("vc-qa.mp4", "testsrc2=s=320x240:r=24");
+const qa = qaPlayback(qaClip);
+ok("qaPlayback inspects real playback (dims, audio, scene variety)",
+  qa.width === 320 && qa.height === 240 && qa.durationSec > 1 && qa.sceneChanges >= 0,
+  `cuts=${qa.sceneChanges} issues=${qa.issues.join("|")}`);
+
+const thumbs = generateThumbnails(qaClip, join(outDir, "vc-thumbs"), [
+  { hook: "ONE", accent: "ff3b3b", atSec: 0.3 }, { hook: "TWO", accent: "12dce8", atSec: 0.7 }, { hook: "THREE", accent: "f2c14e", atSec: 1.1 },
+]);
+ok("generateThumbnails produces 3 distinct thumbnail concepts", thumbs.length === 3 && thumbs.every((p) => existsSync(p)));
+
+const shortOut = join(outDir, "vc-short.mp4");
+const shortOk = cutShort(qaClip, { startSec: 0, endSec: 1.2, caption: "HOOK" }, shortOut);
+const shortRes = (spawnSync(mediaBin("ffprobe"), ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", shortOut], { encoding: "utf8" }).stdout || "").trim();
+ok("cutShort renders a real 9:16 vertical Short", shortOk && shortRes === "1080x1920", `res=${shortRes}`);
 
 console.log(`\nArtifact:    ${mp4Path}`);
 console.log(`IR:          ${irPath}`);
