@@ -131,6 +131,7 @@ import {
 } from "../packages/tools/src/index";
 import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck, engineCompliance } from "../packages/engine/src/index";
 import { blenderAvailable, blenderBin } from "../packages/render-blender/src/index";
+import { voiceIdAvailable } from "../packages/hear/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -970,6 +971,10 @@ const compliance = engineCompliance();
 ok("no legacy source-project branding in committable source", Boolean(compliance) && compliance!.legacy_tokens.length === 0);
 ok("no hardcoded secrets in committable source", Boolean(compliance) && compliance!.hardcoded_secrets.length === 0);
 ok("compliance scan covers the whole source tree", Boolean(compliance) && compliance!.ok && compliance!.scanned > 300, `scanned ${compliance?.scanned ?? 0}`);
+
+console.log("\n== Voice-ID hear engine (2.4) ==");
+ok("voice-ID availability is a boolean (degrade-friendly), never throws", typeof voiceIdAvailable() === "boolean");
+ok("voice_id.py speaker-embedding tool ships in the repo", existsSync(join(process.cwd(), "voice_id.py")));
 
 console.log("\n== Render runtimes — Blender (2.3) ==");
 ok("blender availability is a boolean (degrade-friendly), never throws", typeof blenderAvailable() === "boolean");

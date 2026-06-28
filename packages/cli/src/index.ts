@@ -15,6 +15,7 @@ import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENT
 import { runDoctor } from "./doctor";
 import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
+import { voiceIdAvailable, voiceCompare, voiceVerify } from "../../hear/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -101,6 +102,8 @@ function printHelp(): void {
 Commands:
   doctor                          check local render prerequisites + Python engine
   render3d blender [out]          render the 3D intro via headless Blender + ffmpeg
+  voiceid compare <test> ...      speaker-ID: classify a clip against labelled reference clips
+  voiceid verify <a> <b>          speaker-ID: are two clips the same speaker?
   engine [info|smoke]             show Python engine readiness, or run the integrity smoke
   engine timeline <name>          bridge an engine composition into Montara Timeline IR
   engine render <name> [out]      render a bridged composition to MP4 (ffmpeg; --engine remotion)
@@ -136,6 +139,30 @@ export function main(argv = process.argv.slice(2)): number {
     }
 
     if (command === "doctor") return runDoctor();
+
+    if (command === "voiceid") {
+      const sub = rest[0];
+      if (!voiceIdAvailable()) { console.error("voice-ID unavailable (pip install resemblyzer)."); return 1; }
+      const a = rest[1];
+      const b = rest[2];
+      if (sub === "verify" && a && b) {
+        const r = voiceVerify(a, b);
+        if (!r) { console.error("voice verify failed"); return 1; }
+        console.log(`similarity ${r.similarity} -> ${r.same_speaker ? "SAME speaker" : "different speakers"} (threshold ${r.threshold})`);
+        return 0;
+      }
+      if (sub === "compare" && a && rest.length >= 6) {
+        const refs: [string, string][] = [];
+        for (let i = 2; i + 1 < rest.length; i += 2) refs.push([rest[i]!, rest[i + 1]!]);
+        const r = voiceCompare(a, refs);
+        if (!r) { console.error("voice compare failed"); return 1; }
+        console.log(`closest speaker: ${r.match} (margin ${r.margin})`);
+        for (const [label, score] of Object.entries(r.scores)) console.log(`  ${label}: ${score}`);
+        return 0;
+      }
+      console.error("usage: voiceid verify <a.wav> <b.wav>  |  voiceid compare <test.wav> <labelA> <refA.wav> <labelB> <refB.wav>");
+      return 1;
+    }
 
     if (command === "render3d") {
       const kind = rest[0] ?? "blender";
