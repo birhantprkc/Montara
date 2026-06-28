@@ -9,6 +9,7 @@ import { OpenAITTS } from "./openai-tts";
 import { GoogleTTS } from "./google-tts";
 import { DoubaoTTS } from "./doubao-tts";
 import { PiperTTS } from "./piper-tts";
+import { SystemTTS } from "./system-tts";
 
 export class TTSSelector extends BaseTool {
   override name = "tts_selector";
@@ -45,7 +46,7 @@ export class TTSSelector extends BaseTool {
 
   constructor(tools?: BaseTool[]) {
     super();
-    this.tools = tools ?? [new ElevenLabsTTS(), new OpenAITTS(), new GoogleTTS(), new DoubaoTTS(), new PiperTTS()];
+    this.tools = tools ?? [new ElevenLabsTTS(), new OpenAITTS(), new GoogleTTS(), new DoubaoTTS(), new PiperTTS(), new SystemTTS()];
     this.fallbackTools = this.providers().map((t) => t.name);
     this.providerMatrix = this.buildProviderMatrix();
   }

@@ -126,6 +126,7 @@ import {
   GoogleTTS,
   PiperTTS,
   DoubaoTTS,
+  SystemTTS,
   TTSSelector,
 } from "../packages/tools/src/index";
 import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck, engineCompliance } from "../packages/engine/src/index";
@@ -902,14 +903,14 @@ ok("doubao exposes measured quality/latency metrics in getInfo", db.getInfo().qu
 
 // TTS selector (discovery + scored ranking via the shared engine)
 const sel = new TTSSelector();
-ok("selector discovers 5 providers as fallback tools and excludes itself",
-  sel.fallbackTools.length === 5 && !sel.fallbackTools.includes("tts_selector"));
-ok("selector availability reflects whether any provider has a key",
-  sel.getStatus({}) === "unavailable" && sel.getStatus({ OPENAI_API_KEY: "k" }) === "available");
+ok("selector discovers 6 providers as fallback tools and excludes itself",
+  sel.fallbackTools.length === 6 && !sel.fallbackTools.includes("tts_selector"));
+ok("selector is ALWAYS available now (zero-key system voice is the floor)",
+  sel.getStatus({}) === "available" && sel.getStatus({ OPENAI_API_KEY: "k" }) === "available");
 const ranked = await sel.execute({ text: ttsText, operation: "rank" });
 const rankings = (ranked.data.rankings ?? []) as { tool_name: string; weighted_score: number }[];
 ok("selector rank mode returns all providers scored best-first",
-  ranked.success && rankings.length === 5 &&
+  ranked.success && rankings.length === 6 &&
   rankings.every((r, i) => i === 0 || rankings[i - 1]!.weighted_score >= r.weighted_score) &&
   typeof rankings[0]!.tool_name === "string");
 
@@ -968,6 +969,21 @@ const compliance = engineCompliance();
 ok("no legacy source-project branding in committable source", Boolean(compliance) && compliance!.legacy_tokens.length === 0);
 ok("no hardcoded secrets in committable source", Boolean(compliance) && compliance!.hardcoded_secrets.length === 0);
 ok("compliance scan covers the whole source tree", Boolean(compliance) && compliance!.ok && compliance!.scanned > 300, `scanned ${compliance?.scanned ?? 0}`);
+
+console.log("\n== System (zero-key) TTS (2.2) ==");
+const sysReg = buildDefaultRegistry();
+ok("registry includes the system TTS fallback", Boolean(sysReg.get("system_tts")));
+const sys = new SystemTTS();
+ok("system TTS is local, offline, zero-cost", sys.runtime === "local" && sys.supports.offline === true && sys.estimateCost({ text: "hi" }) === 0);
+const winCmd = sys.buildCommand({ text: "he's here", rate: 2 }, "win32");
+ok("Windows SAPI command writes a wav via System.Speech with escaped text",
+  winCmd.bin === "powershell" && winCmd.args.join(" ").includes("System.Speech") &&
+  winCmd.args.join(" ").includes("SetOutputToWaveFile") && winCmd.args.join(" ").includes("he''s here"));
+const macCmd = sys.buildCommand({ text: "hello" }, "darwin");
+ok("macOS uses `say` to a WAVE file", macCmd.bin === "say" && macCmd.args.includes("--file-format=WAVE"));
+ok("system TTS reports available on this OS (keeps zero-key narration true)",
+  process.platform !== "win32" || sys.getStatus() === "available");
+ok("selector lists system TTS as an always-on fallback", new TTSSelector().fallbackTools.includes("system_tts"));
 
 console.log("\n== Editable Timeline IR (2.1) ==");
 const editBase = scenePlanToTimeline({

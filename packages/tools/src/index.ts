@@ -6,6 +6,7 @@ export * from "./audio/openai-tts";
 export * from "./audio/google-tts";
 export * from "./audio/piper-tts";
 export * from "./audio/doubao-tts";
+export * from "./audio/system-tts";
 export * from "./audio/tts-selector";
 
 import { ToolRegistry } from "./registry";
@@ -14,6 +15,7 @@ import { OpenAITTS } from "./audio/openai-tts";
 import { GoogleTTS } from "./audio/google-tts";
 import { PiperTTS } from "./audio/piper-tts";
 import { DoubaoTTS } from "./audio/doubao-tts";
+import { SystemTTS } from "./audio/system-tts";
 import { TTSSelector } from "./audio/tts-selector";
 
 /** Build a registry populated with every ported tool. Grows one tool at a time. */
@@ -25,6 +27,7 @@ export function buildDefaultRegistry(): ToolRegistry {
     new GoogleTTS(),
     new PiperTTS(),
     new DoubaoTTS(),
+    new SystemTTS(),
     new TTSSelector(),
   ]);
   return registry;
