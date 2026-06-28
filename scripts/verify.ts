@@ -23,6 +23,14 @@ import {
   recolorClip,
   setClipText,
   findClip,
+  setTransform,
+  setMask,
+  addEffect,
+  setCrop,
+  setZ,
+  isMediaClip,
+  pictureInPicture as pipTimeline,
+  collage as collageTimeline,
   type ScenePlan,
 } from "../packages/core/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
@@ -1037,6 +1045,60 @@ ok("setClipText edits a text clip", findClip(retext, "a-title")!.clip.type === "
 
 ok("edit ops are immutable (original IR untouched)",
   editBase.tracks.find((t) => t.type === "video")!.clips.length === 3 && editBase.composition.durationSec === 6);
+
+// ---- 2.5 Pro editing IR: layers, transform, mask, effects, PiP, collage ----
+const tf = setTransform(editBase, "a-solid", { x: 100, y: 50, scale: 0.4, opacity: 0.8 });
+ok("setTransform merges a partial transform, IR stays valid", (() => {
+  const c = findClip(tf, "a-solid")!.clip;
+  return validateTimeline(tf).length === 0 && c.transform?.x === 100 && c.transform?.scale === 0.4 && c.transform?.opacity === 0.8;
+})());
+
+const masked = setMask(editBase, "a-solid", { shape: "ellipse", feather: 0.05 });
+ok("setMask attaches an ellipse mask; clearing removes it", (() => {
+  const withMask = findClip(masked, "a-solid")!.clip.mask?.shape === "ellipse";
+  const cleared = setMask(masked, "a-solid", null);
+  return withMask && findClip(cleared, "a-solid")!.clip.mask === undefined && validateTimeline(masked).length === 0;
+})());
+
+const fx = addEffect(addEffect(editBase, "a-solid", { type: "blur", amount: 0.3 }), "a-solid", { type: "saturation", amount: 1.4 });
+ok("addEffect appends an ordered effect chain", (() => {
+  const e = findClip(fx, "a-solid")!.clip.effects ?? [];
+  return e.length === 2 && e[0]!.type === "blur" && e[1]!.type === "saturation";
+})());
+
+const cropped = setCrop(editBase, "a-solid", { x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
+ok("setCrop sets a normalized source crop", findClip(cropped, "a-solid")!.clip.crop?.w === 0.8);
+
+const zed = setZ(setZ(editBase, "a-solid", 5), "b-solid", 1);
+ok("setZ sets explicit stacking order", findClip(zed, "a-solid")!.clip.z === 5 && findClip(zed, "b-solid")!.clip.z === 1);
+
+const pip = pipTimeline({
+  width: 1280, height: 720, fps: 30, durationSec: 4,
+  base: { path: "base.mp4", kind: "video" }, inset: { path: "cam.mp4", kind: "video" },
+  corner: "br", insetScale: 0.3, insetMask: { shape: "ellipse" },
+});
+ok("pictureInPicture builds a valid 2-layer timeline with a masked inset", (() => {
+  const insetTrack = pip.tracks.find((t) => t.id === "video-pip")!;
+  const inset = insetTrack.clips[0]!;
+  return validateTimeline(pip).length === 0 && pip.tracks.length === 2 &&
+    isMediaClip(inset) && inset.mask?.shape === "ellipse" && (inset.transform?.scale ?? 0) === 0.3 && (inset.z ?? 0) === 10;
+})());
+
+const col = collageTimeline({
+  width: 1280, height: 720, fps: 30, durationSec: 4,
+  cells: [{ path: "a.mp4" }, { path: "b.mp4" }, { path: "c.mp4" }, { path: "d.mp4" }], cols: 2, rows: 2,
+});
+ok("collage tiles N media clips into an exact grid (cover-cropped boxes)", (() => {
+  const clips = col.tracks[0]!.clips;
+  return validateTimeline(col).length === 0 && clips.length === 4 &&
+    clips.every((c) => isMediaClip(c) && Boolean(c.box)) &&
+    Math.abs((clips[0]!.box!.wFrac) - 0.49) < 0.05;
+})());
+
+ok("media-path validation rejects an empty media source", (() => {
+  const bad = pipTimeline({ width: 640, height: 360, fps: 24, durationSec: 1, base: { path: "" }, inset: { path: "x.mp4" } });
+  return validateTimeline(bad).some((i) => i.includes("requires source.path"));
+})());
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

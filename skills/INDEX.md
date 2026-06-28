@@ -84,6 +84,21 @@ Key capability families to look for in the output:
 | WhisperX | `core/whisperx.md` | Transcription with word-level timestamps | `speech-to-text` |
 | Subtitle Sync | `core/subtitle-sync.md` | Subtitle timing and alignment | `remotion-best-practices` |
 | Color Grading | `core/color-grading.md` | FFmpeg color profiles, LUT workflow, accessibility | `ffmpeg` |
+| Timeline Editing | `editing/README.md` | Layered editing — PiP, collage, masks, effects, opacity, z-order on the Timeline IR | `ffmpeg`, `timeline-ir` |
+
+## Editing Reference (`editing/`)
+
+LLM-facing reference for professional layered editing on the one Timeline IR. Read these before
+building PiP / collage / masks / effects.
+
+| Doc | Covers |
+|-----|--------|
+| `editing/README.md` | Mental model, builders, CLI, rules |
+| `editing/layers-and-tracks.md` | Track roles, z-order, clip kinds |
+| `editing/transforms-and-pip.md` | Position/scale/opacity, picture-in-picture |
+| `editing/masks.md` | rect / ellipse / rounded-rect alpha masks with feather |
+| `editing/effects.md` | blur, colour, grayscale, sharpen, chromakey chains |
+| `editing/collage.md` | Grid collage & split-screen |
 
 ## Creative Skills
 
@@ -279,6 +294,7 @@ Cross-cutting skills that apply to all pipelines:
 | Onboarding | `meta/onboarding.md` | First-interaction greeting, capability discovery, starter prompts |
 | Reviewer | `meta/reviewer.md` | Self-review protocol after every stage |
 | Checkpoint Protocol | `meta/checkpoint-protocol.md` | When/how to checkpoint and request human approval |
+| Warfront Craft | `meta/warfront-craft.md` | Voice, music, mastering, motion, QA, thumbnails, and Shorts quality rules |
 | Skill Creator | `meta/skill-creator.md` | Dynamically create new skills during pipeline runs |
 
 ## Style Playbooks

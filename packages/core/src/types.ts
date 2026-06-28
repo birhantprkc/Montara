@@ -29,11 +29,60 @@ export interface Composition {
 }
 
 export interface Transform {
+  /** Center X of the clip box, in composition pixels. Defaults to comp center. */
   x: number;
+  /** Center Y of the clip box, in composition pixels. Defaults to comp center. */
   y: number;
+  /** Box width as a fraction of composition width (1 = full width). Height follows source aspect. */
   scale: number;
   rotateDeg: number;
+  /** 0..1 layer opacity. */
   opacity: number;
+}
+
+/** Source-rectangle crop, normalized 0..1 of the source frame (collage tiles use this). */
+export interface Crop {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export type MaskShape = "rect" | "ellipse" | "rounded-rect";
+
+/** Alpha mask applied in the clip box's own normalized 0..1 space. */
+export interface Mask {
+  shape: MaskShape;
+  /** Mask rect within the box (normalized). Defaults to the full box. */
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+  /** Corner radius for rounded-rect, normalized to the box. */
+  radius?: number;
+  /** Edge softness 0..1 (0 = hard edge). */
+  feather?: number;
+  /** Keep outside instead of inside. */
+  invert?: boolean;
+}
+
+export type EffectType =
+  | "blur"
+  | "brightness"
+  | "contrast"
+  | "saturation"
+  | "grayscale"
+  | "sharpen"
+  | "chromakey";
+
+/** A per-clip visual effect. `amount` is effect-normalized 0..1 unless noted. */
+export interface Effect {
+  type: EffectType;
+  amount?: number;
+  /** Chromakey key color, hex without '#'. */
+  color?: string;
+  /** Chromakey similarity 0..1. */
+  similarity?: number;
 }
 
 export interface Keyframe<T = number> {
@@ -56,11 +105,35 @@ export interface ClipBase {
   keyframes?: Record<string, Keyframe[]>;
   transitionIn?: ClipTransition;
   transitionOut?: ClipTransition;
+  /** Explicit stacking order within the composite (higher = on top). Falls back to track/clip order. */
+  z?: number;
+  /**
+   * Force an exact box size as fractions of composition width/height (cover-cropped to fit).
+   * When omitted, box width = transform.scale * comp.width and height follows source aspect.
+   */
+  box?: { wFrac: number; hFrac: number };
+  /** Source-rectangle crop (normalized 0..1). */
+  crop?: Crop;
+  /** Alpha mask in the clip box. */
+  mask?: Mask;
+  /** Ordered visual effects applied before compositing. */
+  effects?: Effect[];
 }
 
 export interface SolidClip extends ClipBase {
   type: "video";
   source: { kind: "solid"; color: string };
+  label?: string;
+}
+
+/** Real image/video footage on the video track. The unit PiP, collage, and overlays are built from. */
+export interface MediaClip extends ClipBase {
+  type: "video";
+  source: { kind: "image" | "video"; path: string };
+  /** How the source fills its box. cover = fill + crop, contain = letterbox, fill = stretch. */
+  fit?: "cover" | "contain" | "fill";
+  /** Trim into the source for video sources (seconds). */
+  sourceInSec?: number;
   label?: string;
 }
 
@@ -83,7 +156,12 @@ export interface AudioClip extends ClipBase {
   volume?: number;
 }
 
-export type Clip = SolidClip | TextClip | AudioClip;
+export type Clip = SolidClip | MediaClip | TextClip | AudioClip;
+
+/** Narrow a video-track clip to real footage (image/video file). */
+export function isMediaClip(clip: Clip): clip is MediaClip {
+  return clip.type === "video" && (clip.source.kind === "image" || clip.source.kind === "video");
+}
 
 export interface Track {
   id: string;
@@ -254,6 +332,10 @@ export function validateTimeline(timeline: Timeline): string[] {
       if (!Number.isFinite(clip.durationSec) || clip.durationSec <= 0) issues.push(`clip ${clip.id} durationSec must be > 0`);
       if (clip.startSec + clip.durationSec > comp.durationSec + 0.01) {
         issues.push(`clip ${clip.id} exceeds composition duration`);
+      }
+      if (isMediaClip(clip) && !clip.source.path) issues.push(`media clip ${clip.id} requires source.path`);
+      if (clip.transform?.opacity != null && (clip.transform.opacity < 0 || clip.transform.opacity > 1)) {
+        issues.push(`clip ${clip.id} opacity must be 0..1`);
       }
     }
   }

@@ -4,7 +4,7 @@
 // so the result stays valid. This is the moat the source engine lacks: a timeline a human
 // (or a GUI, or an agent) can edit between build and render, then re-render the diff.
 
-import { normalizeHex, round3, type Clip, type Timeline } from "./types";
+import { normalizeHex, round3, type Clip, type Crop, type Effect, type Mask, type Timeline, type Transform } from "./types";
 
 /** End time (start + duration) of a clip, rounded to ms. */
 export function clipEnd(clip: Clip): number {
@@ -86,6 +86,41 @@ export function recolorClip(timeline: Timeline, clipId: string, color: string): 
 /** Set a text clip's text. No-op on other clip types. */
 export function setClipText(timeline: Timeline, clipId: string, text: string): Timeline {
   return mapClip(timeline, clipId, (clip) => (clip.type === "text" ? { ...clip, text } : clip));
+}
+
+/** Merge a partial transform onto a clip (position / scale / rotation / opacity). */
+export function setTransform(timeline: Timeline, clipId: string, transform: Partial<Transform>): Timeline {
+  return mapClip(timeline, clipId, (clip) => ({ ...clip, transform: { ...clip.transform, ...transform } }));
+}
+
+/** Set a clip's source crop rectangle (normalized 0..1). The unit of collage tiling. */
+export function setCrop(timeline: Timeline, clipId: string, crop: Crop): Timeline {
+  return mapClip(timeline, clipId, (clip) => ({ ...clip, crop }));
+}
+
+/** Set (or clear with null) a clip's alpha mask. */
+export function setMask(timeline: Timeline, clipId: string, mask: Mask | null): Timeline {
+  return mapClip(timeline, clipId, (clip) => {
+    const next = { ...clip };
+    if (mask) next.mask = mask;
+    else delete next.mask;
+    return next;
+  });
+}
+
+/** Append a visual effect to a clip's effect chain. */
+export function addEffect(timeline: Timeline, clipId: string, effect: Effect): Timeline {
+  return mapClip(timeline, clipId, (clip) => ({ ...clip, effects: [...(clip.effects ?? []), effect] }));
+}
+
+/** Replace a clip's whole effect chain. */
+export function setEffects(timeline: Timeline, clipId: string, effects: Effect[]): Timeline {
+  return mapClip(timeline, clipId, (clip) => ({ ...clip, effects: [...effects] }));
+}
+
+/** Set a clip's explicit stacking order (higher = on top). */
+export function setZ(timeline: Timeline, clipId: string, z: number): Timeline {
+  return mapClip(timeline, clipId, (clip) => ({ ...clip, z }));
 }
 
 /** Split a clip into two at an absolute time. No-op if the split is outside the clip. */

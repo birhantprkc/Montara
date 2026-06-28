@@ -12,6 +12,7 @@ import { timelineToScenePlan, validateTimeline } from "../../core/src/index";
 import { mediaBin } from "./ffmpegPath";
 
 export { mediaBin };
+export { compositeTimeline } from "./composite";
 
 const FONT = "C\\:/Windows/Fonts/arialbd.ttf";
 

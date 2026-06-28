@@ -1,11 +1,12 @@
 // Montara validate harness: compose core + Phase 1.3 local provider tools.
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import type { ScenePlan } from "../packages/core/src/index";
-import { secondsToFrames, validateTimeline } from "../packages/core/src/index";
+import { secondsToFrames, validateTimeline, pictureInPicture, collage } from "../packages/core/src/index";
 import { composeScenePlan, renderComposedTimeline } from "../packages/render-remotion/src/index";
-import { probeDuration } from "../packages/render-ffmpeg/src/index";
+import { probeDuration, compositeTimeline, mediaBin } from "../packages/render-ffmpeg/src/index";
 import { renderBridgedTimeline, engineRemotionAvailable } from "../packages/engine/src/index";
 import {
   exportTimelineSubtitles,
@@ -345,6 +346,27 @@ ok("render bridge turns an engine composition into a real MP4 (ffmpeg path)",
   bridged.ok && existsSync(bridgedMp4) && bridgedDur > 1, `engine=${bridged.engine} dur=${bridgedDur.toFixed(2)}s`);
 ok("render bridge reports the strong engine composer path as available",
   engineRemotionAvailable() === true || engineRemotionAvailable() === false); // boolean, never throws
+
+// Pro compositor (2.5): PiP with an ellipse mask + a collage both render to real MP4s at comp size.
+const ff = mediaBin("ffmpeg");
+function genClip(name: string, src: string): string {
+  const p = join(outDir, name);
+  spawnSync(ff, ["-y", "-f", "lavfi", "-i", src, "-t", "1.5", "-pix_fmt", "yuv420p", p], { encoding: "utf8" });
+  return p;
+}
+const baseClip = genClip("vc-base.mp4", "testsrc2=s=640x360:r=24");
+const camClip = genClip("vc-cam.mp4", "smptebars=s=320x320:r=24");
+const pipOut = join(outDir, "validate-pip.mp4");
+const pipTl = pictureInPicture({ width: 640, height: 360, fps: 24, durationSec: 1.5, base: { path: baseClip, kind: "video" }, inset: { path: camClip, kind: "video" }, corner: "br", insetScale: 0.34, insetMask: { shape: "ellipse", feather: 0.06 } });
+compositeTimeline(pipTl, pipOut);
+const pipRes = (spawnSync(mediaBin("ffprobe"), ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", pipOut], { encoding: "utf8" }).stdout || "").trim();
+ok("compositor renders a masked PiP to a real MP4 at composition size",
+  existsSync(pipOut) && probeDuration(pipOut) > 0.5 && pipRes === "640x360", `dur=${probeDuration(pipOut).toFixed(2)} res=${pipRes}`);
+
+const colOut = join(outDir, "validate-collage.mp4");
+const colTl = collage({ width: 640, height: 360, fps: 24, durationSec: 1.5, cells: [{ path: baseClip }, { path: camClip }, { path: baseClip }, { path: camClip }], cols: 2, rows: 2 });
+compositeTimeline(colTl, colOut);
+ok("compositor renders a 2x2 collage to a real MP4", existsSync(colOut) && probeDuration(colOut) > 0.5, `dur=${probeDuration(colOut).toFixed(2)}`);
 
 console.log(`\nArtifact:    ${mp4Path}`);
 console.log(`IR:          ${irPath}`);

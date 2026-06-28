@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import type { ScenePlan, Timeline } from "../../core/src/index";
-import { validateTimeline } from "../../core/src/index";
-import { renderScenePlan, renderTimeline } from "../../render-ffmpeg/src/index";
+import { validateTimeline, pictureInPicture, collage, type Corner, type MediaSpec } from "../../core/src/index";
+import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
 import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable } from "../../providers/src/index";
@@ -176,6 +177,64 @@ export function main(argv = process.argv.slice(2)): number {
         return 0;
       }
       console.error(`unknown 3d renderer: ${kind} (supported: blender)`);
+      return 1;
+    }
+
+    if (command === "fx") {
+      const sub = rest[0];
+      const flag = (name: string): string | undefined => {
+        const i = rest.indexOf(name);
+        return i >= 0 ? rest[i + 1] : undefined;
+      };
+      const probeRes = (p: string): string => {
+        const r = spawnSync(mediaBin("ffprobe"), ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", p], { encoding: "utf8" });
+        return (r.stdout || "1280x720").trim();
+      };
+      const spec = (p: string): MediaSpec => ({ path: p });
+
+      if (sub === "pip") {
+        const base = rest[1];
+        const inset = rest[2];
+        if (!base || !inset) { console.error("usage: montara fx pip <base> <inset> [out.mp4] [--corner br|tl|tr|bl] [--scale 0.3] [--ellipse] [--seconds N]"); return 1; }
+        const out = (rest[3] && !rest[3].startsWith("--")) ? rest[3] : join(process.cwd(), "out", "montara-pip.mp4");
+        const [w, h] = probeRes(base).split("x").map(Number);
+        const seconds = Number(flag("--seconds") ?? probeDuration(base) ?? 5) || 5;
+        const tl = pictureInPicture({
+          width: w || 1280, height: h || 720, fps: 30, durationSec: seconds,
+          base: spec(base), inset: spec(inset),
+          corner: (flag("--corner") as Corner) ?? "br",
+          insetScale: Number(flag("--scale") ?? 0.3),
+          insetMask: rest.includes("--ellipse") ? { shape: "ellipse", feather: 0.06 } : undefined,
+        });
+        compositeTimeline(tl, out);
+        console.log(`pip -> ${out} (${probeDuration(out).toFixed(2)}s)`);
+        return 0;
+      }
+      if (sub === "collage") {
+        const out = (rest[1] && !rest[1].startsWith("--")) ? rest[1] : join(process.cwd(), "out", "montara-collage.mp4");
+        const tail = rest.slice(2);
+        const stop = tail.findIndex((a) => a.startsWith("--"));
+        const cells = stop >= 0 ? tail.slice(0, stop) : tail; // positional clips, before any --flag
+        if (cells.length < 2) { console.error("usage: montara fx collage <out.mp4> <clip1> <clip2> [clip3 ...] [--cols N] [--seconds N]"); return 1; }
+        const seconds = Number(flag("--seconds") ?? probeDuration(cells[0]!) ?? 5) || 5;
+        const tl = collage({
+          width: 1280, height: 720, fps: 30, durationSec: seconds,
+          cells: cells.map(spec), cols: flag("--cols") ? Number(flag("--cols")) : undefined,
+        });
+        compositeTimeline(tl, out);
+        console.log(`collage -> ${out} (${probeDuration(out).toFixed(2)}s, ${cells.length} cells)`);
+        return 0;
+      }
+      if (sub === "composite") {
+        const file = rest[1];
+        if (!file || !existsSync(file)) { console.error("usage: montara fx composite <timeline.json> [out.mp4]"); return 1; }
+        const tl = JSON.parse(readFileSync(file, "utf8")) as Timeline;
+        const out = rest[2] || join(process.cwd(), "out", "montara-composite.mp4");
+        compositeTimeline(tl, out);
+        console.log(`composite -> ${out} (${probeDuration(out).toFixed(2)}s)`);
+        return 0;
+      }
+      console.error("usage: montara fx <pip|collage|composite> ...");
       return 1;
     }
 
