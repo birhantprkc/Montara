@@ -35,6 +35,7 @@ import {
 } from "../packages/core/src/index";
 import { directScene, directScript, resolveEmotion } from "../packages/quality/src/index";
 import { exportTimeline, timelineToEDL, timelineToOTIO, timelineToFCPXML, framesToTimecode } from "../packages/bridge/src/index";
+import { brainCatalogue, ollamaInstalled } from "../packages/llm/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
 import { listPipelines, planVideo } from "../packages/ai/src/index";
 import {
@@ -1171,6 +1172,14 @@ ok("exportTimeline dispatches all three formats with sensible extensions", (() =
     exportTimeline(bridgeTl, "otio").ext === "otio" &&
     exportTimeline(bridgeTl, "otio").content.includes("OTIO_SCHEMA");
 })());
+
+// ---- Local-LLM brain (Ollama / LM Studio / llama.cpp) ----
+ok("brain catalogues the three local backends (zero-key, offline)", (() => {
+  const ids = brainCatalogue().map((b) => b.id);
+  return ids.length === 3 && ids.includes("ollama") && ids.includes("lmstudio") && ids.includes("llamacpp");
+})());
+ok("brain backends carry a base URL and a kind", brainCatalogue().every((b) => b.baseUrl.startsWith("http") && (b.kind === "ollama" || b.kind === "openai-compatible")));
+ok("ollamaInstalled() is a boolean probe (never throws)", typeof ollamaInstalled() === "boolean");
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

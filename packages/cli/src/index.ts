@@ -20,6 +20,7 @@ import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/i
 import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { exportTimeline, type EditorFormat } from "../../bridge/src/index";
+import { brainCatalogue, ollamaInstalled, ollamaModelsSync, ollamaCompleteSync } from "../../llm/src/index";
 import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback } from "../../hear/src/index";
 
 interface MakeArgs {
@@ -196,6 +197,35 @@ export function main(argv = process.argv.slice(2)): number {
         return 0;
       }
       console.error(`unknown 3d renderer: ${kind} (supported: blender, three, manim)`);
+      return 1;
+    }
+
+    if (command === "brain") {
+      const sub = rest[0] ?? "status";
+      if (sub === "status" || sub === "models") {
+        if (!ollamaInstalled()) {
+          console.log(`no local LLM brain installed. Supported: ${brainCatalogue().map((b) => b.id).join(", ")}.`);
+          console.log("  Install Ollama (ollama.com) or LM Studio for a zero-key local brain.");
+          return 0;
+        }
+        const models = ollamaModelsSync();
+        if (sub === "models") { for (const m of models) console.log(m); return 0; }
+        console.log(`brain: ollama — ${models.length} model(s): ${models.slice(0, 8).join(", ") || "(none pulled — `ollama pull llama3.2`)"}`);
+        return 0;
+      }
+      if (sub === "ask") {
+        const mi = rest.indexOf("--model");
+        const model = mi >= 0 ? rest[mi + 1] : undefined;
+        const prompt = rest.slice(1)
+          .filter((a, idx) => !a.startsWith("--") && !(mi >= 0 && idx + 1 === mi + 1))
+          .join(" ");
+        if (!prompt) { console.error('usage: montara brain ask "<prompt>" [--model NAME]'); return 1; }
+        const res = ollamaCompleteSync(prompt, model);
+        if (!res) { console.error("no local brain reachable (start Ollama and pull a model: `ollama pull llama3.2`)"); return 1; }
+        console.log(`[ollama/${res.model}] ${res.text}`);
+        return 0;
+      }
+      console.error("usage: montara brain <status|models|ask>");
       return 1;
     }
 
