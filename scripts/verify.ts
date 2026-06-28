@@ -130,6 +130,7 @@ import {
   TTSSelector,
 } from "../packages/tools/src/index";
 import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck, engineCompliance } from "../packages/engine/src/index";
+import { blenderAvailable, blenderBin } from "../packages/render-blender/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -969,6 +970,11 @@ const compliance = engineCompliance();
 ok("no legacy source-project branding in committable source", Boolean(compliance) && compliance!.legacy_tokens.length === 0);
 ok("no hardcoded secrets in committable source", Boolean(compliance) && compliance!.hardcoded_secrets.length === 0);
 ok("compliance scan covers the whole source tree", Boolean(compliance) && compliance!.ok && compliance!.scanned > 300, `scanned ${compliance?.scanned ?? 0}`);
+
+console.log("\n== Render runtimes — Blender (2.3) ==");
+ok("blender availability is a boolean (degrade-friendly), never throws", typeof blenderAvailable() === "boolean");
+ok("blender scene script ships in the repo", existsSync(join(process.cwd(), "blender", "montara_intro.py")));
+ok("blenderBin resolves a concrete binary when installed", blenderAvailable() ? typeof blenderBin() === "string" && blenderBin()!.length > 0 : blenderBin() === null);
 
 console.log("\n== System (zero-key) TTS (2.2) ==");
 const sysReg = buildDefaultRegistry();

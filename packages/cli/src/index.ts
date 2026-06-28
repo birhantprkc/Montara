@@ -14,6 +14,7 @@ import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
 import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance } from "../../engine/src/index";
+import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -99,6 +100,7 @@ function printHelp(): void {
 
 Commands:
   doctor                          check local render prerequisites + Python engine
+  render3d blender [out]          render the 3D intro via headless Blender + ffmpeg
   engine [info|smoke]             show Python engine readiness, or run the integrity smoke
   engine timeline <name>          bridge an engine composition into Montara Timeline IR
   engine render <name> [out]      render a bridged composition to MP4 (ffmpeg; --engine remotion)
@@ -134,6 +136,21 @@ export function main(argv = process.argv.slice(2)): number {
     }
 
     if (command === "doctor") return runDoctor();
+
+    if (command === "render3d") {
+      const kind = rest[0] ?? "blender";
+      const out = rest[1] || join(process.cwd(), "out", `montara-3d-${kind}.mp4`);
+      if (kind === "blender") {
+        if (!blenderAvailable()) { console.error("Blender not installed (download from blender.org)."); return 1; }
+        const script = join(process.cwd(), "blender", "montara_intro.py");
+        const res = renderBlenderScene(script, out);
+        if (!res.ok) { console.error(`blender render failed: ${res.error}`); return 1; }
+        console.log(`blender: ${res.frames} frames -> ${res.path}`);
+        return 0;
+      }
+      console.error(`unknown 3d renderer: ${kind} (supported: blender)`);
+      return 1;
+    }
 
     if (command === "engine") {
       const sub = rest[0] ?? "info";
