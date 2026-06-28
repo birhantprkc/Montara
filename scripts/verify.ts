@@ -1118,6 +1118,11 @@ ok("voice director always returns a usable plan with zero keys", (() => {
 
 // ---- Auto engine picker: pick the best INSTALLED renderer per scene type ----
 ok("recommendEngine maps a 3D title to the three.js engine", recommendEngine("title-3d").preferred === "three");
+ok("recommendEngine maps math to Manim, kinetic to Motion Canvas, MIT explainer to Revideo", (() => {
+  return recommendEngine("math").preferred === "manim" &&
+    recommendEngine("kinetic-typography").preferred === "motion-canvas" &&
+    recommendEngine("explainer-mit").preferred === "revideo";
+})());
 ok("recommendEngine picks native when installed, else degrades to ffmpeg", (() => {
   const rec = recommendEngine("title-3d");
   return rec.engine === (threeAvailable() ? "three" : "ffmpeg") && rec.native === (rec.engine !== "ffmpeg");

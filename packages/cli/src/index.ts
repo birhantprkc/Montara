@@ -18,6 +18,7 @@ import { runDoctor } from "./doctor";
 import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
 import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
+import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback } from "../../hear/src/index";
 
 interface MakeArgs {
@@ -186,7 +187,14 @@ export function main(argv = process.argv.slice(2)): number {
         console.log(`three (WebGL): ${res.frames} frames -> ${res.path}`);
         return 0;
       }
-      console.error(`unknown 3d renderer: ${kind} (supported: blender, three)`);
+      if (kind === "manim") {
+        if (!manimAvailable()) { console.error("manim not installed (pip install manim)."); return 1; }
+        const res = renderManimScene(out, { quality: "l" });
+        if (!res.ok) { console.error(`manim render failed: ${res.error}`); return 1; }
+        console.log(`manim: scene ${res.scene} -> ${res.path}`);
+        return 0;
+      }
+      console.error(`unknown 3d renderer: ${kind} (supported: blender, three, manim)`);
       return 1;
     }
 

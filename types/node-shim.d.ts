@@ -45,6 +45,7 @@ declare module "node:fs" {
 
   export interface Stats {
     size: number;
+    mtimeMs: number;
     isDirectory(): boolean;
     isFile(): boolean;
   }

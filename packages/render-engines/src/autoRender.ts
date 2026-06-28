@@ -7,18 +7,23 @@
 import { renderScenePlan } from "../../render-ffmpeg/src/index";
 import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
+import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
+import { revideoAvailable } from "../../render-revideo/src/index";
+import { motionCanvasAvailable } from "../../render-motioncanvas/src/index";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
-import { RENDER_ENGINES, getEngine, preferredEngine, type EngineId, type RenderEngine } from "./index";
+import { preferredEngine, RENDER_ENGINES, type EngineId, type RenderEngine } from "./index";
 
-/** Real, runtime availability of each engine (not just an env flag). */
+/** Real, runtime availability of each engine (probes the actual toolchain, not just an env flag). */
 export function engineReallyAvailable(id: EngineId): boolean {
   switch (id) {
     case "ffmpeg": return true;
     case "three": return threeAvailable();
     case "blender": return blenderAvailable();
+    case "manim": return manimAvailable();
+    case "revideo": return revideoAvailable();
+    case "motion-canvas": return motionCanvasAvailable();
     case "remotion": return existsSync(join(process.cwd(), "remotion-composer", "package.json"));
-    // revideo / motion-canvas / manim: real adapters land as they are wired; until then, unavailable.
     default: return false;
   }
 }
@@ -84,6 +89,10 @@ export function autoRenderScene(req: AutoSceneRequest): AutoSceneResult {
     const script = req.blenderScript ?? join(process.cwd(), "blender", "montara_intro.py");
     const r = renderBlenderScene(script, req.outPath, { fps });
     return { ok: r.ok, engine: "blender", native: true, path: r.path ?? req.outPath, frames: r.frames, error: r.error };
+  }
+  if (rec.engine === "manim") {
+    const r = renderManimScene(req.outPath, { quality: "l" });
+    return { ok: r.ok, engine: "manim", native: true, path: r.path, error: r.error };
   }
   // ffmpeg fallback: a single titled scene
   try {
