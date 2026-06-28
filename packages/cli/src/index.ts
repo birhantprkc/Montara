@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import type { ScenePlan, Timeline } from "../../core/src/index";
 import { validateTimeline, pictureInPicture, collage, type Corner, type MediaSpec } from "../../core/src/index";
-import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts } from "../../render-ffmpeg/src/index";
+import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts, buildReel, type Caption } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
 import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable } from "../../providers/src/index";
@@ -21,7 +21,7 @@ import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { exportTimeline, type EditorFormat } from "../../bridge/src/index";
 import { brainCatalogue, ollamaInstalled, ollamaModelsSync, ollamaCompleteSync } from "../../llm/src/index";
-import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback } from "../../hear/src/index";
+import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback, transcribeAvailable, localTranscribe } from "../../hear/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -268,6 +268,36 @@ export function main(argv = process.argv.slice(2)): number {
       }
       console.error("usage: montara voice <direct <emotion> [--intensity N] [--music N] | plan <scenes.json> | providers>");
       return 1;
+    }
+
+    if (command === "reel") {
+      const input = rest[0];
+      if (!input || !existsSync(input)) { console.error("usage: montara reel <input.mp4> [out] [--hook TEXT] [--cta TEXT] [--no-captions] [--model base]"); return 1; }
+      const out = (rest[1] && !rest[1].startsWith("--")) ? rest[1] : join(process.cwd(), "out", "montara-reel.mp4");
+      const hookI = rest.indexOf("--hook"); const ctaI = rest.indexOf("--cta"); const modelI = rest.indexOf("--model");
+      const hook = hookI >= 0 ? rest[hookI + 1] : "WATCH THIS";
+      const cta = ctaI >= 0 ? rest[ctaI + 1] : "FOLLOW FOR MORE";
+
+      let captions: Caption[] = [];
+      if (!rest.includes("--no-captions")) {
+        if (transcribeAvailable()) {
+          console.log("transcribing (local faster-whisper)…");
+          const t = localTranscribe(input, { model: modelI >= 0 ? rest[modelI + 1] : "base" });
+          if (t) { captions = t.segments.map((s) => ({ startSec: s.start, endSec: s.end, text: s.text })); console.log(`  ${captions.length} caption cues (${t.language}, ${t.duration}s)`); }
+          else console.log("  transcription failed — building reel without captions");
+        } else {
+          console.log("local STT unavailable (pip install faster-whisper) — building reel without captions");
+        }
+      }
+
+      console.log(`composing reel (hook + captions + end card + -14 LUFS master)…`);
+      const res = buildReel(input, out, { hook, endCard: cta, captions, lufs: -14 });
+      if (!res.ok) { console.error(`reel failed: ${res.error}`); return 1; }
+      const qa = qaPlayback(out);
+      console.log(`reel -> ${out}`);
+      console.log(`  ${res.captions} captions burned · ${qa.width}x${qa.height} ${qa.durationSec.toFixed(1)}s · audio ${qa.meanVolumeDb}dB/${qa.maxVolumeDb}dB peak · cuts ${qa.sceneChanges}`);
+      if (qa.issues.length) console.log(`  QA notes: ${qa.issues.join("; ")}`);
+      return res.ok ? 0 : 1;
     }
 
     if (command === "master") {

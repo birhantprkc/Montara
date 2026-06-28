@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { mediaBin } from "../../render-ffmpeg/src/index";
 
 const VOICE_ID_SCRIPT = "voice_id.py";
+const TRANSCRIBE_SCRIPT = "transcribe_local.py";
 
 function findPython(): string | null {
   for (const cand of ["python", "python3", "py"]) {
@@ -74,6 +75,36 @@ export function voiceVerify(a: string, b: string, threshold = 0.75, root: string
   if (res.status !== 0) return null;
   try {
     return JSON.parse(res.stdout ?? "null") as VoiceVerifyResult;
+  } catch {
+    return null;
+  }
+}
+
+// ---- Local transcription (captions, zero-key, via faster-whisper) ----
+
+export interface TranscriptSegment { start: number; end: number; text: string }
+export interface Transcript { language: string; duration: number; segments: TranscriptSegment[] }
+
+/** Whether local STT can run: Python + the script + faster-whisper installed (no model import). */
+export function transcribeAvailable(root: string = hearRoot()): boolean {
+  const py = findPython();
+  if (!py || !existsSync(join(root, TRANSCRIBE_SCRIPT))) return false;
+  const chk = spawnSync(py, ["-c", "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('faster_whisper') else 1)"], { encoding: "utf8" });
+  return chk.status === 0;
+}
+
+/** Transcribe a media file to timed segments using local faster-whisper. */
+export function localTranscribe(media: string, opts: { model?: string; language?: string } = {}, root: string = hearRoot()): Transcript | null {
+  const py = findPython();
+  if (!py) return null;
+  const args = [join(root, TRANSCRIBE_SCRIPT), media, opts.model ?? "base"];
+  if (opts.language) args.push(opts.language);
+  const res = spawnSync(py, args, { cwd: root, encoding: "utf8", timeout: 600000, maxBuffer: 1 << 26 });
+  if (res.status !== 0) return null;
+  try {
+    const j = JSON.parse(res.stdout ?? "null") as Transcript & { error?: string };
+    if (!j || j.error || !Array.isArray(j.segments)) return null;
+    return j;
   } catch {
     return null;
   }

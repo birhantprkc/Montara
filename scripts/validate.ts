@@ -6,7 +6,7 @@ import { join } from "node:path";
 import type { ScenePlan } from "../packages/core/src/index";
 import { secondsToFrames, validateTimeline, pictureInPicture, collage } from "../packages/core/src/index";
 import { composeScenePlan, renderComposedTimeline } from "../packages/render-remotion/src/index";
-import { probeDuration, compositeTimeline, mediaBin, masterAudio, generateThumbnails, cutShort } from "../packages/render-ffmpeg/src/index";
+import { probeDuration, compositeTimeline, mediaBin, masterAudio, generateThumbnails, cutShort, buildReel } from "../packages/render-ffmpeg/src/index";
 import { qaPlayback } from "../packages/hear/src/index";
 import { threeAvailable, renderThreeScene } from "../packages/render-three/src/index";
 import { renderBridgedTimeline, engineRemotionAvailable } from "../packages/engine/src/index";
@@ -404,6 +404,14 @@ if (threeAvailable()) {
 } else {
   ok("render-three reports unavailable honestly when no browser/three", threeAvailable() === false);
 }
+
+// Reel builder (capstone): burns a hook + caption + end card onto a vertical clip, keeps audio, masters.
+const reelSrc = join(outDir, "vc-reel-src.mp4");
+spawnSync(ff, ["-y", "-f", "lavfi", "-i", "testsrc2=s=540x960:r=24", "-f", "lavfi", "-i", "sine=frequency=200", "-t", "3", "-pix_fmt", "yuv420p", "-shortest", reelSrc], { encoding: "utf8" });
+const reelOut = join(outDir, "validate-reel.mp4");
+const reel = buildReel(reelSrc, reelOut, { hook: "WATCH", endCard: "FOLLOW", captions: [{ startSec: 0.2, endSec: 1.5, text: "a real burned caption with punctuation: it works!" }], lufs: -14 });
+const reelQa = qaPlayback(reelOut);
+ok("buildReel produces a captioned, audio-bearing vertical reel", reel.ok && reelQa.hasVideo && reelQa.hasAudio && reelQa.width === 540 && reelQa.durationSec > 2, `err=${reel.error ?? ""} ${reelQa.width}x${reelQa.height}`);
 
 console.log(`\nArtifact:    ${mp4Path}`);
 console.log(`IR:          ${irPath}`);

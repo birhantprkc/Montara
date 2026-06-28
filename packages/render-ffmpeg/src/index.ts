@@ -15,6 +15,7 @@ export { mediaBin };
 export { compositeTimeline } from "./composite";
 export { masterAudio, measureLoudness, type LoudnessStats, type MasterOptions, type MasterResult } from "./master";
 export { generateThumbnails, cutShort, cutShorts, type ThumbConcept, type ShortCut } from "./craft";
+export { buildReel, type Caption, type ReelOptions, type ReelResult } from "./reel";
 
 const FONT = "C\\:/Windows/Fonts/arialbd.ttf";
 
