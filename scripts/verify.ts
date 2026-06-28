@@ -34,6 +34,7 @@ import {
   type ScenePlan,
 } from "../packages/core/src/index";
 import { directScene, directScript, resolveEmotion } from "../packages/quality/src/index";
+import { exportTimeline, timelineToEDL, timelineToOTIO, timelineToFCPXML, framesToTimecode } from "../packages/bridge/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
 import { listPipelines, planVideo } from "../packages/ai/src/index";
 import {
@@ -1136,6 +1137,39 @@ ok("availableEngines marks ffmpeg always-available and is consistent with the pr
   const list = availableEngines();
   const ff = list.find((e) => e.engine.id === "ffmpeg")!;
   return ff.available === true && list.every((e) => e.available === engineReallyAvailable(e.engine.id));
+})());
+
+// ---- Pro-editor bridges: export the IR to EDL / FCPXML / OTIO ----
+const bridgeTl = pipTimeline({
+  width: 1920, height: 1080, fps: 30, durationSec: 6,
+  base: { path: "C:/clips/base.mp4", kind: "video" }, inset: { path: "C:/clips/cam.mp4", kind: "video" }, corner: "br",
+});
+
+ok("timecode is non-drop SMPTE (90 frames @ 30fps = 00:00:03:00)", framesToTimecode(90, 30) === "00:00:03:00");
+
+const edl = timelineToEDL(bridgeTl, { title: "test" });
+ok("EDL is CMX3600 with a title, FCM, and one event per video clip", (() => {
+  return edl.includes("TITLE: TEST") && edl.includes("FCM: NON-DROP FRAME") &&
+    edl.includes("001  ") && /\d\d:\d\d:\d\d:\d\d \d\d:\d\d:\d\d:\d\d/.test(edl) && edl.includes("FROM CLIP NAME: base.mp4");
+})());
+
+const otioStr = timelineToOTIO(bridgeTl, { title: "t" });
+ok("OTIO is valid JSON with the OTIO Timeline schema and tracks", (() => {
+  const o = JSON.parse(otioStr) as { OTIO_SCHEMA: string; tracks: { children: { children: { OTIO_SCHEMA: string }[] }[] } };
+  const firstTrackKids = o.tracks.children[0]!.children;
+  return o.OTIO_SCHEMA === "Timeline.1" && firstTrackKids.some((c) => c.OTIO_SCHEMA === "Clip.1");
+})());
+
+const fcp = timelineToFCPXML(bridgeTl, { title: "t" });
+ok("FCPXML 1.10 has resources, a spine, and an asset-clip for media", (() => {
+  return fcp.includes('<fcpxml version="1.10">') && fcp.includes("<spine>") && fcp.includes("<asset-clip ") && fcp.includes('src="file://C:/clips/base.mp4"');
+})());
+
+ok("exportTimeline dispatches all three formats with sensible extensions", (() => {
+  return exportTimeline(bridgeTl, "edl").ext === "edl" &&
+    exportTimeline(bridgeTl, "fcpxml").ext === "fcpxml" &&
+    exportTimeline(bridgeTl, "otio").ext === "otio" &&
+    exportTimeline(bridgeTl, "otio").content.includes("OTIO_SCHEMA");
 })());
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

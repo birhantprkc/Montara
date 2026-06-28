@@ -19,6 +19,7 @@ import { engineReady, engineVerify, engineComposition, engineCompositionNames, e
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
 import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
+import { exportTimeline, type EditorFormat } from "../../bridge/src/index";
 import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback } from "../../hear/src/index";
 
 interface MakeArgs {
@@ -196,6 +197,23 @@ export function main(argv = process.argv.slice(2)): number {
       }
       console.error(`unknown 3d renderer: ${kind} (supported: blender, three, manim)`);
       return 1;
+    }
+
+    if (command === "export") {
+      const format = rest[0] as EditorFormat;
+      const file = rest[1];
+      if (!["edl", "fcpxml", "otio"].includes(format) || !file || !existsSync(file)) {
+        console.error("usage: montara export <edl|fcpxml|otio> <timeline.json> [out]"); return 1;
+      }
+      const tl = JSON.parse(readFileSync(file, "utf8")) as Timeline;
+      const issues = validateTimeline(tl);
+      if (issues.length) { console.error(`invalid timeline: ${issues.join("; ")}`); return 1; }
+      const { content, ext } = exportTimeline(tl, format, { title: "Montara Edit" });
+      const out = rest[2] || join(process.cwd(), "out", `montara-edit.${ext}`);
+      mkdirSync(dirname(out), { recursive: true });
+      writeFileSync(out, content);
+      console.log(`exported ${format.toUpperCase()} -> ${out}`);
+      return 0;
     }
 
     if (command === "voice") {
