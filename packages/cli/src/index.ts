@@ -7,7 +7,8 @@ import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, medi
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
 import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable } from "../../providers/src/index";
-import { preComposeGate, postRenderSelfReview, writeSelfReview } from "../../quality/src/index";
+import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, directScript, type SceneEmotion } from "../../quality/src/index";
+import { TTSSelector } from "../../tools/src/audio/tts-selector";
 import { runResearch } from "../../research/src/index";
 import { analyzeReferenceVideo } from "../../understand/src/index";
 import { listEngines, engineAvailable } from "../../render-engines/src/index";
@@ -177,6 +178,30 @@ export function main(argv = process.argv.slice(2)): number {
         return 0;
       }
       console.error(`unknown 3d renderer: ${kind} (supported: blender)`);
+      return 1;
+    }
+
+    if (command === "voice") {
+      const sub = rest[0];
+      const available = new TTSSelector().availableProviders();
+      if (sub === "providers") { console.log(`available voices: ${available.join(", ") || "system"}`); return 0; }
+      if (sub === "plan") {
+        const file = rest[1];
+        if (!file || !existsSync(file)) { console.error("usage: montara voice plan <scenes.json>  # [{emotion,intensity,musicEnergy,text}]"); return 1; }
+        const scenes = JSON.parse(readFileSync(file, "utf8")) as SceneEmotion[];
+        const plan = directScript(scenes, available);
+        plan.forEach((d, i) => console.log(`#${i + 1} ${d.emotion.padEnd(13)} ${d.provider.padEnd(11)} rate ${d.rate} gain ${d.gainDb}dB duck ${d.musicDuckDb}dB  ${d.reason}`));
+        return 0;
+      }
+      if (sub === "direct") {
+        const emotion = rest[1] ?? "neutral";
+        const fi = rest.indexOf("--intensity"); const mi = rest.indexOf("--music");
+        const d = directScene({ emotion, intensity: fi >= 0 ? Number(rest[fi + 1]) : 0.5, musicEnergy: mi >= 0 ? Number(rest[mi + 1]) : 0 }, available);
+        console.log(`voice: ${d.provider}  rate ${d.rate}  style ${d.style}  stability ${d.stability}  gain ${d.gainDb}dB  musicDuck ${d.musicDuckDb}dB`);
+        console.log(`reason: ${d.reason}`);
+        return 0;
+      }
+      console.error("usage: montara voice <direct <emotion> [--intensity N] [--music N] | plan <scenes.json> | providers>");
       return 1;
     }
 

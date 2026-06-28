@@ -33,6 +33,7 @@ import {
   collage as collageTimeline,
   type ScenePlan,
 } from "../packages/core/src/index";
+import { directScene, directScript, resolveEmotion } from "../packages/quality/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
 import { listPipelines, planVideo } from "../packages/ai/src/index";
 import {
@@ -1098,6 +1099,20 @@ ok("collage tiles N media clips into an exact grid (cover-cropped boxes)", (() =
 ok("media-path validation rejects an empty media source", (() => {
   const bad = pipTimeline({ width: 640, height: 360, fps: 24, durationSec: 1, base: { path: "" }, inset: { path: "x.mp4" } });
   return validateTimeline(bad).some((i) => i.includes("requires source.path"));
+})());
+
+// ---- Voice director: emotion + music -> voice choice + dynamic volume ----
+const urgent = directScene({ emotion: "urgent", intensity: 0.9, musicEnergy: 0.7 }, ["elevenlabs", "openai", "system"]);
+ok("voice director picks an expressive provider for a high-intensity beat", urgent.provider === "elevenlabs" && urgent.rate > 1.05);
+ok("voice director ducks loud music and lifts the voice", urgent.musicDuckDb < 0 && urgent.gainDb > 0);
+
+const calm = directScene({ emotion: "calm", intensity: 0.2, musicEnergy: 0 }, ["system"]);
+ok("voice director slows/quiets a calm beat and falls back to the system voice", calm.rate < 1 && calm.gainDb <= 0 && calm.provider === "system");
+
+ok("voice director infers emotion from text keywords", resolveEmotion({ text: "Breaking: the attack is happening now" }) === "urgent");
+ok("voice director always returns a usable plan with zero keys", (() => {
+  const plan = directScript([{ emotion: "warm" }, { text: "a victory for the team" }], []);
+  return plan.length === 2 && plan.every((d) => d.provider === "system") && plan[1]!.emotion === "triumphant";
 })());
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);

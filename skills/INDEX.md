@@ -294,7 +294,9 @@ Cross-cutting skills that apply to all pipelines:
 | Onboarding | `meta/onboarding.md` | First-interaction greeting, capability discovery, starter prompts |
 | Reviewer | `meta/reviewer.md` | Self-review protocol after every stage |
 | Checkpoint Protocol | `meta/checkpoint-protocol.md` | When/how to checkpoint and request human approval |
-| Warfront Craft | `meta/warfront-craft.md` | Voice, music, mastering, motion, QA, thumbnails, and Shorts quality rules |
+| Craft | `meta/craft.md` | Universal taste layer for ANY video — voice/music/mastering(-14 LUFS)/motion/text/QA/thumbnails/Shorts |
+| Warfront / Documentary Craft | `meta/warfront-craft.md` | Genre extension of Craft: maps & facts honest, measured reference voice, traceable claims |
+| Voice Direction | `meta/voice-direction.md` | Pick & shape the voice by scene emotion + music bed (dynamic rate/gain) |
 | Skill Creator | `meta/skill-creator.md` | Dynamically create new skills during pipeline runs |
 
 ## Style Playbooks

@@ -56,6 +56,11 @@ export class TTSSelector extends BaseTool {
     return this.tools.filter((t) => t.name !== this.name);
   }
 
+  /** Provider names that are currently usable (keys present, or zero-key local/system). */
+  availableProviders(secrets: Record<string, string | undefined> = process.env): string[] {
+    return this.providers().filter((t) => t.getStatus(secrets) === "available").map((t) => t.provider);
+  }
+
   private buildProviderMatrix(): Record<string, { tool: string; strength: string }> {
     const matrix: Record<string, { tool: string; strength: string }> = {};
     for (const tool of this.providers()) {

@@ -1,44 +1,28 @@
-# Warfront Craft
+# Warfront / Documentary Craft
 
-Use this skill whenever a Montara run moves from "technically rendered" to "worth watching."
-It is the taste layer shared by assistants, the CLI, and future GUI surfaces.
+A **genre extension** of the universal [craft.md](craft.md). Everything in `craft.md` still applies;
+this adds the rules that only matter for documentary, explainer, geopolitical, and
+data-driven/factual videos. For a Reel, ad, or product demo, you usually do **not** need this file —
+use `craft.md` alone.
 
-## Core Rules
+## Documentary-only rules
 
-1. **Voice is measurable.** Match pace, warmth, and onset density from references when available.
-   Default narration should be clear, warm, and around 4.4 onsets per second.
-2. **Music is scene-mapped.** Use cue ranges with `start`, `end`, `fadeIn`, `fadeOut`, and `gain`.
-   Prefer intentional silence at major beats over a flat loop under everything.
-3. **Master once.** Use one gentle sidechain and one loudness normalization pass. Target `-14 LUFS`,
-   `-1 dBTP`, `48000 Hz`, and avoid stacked dynamics that pump.
-4. **Move from frame one.** A cold open should not sit on static footage unless the stillness is a
-   deliberate story beat.
-5. **Keep maps and facts honest.** Visual confidence must match factual confidence.
-6. **Text must survive phones.** Use readable text pills, strong shadow, safe zones, and short lines.
-7. **QA playback, not just stills.** Check duration, frame decode, audio presence, clipping, and
-   visible variety across the full file.
-8. **Thumbnails need distinct hooks.** Generate three genuinely different thumbnail concepts; do not
-   repeat the title as thumbnail text.
-9. **Shorts cut on language.** Verify cut points by transcript or sentence boundary instead of
-   guessing by duration.
+1. **Maps and facts must be honest.** Visual confidence must match factual confidence. Don't draw a
+   precise border, troop position, or arrow you can't source. If a number is an estimate, say so on
+   screen. A map that looks authoritative about something uncertain is a lie the audience will trust.
+2. **Measured voice against a reference narrator.** Documentary narration is profiled against a
+   reference (pace, warmth, onset density via the audio analysis layer) and matched — not picked by
+   vibe. The voice-director still chooses *expression* per scene, but the baseline is the measured
+   target.
+3. **Score serves the argument.** Music underlines the data beat, then gets out of the way for the
+   number, the name, the quote. Silence is a tool.
+4. **Every claim is traceable.** Keep a source behind each on-screen assertion; the reviewer's
+   fact-honesty check can refuse a claim with no source.
+5. **The thumbnail promises the payoff, not clickbait.** Distinct hooks (craft rule 8) that the video
+   actually delivers — a documentary that overpromises loses the channel's trust.
 
-## Where It Connects
+## When to load this
 
-- `hear/` measures voice, music, loudness, and speaker-similarity boundaries.
-- `quality/` owns slideshow-risk, delivery promises, budget, and self-review.
-- `render-ffmpeg` and post tools own local mastering and fallback rendering.
-- Pipeline executive-producer skills decide when work is good enough to continue.
-- Publish-stage skills package titles, thumbnails, captions, and platform variants.
-
-## Review Prompt
-
-Before calling a video done, ask:
-
-- Does the first second move?
-- Can the text be read on a phone?
-- Does the audio hit the loudness target without pumping?
-- Does the music change with the scene?
-- Are claims, maps, and visuals honest?
-- Did QA inspect actual playback frames?
-- Are the thumbnail hooks distinct from each other and from the title?
-
+Load alongside `craft.md` when the piece is: a documentary, explainer, news/geopolitics/conflict
+breakdown, data story, or any factual video where the audience will treat the visuals as evidence.
+Skip it for purely emotional / promotional / entertainment Reels — those only need `craft.md`.

@@ -14,3 +14,4 @@ export * from "./env";
 export * from "./configLoader";
 export * from "./selfreview";
 export * from "./budget";
+export * from "./voiceDirector";
