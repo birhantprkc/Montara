@@ -4,7 +4,7 @@ Snapshot date: 2026-06-29.
 
 ## What Works Now
 
-- **Python engine bridge:** ready. Current bridge reports 116 tools, 18 lib modules, and 13 pipeline manifests.
+- **Python engine bridge:** ready. Current bridge reports 116 tools, 18 lib modules, and 14 pipeline manifests.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
 - **CLI:** `doctor`, `make`, `plan`, `render`, `review`, `analyze`, `capture`, `reel`,
   `music`, `voiceid`, provider listing, engine bridge commands, and 3D render commands.
@@ -30,7 +30,7 @@ Snapshot date: 2026-06-29.
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
 | `npm.cmd run validate` | 77 passed, 0 failed |
-| `python -m pytest tests` | 365 passed, 8 skipped |
+| `python -m pytest tests` | 367 passed, 8 skipped |
 
 ## Example Outputs
 
@@ -52,7 +52,7 @@ Generated outputs live under `out/` and are not committed.
 | Remotion | Native smoke render validate-gated when `remotion-composer` deps are installed; full Timeline default routing pending. |
 | Revideo | Registered runtime-gated MIT fallback target; native package work pending. |
 | Motion Canvas | Registered runtime-gated kinetic typography target; native package work pending. |
-| HyperFrames | Python `hyperframes_compose` strict kinetic smoke is validate-gated; broader pipeline/runtime parity pending. |
+| HyperFrames | Python `hyperframes_compose` strict kinetic smoke is validate-gated; kinetic typography now has a first-class pipeline; broader non-kinetic pipeline/runtime parity pending. |
 | Three.js | Adapter package exists; native headless proof depends on browser/runtime. |
 | Blender | Real adapter and native proof path when installed. |
 | Manim | Adapter package exists; native binary optional. |
@@ -74,7 +74,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Promote kinetic typography into `pipeline_defs/`.
-2. Wire Python `video_compose` and corpus tools through the CLI.
-3. Finish Remotion default routing for Timeline scenes.
-4. Add documentary stock-footage validate case.
+1. Wire Python `video_compose` and corpus tools through the CLI.
+2. Finish Remotion default routing for Timeline scenes.
+3. Add documentary stock-footage validate case.
+4. Add native package work for Revideo / Motion Canvas beyond registered adapters.

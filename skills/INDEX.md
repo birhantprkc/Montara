@@ -149,6 +149,7 @@ Pipeline type skills provide production guidance for specific video formats, ind
 | Screen Recording | `creative/screen-recording.md` | Code walkthroughs, tutorials, software demos |
 | Animation Pipeline | `creative/animation-pipeline.md` | Motion graphics, easing, transitions, composition |
 | Character Animation Pipeline | `pipelines/character-animation/` | Rigged local cartoon characters, pose libraries, action timelines, SVG/Canvas/Remotion/HyperFrames rendering |
+| Kinetic Typography Pipeline | `pipelines/kinetic-typography/` | Text-led motion, lyric/quote/title films, HyperFrames/GSAP-native typography beats |
 | Cinematic | `creative/cinematic.md` | Letterbox, film pacing, layered audio, color grading |
 
 ## Pipeline Stage Director Skills
@@ -250,6 +251,19 @@ Stage director skills teach the agent HOW to execute each pipeline stage. Each s
 | Publish Director | `pipelines/animation/publish-director.md` | `publish` | Animation-mode packaging, thumbnail-system alignment |
 
 > **Note:** The old `idea-director.md` still exists for reference but is superseded by the research + proposal two-stage flow in v2.0.
+
+### Kinetic Typography Pipeline (`pipelines/kinetic-typography/`) - v2.0
+
+| Skill | File | Stage | Key Capabilities |
+|-------|------|-------|-----------------|
+| **Executive Producer** | `pipelines/kinetic-typography/executive-producer.md` | `all` | **Text-led orchestration, runtime selection gates, HyperFrames lint/validate enforcement** |
+| Idea Director | `pipelines/kinetic-typography/idea-director.md` | `idea` | Runtime choice, text promise, timing source, output shape |
+| Script Director | `pipelines/kinetic-typography/script-director.md` | `script` | Short animatable line groups, emphasis words, pause marks |
+| Scene Director | `pipelines/kinetic-typography/scene-director.md` | `scene_plan` | Typography beats, motion families, hold timing |
+| Asset Director | `pipelines/kinetic-typography/asset-director.md` | `assets` | Runtime-safe fonts, palette, audio timing, HyperFrames DESIGN.md inputs |
+| Edit Director | `pipelines/kinetic-typography/edit-director.md` | `edit` | `kinetic_typography` cuts, Timeline IR handoff, runtime-preserving decisions |
+| Compose Director | `pipelines/kinetic-typography/compose-director.md` | `compose` | HyperFrames/Remotion/FFmpeg routing, strict render verification |
+| Publish Director | `pipelines/kinetic-typography/publish-director.md` | `publish` | MP4, Timeline IR, editor exports, hook frame, copy packaging |
 
 ### Hybrid Pipeline (`pipelines/hybrid/`) — v2.0
 

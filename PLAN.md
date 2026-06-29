@@ -173,7 +173,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 | Stage | Name | Goal | Completion |
 |-------|------|------|------------|
 | **0** | Foundation & honesty | Runnable repo, gates, honest docs, CI | **100%** |
-| **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **~70%** |
+| **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **~75%** |
 | **2** | Native composition | Remotion + HyperFrames as real defaults, not FFmpeg solids | **~45%** |
 | **3** | Moat core | IR import, local LLM, CLI completeness, capture, craft gates | **~40%** |
 | **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~15%** |
@@ -222,7 +222,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ---
 
-## 7. STAGE 1 — OpenMontage parity (~70% complete)
+## 7. STAGE 1 — OpenMontage parity (~75% complete)
 
 Goal: **Every OpenMontage capability** available through Montara (Python tools and/or TS
 boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./docs/MONTARA-PARITY.md).
@@ -258,7 +258,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | 1B.11 | talking-head | ☑ | |
 | 1B.12 | character-animation | ☑ | |
 | 1B.13 | framework-smoke | ☑ | test harness |
-| 1B.14 | kinetic-typography | ◐ | in `pipelines/` only — promote to `pipeline_defs/` |
+| 1B.14 | kinetic-typography | ☑ | promoted to `pipeline_defs/` with HyperFrames-aware stage directors |
 
 **Task:** For each ◐ pipeline, add a `validate` case that produces a real MP4 offline.
 
@@ -438,8 +438,8 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 3.6 | `montara capture` CLI wrapping Playwright tool | done |
 | ✅ | 2.1 | Native Remotion validate case | done |
 | ✅ | 2.3 | HyperFrames E2E validate case | done |
-| 🎯 1 | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | 2h |
-| 6 | 1A.4 | CLI wire `video_compose` + `corpus_builder` | 1d |
+| ✅ | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | done |
+| 🎯 1 | 1A.4 | CLI wire `video_compose` + `corpus_builder` | 1d |
 | 7 | 4.1 | README demo gallery | 1d |
 
 ---

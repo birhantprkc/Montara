@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 2.3 native HyperFrames smoke.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 1B.14 kinetic-typography promotion.
 
 This checklist tracks two things:
 
@@ -15,7 +15,7 @@ Latest local gates before this sync:
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 272 passed, 0 failed.
 - `npm.cmd run validate` passed: 77 passed, 0 failed.
-- `python -m pytest tests` passed: 365 passed, 8 skipped.
+- `python -m pytest tests` passed: 367 passed, 8 skipped.
 
 ## Snapshot
 
@@ -35,7 +35,7 @@ Latest local gates before this sync:
 | Playwright capture | ◐ | Tool/selector/skills, pytest coverage, and `montara capture` CLI exist; native browser runtime remains Playwright-gated. |
 | 9-engine registry | ☑ | Includes maturity labels: working, adapter, runtime-gated, planned. |
 | Native Remotion | ◐ | Native smoke MP4 validate-gated when composer deps are installed; default Timeline routing pending. |
-| HyperFrames | ◐ | Python `hyperframes_compose` strict kinetic smoke is validate-gated; broader pipeline parity pending. |
+| HyperFrames | ◐ | Python `hyperframes_compose` strict kinetic smoke is validate-gated; kinetic-typography has pipeline skills; broader non-kinetic parity pending. |
 | Revideo / Motion Canvas | ☐ | Registered/runtime-gated; native package work pending. |
 | Three.js / Manim | ◐ | Adapters exist; native proof depends on installed runtimes. |
 | Blender | ◐ | Real headless adapter; documented as runtime-gated. |
@@ -78,7 +78,7 @@ Latest local gates before this sync:
 | screen-demo | ◐ | Capture CLI smoke is validated; full screen-demo MP4 flow still pending. |
 | talking-head | ☑ | Manifest + skills. |
 | character-animation | ☑ | Contract tests green. |
-| kinetic-typography | ◐ | Present in `pipelines/`; promote to `pipeline_defs/`. |
+| kinetic-typography | ☑ | Manifest + HyperFrames-aware stage skills; native strict kinetic smoke validate-gated. |
 
 ## C-K. OpenMontage Parity Categories
 

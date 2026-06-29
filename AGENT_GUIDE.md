@@ -102,7 +102,7 @@ need a pipeline underneath.
 | `screen-demo` | Software trailers, browser/site walkthroughs, terminal demos | `skills/pipelines/screen-demo/*` plus capture skills |
 | `talking-head` | Speaker footage with smart overlays/captions | `skills/pipelines/talking-head/*` |
 | `character-animation` | Rigged SVG/canvas/HyperFrames character work | `skills/pipelines/character-animation/*` |
-| `kinetic-typography` | Text-led motion pieces | currently partial; use animation or HyperFrames guidance |
+| `kinetic-typography` | Text-led motion pieces, lyric/quote/title motion, HyperFrames-native word animation | `skills/pipelines/kinetic-typography/*` plus `skills/core/hyperframes.md` |
 
 When no pipeline fits, choose the nearest one and log the mismatch. Do not make
 an invisible ad-hoc pipeline.
@@ -333,7 +333,7 @@ The render stack is mixed maturity. Promise only what the machine can prove.
 | Blender | Use for pro 3D when Blender is installed; verify the render and transcode. |
 | Motion Canvas | Adapter/runtime-gated. Confirm the toolchain before committing. |
 | Spline | Treat as planned until a Montara render package and validate case exist. |
-| HyperFrames | Strict kinetic smoke renders through Python `hyperframes_compose` when `npx hyperframes` is available. Broader pipeline parity remains runtime-gated. |
+| HyperFrames | Strict kinetic smoke renders through Python `hyperframes_compose` when `npx hyperframes` is available. Kinetic typography now has a first-class pipeline; broader non-kinetic pipeline parity remains runtime-gated. |
 | Playwright | Browser capture/automation, including auth-state login. Not native desktop automation. |
 
 For brief-driven animation choices, read `skills/meta/animation-runtime-selector.md`.

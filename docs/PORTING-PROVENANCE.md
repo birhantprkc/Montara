@@ -38,8 +38,8 @@ through this file and `NOTICE`.
 - `lib/` - config, delivery, scoring, retrieval, checkpoint, media, prompt/style helpers.
 - `tools/` - analysis, audio, video, graphics, enhancement, avatar, capture, character,
   subtitle, and registry tooling (115 modules).
-- `skills/` - pipeline, creative, core, and meta instruction layers (158).
-- `pipeline_defs/` - pipeline manifests (13).
+- `skills/` - pipeline, creative, core, and meta instruction layers (189).
+- `pipeline_defs/` - pipeline manifests (14).
 - `schemas/` - artifact, checkpoint, pipeline, style, and tool schemas (27).
 - `remotion-composer/` - React composition project.
 - `tests/` - contract, QA, style, tool, and evaluation tests (29).

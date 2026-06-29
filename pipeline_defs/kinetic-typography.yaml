@@ -1,0 +1,217 @@
+name: kinetic-typography
+version: "2.0"
+description: >
+  Text-led motion pipeline for lyric videos, launch reels, quote films, manifesto pieces,
+  and social shorts where typography is the primary visual system. The pipeline plans
+  words, timing, audio rhythm, and HyperFrames/GSAP composition as first-class artifacts.
+category: animation
+stability: beta
+default_checkpoint_policy: guided
+
+reference_input:
+  supported: true
+  analysis_depth: standard
+  analysis_tools:
+    - transcript_fetcher
+    - scene_detect
+    - frame_sampler
+    - audio_probe
+
+extensions:
+  custom_scripts: true
+  custom_playbooks: true
+  custom_skills: true
+  custom_tools: false
+
+required_skills:
+  - pipelines/kinetic-typography/executive-producer
+  - pipelines/kinetic-typography/idea-director
+  - pipelines/kinetic-typography/script-director
+  - pipelines/kinetic-typography/scene-director
+  - pipelines/kinetic-typography/asset-director
+  - pipelines/kinetic-typography/edit-director
+  - pipelines/kinetic-typography/compose-director
+  - pipelines/kinetic-typography/publish-director
+  - core/hyperframes
+  - creative/typography
+  - meta/reviewer
+  - meta/checkpoint-protocol
+
+orchestration:
+  mode: executive-producer
+  skill: pipelines/kinetic-typography/executive-producer
+  budget_default_usd: 0.50
+  max_revisions_per_stage: 3
+  max_send_backs: 3
+  max_wall_time_minutes: 10
+
+compatible_playbooks:
+  recommended:
+    - flat-motion-graphics
+    - clean-professional
+  also_works:
+    - minimalist-diagram
+  custom_allowed: true
+
+stages:
+  - name: idea
+    skill: pipelines/kinetic-typography/idea-director
+    optional_artifacts_in:
+      - source_media_review
+      - video_analysis_brief
+    produces:
+      - brief
+      - decision_log
+    tools_available:
+      - video_compose
+      - hyperframes_compose
+      - hear
+      - transcriber
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Text-led promise is explicit and appropriate for the brief
+      - render_runtime options are presented honestly before approval
+      - Audio/transcript source and target platform are identified
+    success_criteria:
+      - Schema-valid brief artifact
+      - decision_log includes render_runtime_selection when a runtime is chosen
+      - Output shape, duration, and text density are realistic
+
+  - name: script
+    skill: pipelines/kinetic-typography/script-director
+    required_artifacts_in:
+      - brief
+    produces:
+      - script
+    optional_tools:
+      - transcriber
+      - hear
+    tools_available:
+      - transcriber
+      - hear
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Lines are short enough to animate and read
+      - Emphasis words and pauses are marked
+      - Spoken text and on-screen text do not fight each other
+    success_criteria:
+      - Script has timed line groups or clear beat durations
+      - No display line exceeds the platform-safe reading budget
+
+  - name: scene_plan
+    skill: pipelines/kinetic-typography/scene-director
+    required_artifacts_in:
+      - script
+    optional_artifacts_in:
+      - brief
+    produces:
+      - scene_plan
+    tools_available:
+      - hear
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - Beats map to transcript or music rhythm
+      - Typography hierarchy is reusable across the piece
+      - Visual holds leave time for comprehension
+    success_criteria:
+      - Scene plan has one timed typography beat per major line group
+      - Motion families and transition rhythm are named
+
+  - name: assets
+    skill: pipelines/kinetic-typography/asset-director
+    required_artifacts_in:
+      - scene_plan
+    optional_artifacts_in:
+      - script
+    produces:
+      - asset_manifest
+    optional_tools:
+      - tts_selector
+      - music_selector
+      - audio_probe
+    tools_available:
+      - tts_selector
+      - music_selector
+      - audio_probe
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Fonts, palette, audio, and optional background assets are resolved
+      - No unavailable font/runtime is silently assumed
+      - Audio timing source is present when motion follows voice/music
+    success_criteria:
+      - Asset manifest contains every referenced audio/media asset
+      - DESIGN.md style inputs can be generated for HyperFrames
+
+  - name: edit
+    skill: pipelines/kinetic-typography/edit-director
+    required_artifacts_in:
+      - scene_plan
+      - asset_manifest
+    optional_artifacts_in:
+      - script
+      - decision_log
+    produces:
+      - edit_decisions
+      - timeline_ir
+    tools_available:
+      - video_compose
+      - hyperframes_compose
+    checkpoint_required: true
+    human_approval_default: true
+    review_focus:
+      - edit_decisions.render_runtime matches the approved runtime
+      - Timeline IR remains editable after composition
+      - Text density and safe zones are platform-appropriate
+    success_criteria:
+      - edit_decisions has render_runtime and kinetic_typography cut types
+      - Timeline IR validates or is explicitly derived after render
+
+  - name: compose
+    skill: pipelines/kinetic-typography/compose-director
+    required_artifacts_in:
+      - edit_decisions
+      - asset_manifest
+    optional_artifacts_in:
+      - timeline_ir
+      - proposal_packet
+    produces:
+      - render_report
+      - final_review
+    required_tools:
+      - video_compose
+    optional_tools:
+      - hyperframes_compose
+    tools_available:
+      - video_compose
+      - hyperframes_compose
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - HyperFrames lint and validate pass before render when selected
+      - MP4 is real, probed, and readable at target platform size
+      - No runtime swap occurs without a decision_log update
+    success_criteria:
+      - Real MP4 exists
+      - render_report records runtime, output path, and validation steps
+      - final_review status is pass or blockers are surfaced
+
+  - name: publish
+    skill: pipelines/kinetic-typography/publish-director
+    required_artifacts_in:
+      - render_report
+      - final_review
+    produces:
+      - publish_package
+    tools_available: []
+    checkpoint_required: true
+    human_approval_default: false
+    review_focus:
+      - Hook frame, title, and thumbnail are text-led but not redundant
+      - Captions/metadata preserve the central phrase
+      - Export package includes Timeline IR and editor handoff where requested
+    success_criteria:
+      - Publish package names output MP4, Timeline IR, and copy variants
