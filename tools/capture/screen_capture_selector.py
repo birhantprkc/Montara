@@ -84,6 +84,11 @@ class ScreenCaptureSelector(BaseTool):
                 "type": "string",
                 "description": "Optional Playwright storageState file for authenticated browser capture.",
             },
+            "headless": {
+                "type": "boolean",
+                "default": True,
+                "description": "For Playwright: run Chromium headless unless disabled for visible debugging.",
+            },
             "output_path": {
                 "type": "string",
                 "description": "Path for the output MP4 file (required for 'record' operation)",
@@ -92,6 +97,16 @@ class ScreenCaptureSelector(BaseTool):
                 "type": "integer",
                 "default": 60,
                 "description": "Recording duration in seconds (FFmpeg only)",
+            },
+            "width": {
+                "type": "integer",
+                "default": 1920,
+                "description": "Viewport width for Playwright browser capture.",
+            },
+            "height": {
+                "type": "integer",
+                "default": 1080,
+                "description": "Viewport height for Playwright browser capture.",
             },
             "fps": {
                 "type": "integer",
@@ -140,7 +155,7 @@ class ScreenCaptureSelector(BaseTool):
     def _providers(self) -> dict[str, BaseTool]:
         """Auto-discover screen_capture providers from the registry."""
         from tools.tool_registry import registry
-        registry.ensure_discovered()
+        registry.ensure_discovered("tools.capture")
         tools = registry.get_by_capability("screen_capture")
         return {t.provider: t for t in tools if t.name != self.name}
 
@@ -345,6 +360,7 @@ class ScreenCaptureSelector(BaseTool):
                 "duration_seconds": inputs.get("duration_seconds", 60),
                 "width": inputs.get("width", 1920),
                 "height": inputs.get("height", 1080),
+                "headless": inputs.get("headless", True),
             })
 
         if preferred == "ffmpeg" or preferred == "auto":
@@ -359,6 +375,7 @@ class ScreenCaptureSelector(BaseTool):
                         "duration_seconds": inputs.get("duration_seconds", 60),
                         "width": inputs.get("width", 1920),
                         "height": inputs.get("height", 1080),
+                        "headless": inputs.get("headless", True),
                     })
 
             tool = providers.get("ffmpeg")

@@ -29,7 +29,7 @@ Montara should be honest with users and agents:
 | HyperFrames | Layer 2 and Layer 3 skills exist; Montara-specific runtime parity is still in progress. |
 | Video understanding | Current local path is FFmpeg/scene/audio signal analysis. Real CLIP/BLIP-style vision is a planned upgrade, not a shipped guarantee. |
 | Local LLM orchestration | The architecture supports local brains, but a fully shipped local orchestration loop is still being hardened. |
-| Screen recording | FFmpeg desktop capture and Cap pickup exist; Playwright browser recording now supports a user-login storageState path. |
+| Screen recording | FFmpeg desktop capture, Cap pickup, and `montara capture` Playwright browser recording with user-login storageState. |
 | Cloud providers | Request builders exist for BYOK use. Keep them audited against official provider docs before live execution. |
 
 For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
@@ -43,6 +43,7 @@ montara plan "Make a 45-second explainer about why the sky is blue"
 montara make "Make a 45-second explainer about why the sky is blue"
 montara render out/timeline.json
 montara export out/timeline.json --to otio
+montara capture --url https://example.com out/browser-capture.mp4
 ```
 
 For repository work:
@@ -60,7 +61,7 @@ Latest local gate snapshot from the Stage 0 sync:
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
-| `npm.cmd run validate` | 73 passed, 0 failed |
+| `npm.cmd run validate` | 75 passed, 0 failed |
 | `python -m pytest tests` | 363 passed, 8 skipped |
 
 ## Agent Entry Points

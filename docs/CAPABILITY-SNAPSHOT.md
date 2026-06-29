@@ -6,15 +6,16 @@ Snapshot date: 2026-06-29.
 
 - **Python engine bridge:** ready. Current bridge reports 116 tools, 18 lib modules, and 13 pipeline manifests.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
-- **CLI:** `doctor`, `make`, `plan`, `render`, `review`, `analyze`, `reel`, `music`, `voiceid`,
-  provider listing, engine bridge commands, and 3D render commands.
+- **CLI:** `doctor`, `make`, `plan`, `render`, `review`, `analyze`, `capture`, `reel`,
+  `music`, `voiceid`, provider listing, engine bridge commands, and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
   extraction, audio mix/enhance, subtitles, reels, and simple composites.
 - **Editor export:** EDL, OTIO, and FCPXML verified through the bridge package.
 - **Blender:** real headless adapter exists when Blender is installed.
 - **Three.js / Manim:** adapters exist and report availability honestly; native output is runtime-gated.
-- **Playwright browser capture:** `playwright_recorder` is discoverable, pytest-covered, supports
-  interactive login storageState, records browser video, and transcodes to MP4 through FFmpeg.
+- **Playwright browser capture:** `playwright_recorder` is discoverable, pytest-covered, exposed
+  through `montara capture`, supports interactive login storageState, records browser video,
+  and transcodes to MP4 through FFmpeg.
 - **Voice similarity:** `voice_id.py` and `@montara/hear` expose optional Resemblyzer/SpeechBrain/
   pyannote status without hard-failing.
 - **Documentary evidence craft:** generalized Montara skill at
@@ -28,7 +29,7 @@ Snapshot date: 2026-06-29.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
-| `npm.cmd run validate` | 73 passed, 0 failed |
+| `npm.cmd run validate` | 75 passed, 0 failed |
 | `python -m pytest tests` | 363 passed, 8 skipped |
 
 ## Example Outputs
@@ -55,7 +56,7 @@ Generated outputs live under `out/` and are not committed.
 | Manim | Adapter package exists; native binary optional. |
 | Spline | Planned registry entry only. |
 | FFmpeg | Fully working native renderer and fallback. |
-| Playwright | Browser capture with login/storageState workflow; runtime-gated on Node Playwright install. |
+| Playwright | Browser capture with `montara capture`, login/storageState workflow; runtime-gated on Node Playwright install. |
 
 ## Voice And Audio Options
 
@@ -71,8 +72,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Add `montara capture` wrapping the screen capture selector and Playwright login flow.
-2. Add native Remotion validate case.
-3. Add HyperFrames E2E validate case.
-4. Promote kinetic typography into `pipeline_defs/`.
-5. Wire Python `video_compose` and corpus tools through the CLI.
+1. Add native Remotion validate case.
+2. Add HyperFrames E2E validate case.
+3. Promote kinetic typography into `pipeline_defs/`.
+4. Wire Python `video_compose` and corpus tools through the CLI.

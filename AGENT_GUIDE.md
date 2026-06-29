@@ -368,10 +368,10 @@ Montara has three free/local recording routes:
 
 For websites behind auth:
 
-1. Run the Playwright recorder in `interactive_login` mode.
+1. Run `montara capture login --url <url> --auth-state projects/<name>/auth/playwright-auth.json`.
 2. Let the user log in in the opened browser.
 3. Save `auth_state_path` under a gitignored project directory.
-4. Reuse that state for deterministic recording.
+4. Reuse that state with `montara capture --url <url> out/capture.mp4 --auth-state <path>`.
 5. Review the video for private data before publishing.
 
 For native desktop apps, use FFmpeg/Cap for capture. Montara does not yet ship a

@@ -15,7 +15,7 @@ import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene } 
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY, listSkills, findSkills } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
-import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance } from "../../engine/src/index";
+import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance, findPython } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
 import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
@@ -112,6 +112,238 @@ function optionValue(args: string[], name: string): string | undefined {
   if (eq) return eq.slice(name.length + 1);
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : undefined;
+}
+
+function numberOption(args: string[], name: string, fallback: number): number {
+  const raw = optionValue(args, name);
+  if (raw == null) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+const VALUE_FLAGS = new Set([
+  "--url",
+  "--output",
+  "--provider",
+  "--auth-state",
+  "--auth",
+  "--duration",
+  "--seconds",
+  "--width",
+  "--height",
+  "--fps",
+  "--region",
+  "--since",
+  "--timeout",
+]);
+
+function positionalArgs(args: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] ?? "";
+    if (arg.startsWith("--")) {
+      if (!arg.includes("=") && VALUE_FLAGS.has(arg)) i++;
+      continue;
+    }
+    out.push(arg);
+  }
+  return out;
+}
+
+function parseRegion(value: string | undefined): { x: number; y: number; width: number; height: number } | undefined {
+  if (!value) return undefined;
+  const parts = value.split(/[,:x]/).map((part) => Number(part.trim()));
+  if (parts.length !== 4 || parts.some((part) => !Number.isFinite(part))) return undefined;
+  const [x, y, width, height] = parts as [number, number, number, number];
+  return { x, y, width, height };
+}
+
+interface PythonToolResult {
+  success: boolean;
+  data: Record<string, unknown>;
+  artifacts: string[];
+  error?: string | null;
+  cost_usd?: number;
+  duration_seconds?: number;
+}
+
+function runPythonTool(toolName: string, inputs: Record<string, unknown>, timeoutMs = 120_000): PythonToolResult {
+  const py = findPython();
+  if (!py) return { success: false, data: {}, artifacts: [], error: "Python 3 not found on PATH" };
+  const code = [
+    "import json, sys",
+    "from tools.tool_registry import registry",
+    "payload = json.loads(sys.stdin.read() or '{}')",
+    "registry.ensure_discovered('tools.capture')",
+    "tool = registry.get(sys.argv[1])",
+    "if tool is None:",
+    "    print(json.dumps({'success': False, 'data': {}, 'artifacts': [], 'error': f'tool not found: {sys.argv[1]}'}))",
+    "    sys.exit(0)",
+    "result = tool.execute(payload)",
+    "print(json.dumps({",
+    "    'success': bool(result.success),",
+    "    'data': result.data or {},",
+    "    'artifacts': result.artifacts or [],",
+    "    'error': result.error,",
+    "    'cost_usd': result.cost_usd,",
+    "    'duration_seconds': result.duration_seconds,",
+    "}, default=str))",
+  ].join("\n");
+  const proc = spawnSync(py, ["-c", code, toolName], {
+    cwd: process.cwd(),
+    input: JSON.stringify(inputs),
+    encoding: "utf8",
+    timeout: timeoutMs,
+    maxBuffer: 1 << 22,
+  });
+  if (proc.error) {
+    return { success: false, data: {}, artifacts: [], error: proc.error.message };
+  }
+  if (proc.status !== 0) {
+    return { success: false, data: {}, artifacts: [], error: (proc.stderr || `python exited ${proc.status}`).trim().slice(-1000) };
+  }
+  try {
+    return JSON.parse((proc.stdout || "").trim()) as PythonToolResult;
+  } catch {
+    return { success: false, data: {}, artifacts: [], error: `non-JSON tool output: ${(proc.stdout || proc.stderr || "").slice(-1000)}` };
+  }
+}
+
+function printPythonToolResult(result: PythonToolResult, json: boolean): void {
+  if (json) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  if (!result.success) {
+    console.error(result.error || "tool failed");
+    return;
+  }
+  for (const [key, value] of Object.entries(result.data)) {
+    if (Array.isArray(value) || (value && typeof value === "object")) continue;
+    console.log(`${key}: ${String(value)}`);
+  }
+  for (const artifact of result.artifacts) console.log(`artifact: ${artifact}`);
+}
+
+function runCaptureCommand(rest: string[]): number {
+  const subcommands = new Set(["recommend", "status", "setup", "login", "auth", "record", "pick-latest"]);
+  const requested = rest[0] && subcommands.has(rest[0]) ? rest[0] : undefined;
+  const args = requested ? rest.slice(1) : rest;
+  const inferredSub = optionValue(args, "--url") || positionalArgs(args)[0]?.startsWith("http") ? "record" : "recommend";
+  const sub = requested ?? inferredSub;
+  const json = args.includes("--json");
+  const positional = positionalArgs(args);
+  const positionalUrl = positional.find((arg) => /^https?:\/\//i.test(arg));
+  const url = optionValue(args, "--url") ?? positionalUrl;
+  const authStatePath = optionValue(args, "--auth-state") ?? optionValue(args, "--auth");
+  const provider = optionValue(args, "--provider") ?? (url ? "playwright" : "auto");
+  const durationSeconds = numberOption(args, "--duration", numberOption(args, "--seconds", 20));
+  const width = numberOption(args, "--width", 1920);
+  const height = numberOption(args, "--height", 1080);
+  const fps = numberOption(args, "--fps", 30);
+  const headless = !args.includes("--headful");
+  const output = optionValue(args, "--output") ??
+    positional.find((arg) => arg !== positionalUrl && !/^https?:\/\//i.test(arg)) ??
+    join(process.cwd(), "out", url ? "browser-capture.mp4" : "screen-capture.mp4");
+
+  if (sub === "status" || sub === "recommend") {
+    const result = runPythonTool("screen_capture_selector", {
+      operation: "recommend",
+      preferred_provider: provider,
+      url,
+      auth_state_path: authStatePath,
+    });
+    if (json) {
+      printPythonToolResult(result, true);
+      return result.success ? 0 : 1;
+    }
+    if (!result.success) {
+      console.error(result.error || "capture recommendation failed");
+      return 1;
+    }
+    const recommended = result.data.recommended_provider;
+    console.log(`capture recommendation: ${recommended ?? "unknown"}`);
+    if (typeof result.data.message === "string") console.log(result.data.message);
+    return 0;
+  }
+
+  if (sub === "setup") {
+    const tool = provider === "cap" ? "cap_recorder" : "playwright_recorder";
+    const result = runPythonTool(tool, { operation: "setup_guide" });
+    printPythonToolResult(result, json);
+    return result.success ? 0 : 1;
+  }
+
+  if (sub === "login" || sub === "auth") {
+    if (!url) {
+      console.error("usage: montara capture login --url <url> [--auth-state projects/<name>/auth/playwright-auth.json] [--timeout 180]");
+      return 1;
+    }
+    const loginTimeout = numberOption(args, "--timeout", 180);
+    const result = runPythonTool("playwright_recorder", {
+      operation: "interactive_login",
+      url,
+      auth_state_path: authStatePath ?? join("projects", "auth", "playwright-auth.json"),
+      login_timeout_seconds: loginTimeout,
+      width,
+      height,
+    }, (loginTimeout + 60) * 1000);
+    if (json) {
+      printPythonToolResult(result, true);
+    } else if (result.success) {
+      console.log(`auth state -> ${String(result.data.auth_state_path ?? "")}`);
+      console.log("review and keep this storageState file out of git; it may contain private session cookies.");
+    } else {
+      console.error(result.error || "interactive login failed");
+    }
+    return result.success ? 0 : 1;
+  }
+
+  if (sub === "pick-latest") {
+    const result = runPythonTool("screen_capture_selector", {
+      operation: "pick_latest",
+      since_minutes: numberOption(args, "--since", 5),
+      output_path: output,
+    });
+    printPythonToolResult(result, json);
+    return result.success ? 0 : 1;
+  }
+
+  if (sub === "record") {
+    if (provider === "playwright" && !url) {
+      console.error("usage: montara capture --url <url> [out.mp4] [--auth-state path] [--duration 20] [--headful]");
+      return 1;
+    }
+    const result = runPythonTool("screen_capture_selector", {
+      operation: "record",
+      preferred_provider: provider,
+      url,
+      output_path: output,
+      auth_state_path: authStatePath,
+      duration_seconds: durationSeconds,
+      width,
+      height,
+      headless,
+      fps,
+      capture_audio: !args.includes("--no-audio"),
+      region: parseRegion(optionValue(args, "--region")),
+    }, Math.max(120_000, (durationSeconds + 180) * 1000));
+    if (json) {
+      printPythonToolResult(result, true);
+    } else if (result.success) {
+      console.log(`capture -> ${String(result.data.output_path ?? output)}`);
+      if (result.data.capture_method) console.log(`method: ${String(result.data.capture_method)}`);
+      if (result.data.raw_video_path) console.log(`raw: ${String(result.data.raw_video_path)}`);
+      console.log("next: review the capture, then use it as source footage in a Timeline IR or reel.");
+    } else {
+      console.error(result.error || "capture failed");
+      if (provider === "playwright") console.error("setup: montara capture setup --provider playwright");
+    }
+    return result.success ? 0 : 1;
+  }
+
+  console.error("usage: montara capture [recommend|status|setup|login|record|pick-latest] [--url URL] [out.mp4] [--provider auto|ffmpeg|cap|playwright]");
+  return 1;
 }
 
 function thumbnailConcepts(args: string[], durationSec: number): ThumbConcept[] {
@@ -291,6 +523,7 @@ Commands:
   render <ir.json>                render a ScenePlan or Timeline IR JSON to MP4
   review <mp4>                    post-render self-review report for an MP4
   analyze <mp4>                   scene/understanding analysis + concept variants for a video
+  capture [--url URL] [out.mp4]    record/recommend screen capture; Playwright auth via capture login
   reel <input.mp4> [out]           understand + smart-edit a source clip; writes MP4 + Timeline IR + edit decisions
   agent                           regenerate pipeline manifests + schemas + assistant configs
 
@@ -310,6 +543,7 @@ export function main(argv = process.argv.slice(2)): number {
 
     if (command === "doctor") return runDoctor(rest);
     if (command === "reel") return runReelCommand(rest);
+    if (command === "capture") return runCaptureCommand(rest);
 
     if (command === "voiceid") {
       const sub = rest[0];

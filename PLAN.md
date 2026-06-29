@@ -37,7 +37,7 @@ and quality gates that block broken delivery — **without** needing OpenMontage
 ```bash
 pnpm typecheck
 pnpm verify      # contract tests (~271+ assertions; see scripts/verify.ts)
-pnpm validate    # end-to-end flows (~61+ assertions; real MP4 on disk)
+pnpm validate    # end-to-end flows (~75 assertions; real MP4 on disk)
 python -m pytest tests
 ```
 
@@ -60,7 +60,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **Docs honesty** | ☑ | README, AGENT_GUIDE, ARCHITECTURE, PROVIDER-AUDIT, SKILL-ROADMAP, MONTARA-PARITY synced |
 | **Agent contract** | ☑ | AGENT_GUIDE includes onboarding, runtime honesty, pipeline/stage/tool/checkpoint protocols |
 | **PROMPT_GALLERY** | ☑ | Expanded beyond OpenMontage gallery coverage |
-| **Playwright capture** | ◐ | Tool + selector + Layer 2 skills + pytest coverage; CLI wrapper pending; runtime-gated on `playwright` npm |
+| **Playwright capture** | ◐ | Tool + selector + Layer 2 skills + pytest + `montara capture`; runtime-gated on `playwright` npm |
 | **9-engine registry** | ☑ | Honest `maturity` labels (working / adapter / runtime-gated / planned) |
 | **Remotion native** | ◐ | Composer tree present; default path often FFmpeg solids |
 | **HyperFrames native** | ◐ | Layer 2/3 skills; Montara compose parity incomplete |
@@ -175,7 +175,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 | **0** | Foundation & honesty | Runnable repo, gates, honest docs, CI | **100%** |
 | **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **~70%** |
 | **2** | Native composition | Remotion + HyperFrames as real defaults, not FFmpeg solids | **~25%** |
-| **3** | Moat core | IR import, local LLM, CLI completeness, capture, craft gates | **~35%** |
+| **3** | Moat core | IR import, local LLM, CLI completeness, capture, craft gates | **~40%** |
 | **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~15%** |
 | **5** | Product surface | runtimes, web GUI, WARCUT, public launch | **~5%** |
 
@@ -288,7 +288,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | three.js | ◐ | Native headless proof, not fallback only |
 | Manim | ◐ | Native when `manim` installed |
 | Blender | ◐ | Proof exists; document in README |
-| Playwright | ◐ capture | CLI: `montara capture --url` |
+| Playwright | ◐ capture | CLI: `montara capture --url`; auth via `montara capture login` |
 | Spline | ☐ planned | Defer until contract clear |
 
 **Stage 1 exit criteria:** All 1B pipelines ◐→☑ with validate MP4; MONTARA-PARITY synced; 1A.4 CLI wiring for compose/corpus.
@@ -323,7 +323,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 3.3 | **Local LLM** drives `montara make` (Ollama/LM Studio) | ☐ | Zero-cloud idea→MP4 |
 | 3.4 | `montara budget` (estimate/reserve/reconcile) | ☐ | Wraps `tools/cost_tracker.py` |
 | 3.5 | `montara analyze <url\|file>` reference-video CLI | ◐ | Partial via understand package |
-| 3.6 | `montara capture` (Playwright desktop/browser) | ☐ | Wraps playwright_recorder |
+| 3.6 | `montara capture` (Playwright + desktop selector) | ☑ | Wraps screen_capture_selector + playwright_recorder |
 | 3.7 | Documentary evidence craft **gates** in quality package | ◐ | Skill ☑; automated LUFS/map/claim checks |
 | 3.8 | Reel factory with transcript-verified Shorts cuts | ◐ | verify tests exist; CLI command |
 | 3.9 | `montara resume <project>` from checkpoint JSON | ☐ | `lib/checkpoint.py` wired |
@@ -435,10 +435,10 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 0.2.1–0.2.2 | Add `LICENSE` + `NOTICE` | done |
 | ✅ | 0.1.3 | AGENT_GUIDE onboarding section | done |
 | ✅ | 1A.7 | pytest for `playwright_recorder` | done |
-| 🎯 1 | 3.6 | `montara capture` CLI wrapping Playwright tool | 4h |
-| 🎯 2 | 2.1 | Native Remotion validate case | 1–2d |
-| 🎯 3 | 2.3 | HyperFrames E2E validate case | 1–2d |
-| 🎯 4 | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | 2h |
+| ✅ | 3.6 | `montara capture` CLI wrapping Playwright tool | done |
+| 🎯 1 | 2.1 | Native Remotion validate case | 1–2d |
+| 🎯 2 | 2.3 | HyperFrames E2E validate case | 1–2d |
+| 🎯 3 | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | 2h |
 | 6 | 1A.4 | CLI wire `video_compose` + `corpus_builder` | 1d |
 | 7 | 4.1 | README demo gallery | 1d |
 

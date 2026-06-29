@@ -98,6 +98,7 @@ const plan: ScenePlan = {
 
 const outDir = join(process.cwd(), "out");
 mkdirSync(outDir, { recursive: true });
+const npmBin = process.platform === "win32" ? "npm.cmd" : "npm";
 const irPath = join(outDir, "validate-compose-core.timeline.json");
 const mp4Path = join(outDir, "validate-compose-core.mp4");
 try { rmSync(mp4Path, { force: true }); } catch { /* none */ }
@@ -295,6 +296,27 @@ const enginePath = join(outDir, "validate-engine.mp4");
 try { rmSync(enginePath, { force: true }); } catch { /* none */ }
 const engResult = renderWithEngine("motion-canvas", result.timeline, enginePath, {});
 ok("generic non-ffmpeg dispatch is honest fallback, not claimed native", existsSync(enginePath) && probeDuration(enginePath) > 1 && engResult.renderer === "degraded-ffmpeg" && engResult.note.includes("fallback"));
+
+console.log("\n== capture CLI (Stage 3.6) ==");
+const captureSetup = spawnSync(npmBin, ["run", "montara", "--", "capture", "setup", "--provider", "playwright"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+ok("capture CLI exposes Playwright setup guidance",
+  captureSetup.status === 0 && /npx playwright install chromium/.test(captureSetup.stdout ?? ""),
+  (captureSetup.error?.message || captureSetup.stderr || captureSetup.stdout || "").slice(-500));
+
+const captureRecommend = spawnSync(npmBin, ["run", "montara", "--", "capture", "recommend", "--url", "https://example.com"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+ok("capture CLI routes URL briefs to Playwright recommendation",
+  captureRecommend.status === 0 && /Recommended:\*\* playwright|capture recommendation: playwright/.test(captureRecommend.stdout ?? ""),
+  (captureRecommend.error?.message || captureRecommend.stderr || captureRecommend.stdout || "").slice(-500));
 
 console.log("\n== style + output profiles (Phase 1.12 §J) ==");
 ok("3 styles + 6 output profiles registered", STYLE_PLAYBOOKS.length === 3 && OUTPUT_PROFILES.length === 6);

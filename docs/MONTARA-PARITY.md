@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 1A Playwright coverage.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 3.6 capture CLI.
 
 This checklist tracks two things:
 
@@ -14,7 +14,7 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 272 passed, 0 failed.
-- `npm.cmd run validate` passed: 73 passed, 0 failed.
+- `npm.cmd run validate` passed: 75 passed, 0 failed.
 - `python -m pytest tests` passed: 363 passed, 8 skipped.
 
 ## Snapshot
@@ -32,7 +32,7 @@ Latest local gates before this sync:
 | Docs honesty | ☑ | README/AGENT_GUIDE/ARCHITECTURE/PROVIDER-AUDIT/SKILL-ROADMAP/CAPABILITY-SNAPSHOT synced. |
 | Agent contract | ☑ | AGENT_GUIDE now includes onboarding, runtime honesty, tool protocols, checkpoints, and commit rules. |
 | Prompt gallery | ☑ | Expanded beyond OpenMontage gallery coverage; demo/cost docs remain a Stage 4 public-launch task. |
-| Playwright capture | ◐ | Tool/selector/skills and pytest coverage exist; CLI wrapper pending. |
+| Playwright capture | ◐ | Tool/selector/skills, pytest coverage, and `montara capture` CLI exist; native browser runtime remains Playwright-gated. |
 | 9-engine registry | ☑ | Includes maturity labels: working, adapter, runtime-gated, planned. |
 | Native Remotion | ◐ | Adapter/composer surface; native validate pending. |
 | HyperFrames | ◐ | Layer 2/3 skills and upstream guidance; Montara compose parity pending. |
@@ -59,7 +59,7 @@ Latest local gates before this sync:
 | Three.js | ◐ | Headless/WebGL adapter path; native availability depends on browser/runtime. |
 | Manim | ◐ | External adapter; native availability depends on Manim install. |
 | Blender | ◐ | Real external adapter; native availability depends on Blender install. |
-| Playwright | ◐ | Browser capture engine, not a composition renderer. |
+| Playwright | ◐ | Browser capture engine and `montara capture --url`; not a composition renderer. |
 | Spline | ☐ | Planned after native composition stabilizes. |
 
 ## B. Production Pipelines
@@ -75,7 +75,7 @@ Latest local gates before this sync:
 | hybrid | ☑ | Manifest + skills. |
 | localization-dub | ☑ | Manifest + skills. |
 | podcast-repurpose | ☑ | Manifest + skills. |
-| screen-demo | ◐ | Playwright capture path needs validate case and CLI wrapper. |
+| screen-demo | ◐ | Capture CLI smoke is validated; full screen-demo MP4 flow still pending. |
 | talking-head | ☑ | Manifest + skills. |
 | character-animation | ☑ | Contract tests green. |
 | kinetic-typography | ◐ | Present in `pipelines/`; promote to `pipeline_defs/`. |
@@ -125,6 +125,6 @@ Stage 1 exits when:
 
 - all partial pipelines have offline validate MP4 cases;
 - Python compose/corpus tools are wired through CLI;
-- Playwright capture has a CLI wrapper and validate smoke path.
+- screen-demo uses the capture CLI in a real offline MP4 flow.
 
 Stage 2 exits when native Remotion, HyperFrames, and documentary stock-footage validate cases are green.
