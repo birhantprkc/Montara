@@ -12,10 +12,10 @@ export type ManimInvocation = { bin: string; prefix: string[] };
 
 /** How to invoke Manim on this machine: the `manim` CLI, or `python -m manim`, or null. */
 export function manimInvocation(): ManimInvocation | null {
-  const direct = spawnSync("manim", ["--version"], { encoding: "utf8" });
+  const direct = spawnSync("manim", ["--version"], { encoding: "utf8", timeout: 5000 });
   if (direct.status === 0) return { bin: "manim", prefix: [] };
   for (const py of ["python", "python3", "py"]) {
-    const r = spawnSync(py, ["-m", "manim", "--version"], { encoding: "utf8" });
+    const r = spawnSync(py, ["-m", "manim", "--version"], { encoding: "utf8", timeout: 5000 });
     if (r.status === 0) return { bin: py, prefix: ["-m", "manim"] };
   }
   return null;

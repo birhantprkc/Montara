@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after commit `0x25`.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 1A Playwright coverage.
 
 This checklist tracks two things:
 
@@ -15,7 +15,7 @@ Latest local gates before this sync:
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 272 passed, 0 failed.
 - `npm.cmd run validate` passed: 73 passed, 0 failed.
-- `python -m pytest tests` passed: 355 passed, 8 skipped.
+- `python -m pytest tests` passed: 363 passed, 8 skipped.
 
 ## Snapshot
 
@@ -29,10 +29,10 @@ Latest local gates before this sync:
 | Editor export | ☑ | EDL, OTIO, FCPXML export verified. |
 | Editor import | ☐ | Round-trip import remains Stage 3. |
 | CI | ☑ | typecheck + verify + validate + pytest. |
-| Docs honesty | ◐ | README/AGENT_GUIDE/ARCHITECTURE updated; public demo docs still thin. |
-| Agent contract | ◐ | Good baseline; onboarding/depth still being expanded. |
-| Prompt gallery | ◐ | Exists; needs more demos and costs. |
-| Playwright capture | ◐ | Tool/selector/skills exist; pytest + CLI wrapper pending. |
+| Docs honesty | ☑ | README/AGENT_GUIDE/ARCHITECTURE/PROVIDER-AUDIT/SKILL-ROADMAP/CAPABILITY-SNAPSHOT synced. |
+| Agent contract | ☑ | AGENT_GUIDE now includes onboarding, runtime honesty, tool protocols, checkpoints, and commit rules. |
+| Prompt gallery | ☑ | Expanded beyond OpenMontage gallery coverage; demo/cost docs remain a Stage 4 public-launch task. |
+| Playwright capture | ◐ | Tool/selector/skills and pytest coverage exist; CLI wrapper pending. |
 | 9-engine registry | ☑ | Includes maturity labels: working, adapter, runtime-gated, planned. |
 | Native Remotion | ◐ | Adapter/composer surface; native validate pending. |
 | HyperFrames | ◐ | Layer 2/3 skills and upstream guidance; Montara compose parity pending. |
@@ -43,7 +43,7 @@ Latest local gates before this sync:
 | Local LLM orchestrator | ◐ | Backend catalogue/probes; full local brain not shipped. |
 | CLIP/BLIP vision default | ☐ | Current default is FFmpeg/frame/audio signal analysis. |
 | Cloud live executors | ◐ | Request builders and audit notes; sanitized live fixtures pending. |
-| Legal/notice | ☐ | LICENSE/NOTICE/ATTRIBUTION are Stage 0 blockers until committed. |
+| Legal/notice | ☑ | Root AGPL-3.0 LICENSE, NOTICE, and docs/ATTRIBUTION.md are present. |
 | Web GUI / WARCUT | ☐ | Long-term product surface. |
 | Runtimes manager | ☐ | No Pinokio-style ComfyUI/A1111 manager yet. |
 
@@ -118,17 +118,13 @@ Moat completion: 4/15 done, 7 partial, 4 not done.
 
 ## Current Stage Exit Criteria
 
-Stage 0 exits when:
-
-- this file stays synced with PLAN;
-- LICENSE and NOTICE exist at root;
-- AGENT_GUIDE links onboarding for vague first messages;
-- gates stay green.
+Stage 0 is complete: legal files exist, AGENT_GUIDE links onboarding, docs are synced,
+and the Stage 0 gate set passed before commit `0x26`.
 
 Stage 1 exits when:
 
 - all partial pipelines have offline validate MP4 cases;
 - Python compose/corpus tools are wired through CLI;
-- Playwright recorder has pytest coverage.
+- Playwright capture has a CLI wrapper and validate smoke path.
 
 Stage 2 exits when native Remotion, HyperFrames, and documentary stock-footage validate cases are green.

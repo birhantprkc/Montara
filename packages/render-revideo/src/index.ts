@@ -21,7 +21,12 @@ function findRevideoRoot(start: string = process.cwd()): string | null {
 
 export function revideoAvailable(start: string = process.cwd()): boolean {
   if (findRevideoRoot(start)) return true;
-  return spawnSync("npx", ["--no-install", "revideo", "--version"], { encoding: "utf8", shell: true }).status === 0;
+  const probe = spawnSync("npx", ["--no-install", "revideo", "--version"], {
+    encoding: "utf8",
+    shell: true,
+    timeout: 5000,
+  });
+  return probe.status === 0;
 }
 
 function newestMp4(root: string): string | null {

@@ -31,7 +31,7 @@ export function blenderBin(): string | null {
   for (const c of ["/opt/blender/blender", "/usr/bin/blender", "/usr/local/bin/blender", "/Applications/Blender.app/Contents/MacOS/Blender"]) {
     if (existsSync(c)) return c;
   }
-  const probe = spawnSync("blender", ["--version"], { encoding: "utf8" });
+  const probe = spawnSync("blender", ["--version"], { encoding: "utf8", timeout: 5000 });
   return probe.status === 0 ? "blender" : null;
 }
 

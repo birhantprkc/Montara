@@ -51,7 +51,10 @@ export function recommendEngine(sceneType: string): EngineRecommendation {
 
 /** Engines with a real native adapter available right now (for `montara engines`, GUIs, doctor). */
 export function availableEngines(): { engine: RenderEngine; available: boolean; native: boolean }[] {
-  return RENDER_ENGINES.map((engine) => ({ engine, available: engineReallyAvailable(engine.id), native: engine.id !== "ffmpeg" && engineReallyAvailable(engine.id) }));
+  return RENDER_ENGINES.map((engine) => {
+    const available = engineReallyAvailable(engine.id);
+    return { engine, available, native: engine.id !== "ffmpeg" && available };
+  });
 }
 
 export interface AutoSceneRequest {

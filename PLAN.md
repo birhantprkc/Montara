@@ -60,7 +60,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **Docs honesty** | ☑ | README, AGENT_GUIDE, ARCHITECTURE, PROVIDER-AUDIT, SKILL-ROADMAP, MONTARA-PARITY synced |
 | **Agent contract** | ☑ | AGENT_GUIDE includes onboarding, runtime honesty, pipeline/stage/tool/checkpoint protocols |
 | **PROMPT_GALLERY** | ☑ | Expanded beyond OpenMontage gallery coverage |
-| **Playwright capture** | ◐ | Tool + selector + Layer 2 skills; no pytest; runtime-gated on `playwright` npm |
+| **Playwright capture** | ◐ | Tool + selector + Layer 2 skills + pytest coverage; CLI wrapper pending; runtime-gated on `playwright` npm |
 | **9-engine registry** | ☑ | Honest `maturity` labels (working / adapter / runtime-gated / planned) |
 | **Remotion native** | ◐ | Composer tree present; default path often FFmpeg solids |
 | **HyperFrames native** | ◐ | Layer 2/3 skills; Montara compose parity incomplete |
@@ -88,7 +88,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | Playwright auth capture | none | `playwright_recorder` | **Montara** |
 | Documentary evidence craft | brand-specific | generalized skill | **Montara** |
 | README / demos / community | strong | thin | **OpenMontage** |
-| AGENT_GUIDE depth | ~678 lines | ~315 lines | **OpenMontage** |
+| AGENT_GUIDE depth | ~481 lines | ~484 lines + Montara-specific protocols | **Montara** |
 | HyperFrames / Remotion default path | battle-tested | adapter + fallback | **OpenMontage** |
 | `make setup` one-command | yes | `montara doctor` partial | **OpenMontage** |
 | Public proof videos | many documented | few local proofs | **OpenMontage** |
@@ -238,8 +238,8 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | 1A.4 | Wire high-value Python tools from CLI | ◐ | corpus, clip_search, video_compose, cost_tracker |
 | 1A.5 | Contract tests (pytest) parity with upstream | ☑ | 34 test files |
 | 1A.6 | `playwright_recorder` in registry | ☑ | Auto-discovered via pkgutil |
-| 1A.7 | `playwright_recorder` pytest (mock or smoke) | ☐ | tests/capture/ |
-| 1A.8 | Update `tools/capture/__init__.py` docstring | ☐ | Mention Playwright |
+| 1A.7 | `playwright_recorder` pytest (mock or smoke) | ☑ | `tests/capture/test_playwright_recorder.py` |
+| 1A.8 | Update `tools/capture/__init__.py` docstring | ☑ | Mentions FFmpeg, Cap, Playwright, selector |
 
 ### 1B — Pipelines (12 + Montara extras)
 
@@ -341,8 +341,8 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 |----|------|--------|------------|
 | 4.1 | README at OpenMontage depth (demos, costs, embedded videos) | ☐ | Match or exceed upstream README |
 | 4.2 | Public demo gallery (`assets/` + docs/DEMOS.md) | ☐ | Each demo: prompt, pipeline, tools, cost |
-| 4.3 | AGENT_GUIDE parity + onboarding | ☐ | 0.1.3 + 0.1.4 |
-| 4.4 | PROMPT_GALLERY full coverage | ☐ | 0.1.8 |
+| 4.3 | AGENT_GUIDE parity + onboarding | ☑ | 0.1.3 + 0.1.4 |
+| 4.4 | PROMPT_GALLERY full coverage | ☑ | 0.1.8 |
 | 4.5 | Live BYOK provider executors + sanitized fixture tests | ☐ | Per PROVIDER-AUDIT follow-ups |
 | 4.6 | `skills/core/native-render-validation.md` | ☐ | Per SKILL-ROADMAP |
 | 4.7 | `skills/core/provider-audit.md` | ☐ | Per SKILL-ROADMAP |
@@ -407,10 +407,10 @@ A phase is **not done** unless:
 
 ## 15. Licensing (Stage 0 blocker for public publish)
 
-- ☐ `LICENSE` — full AGPL-3.0  
-- ☐ `NOTICE` — Montara + upstream OpenMontage derivation  
+- ☑ `LICENSE` — full AGPL-3.0  
+- ☑ `NOTICE` — Montara + upstream OpenMontage derivation  
 - ☑ `docs/PORTING-PROVENANCE.md`  
-- ☐ `docs/ATTRIBUTION.md`  
+- ☑ `docs/ATTRIBUTION.md`  
 
 See [BRANDING-PROVENANCE-PLAN.md](./BRANDING-PROVENANCE-PLAN.md).
 
@@ -434,11 +434,11 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 0.1.9 | Sync `docs/MONTARA-PARITY.md` with this PLAN (☑/◐/☐, counts) | done |
 | ✅ | 0.2.1–0.2.2 | Add `LICENSE` + `NOTICE` | done |
 | ✅ | 0.1.3 | AGENT_GUIDE onboarding section | done |
-| 🎯 1 | 1A.7 | pytest for `playwright_recorder` | 3h |
-| 🎯 2 | 3.6 | `montara capture` CLI wrapping Playwright tool | 4h |
-| 🎯 3 | 2.1 | Native Remotion validate case | 1–2d |
-| 🎯 4 | 2.3 | HyperFrames E2E validate case | 1–2d |
-| 🎯 5 | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | 2h |
+| ✅ | 1A.7 | pytest for `playwright_recorder` | done |
+| 🎯 1 | 3.6 | `montara capture` CLI wrapping Playwright tool | 4h |
+| 🎯 2 | 2.1 | Native Remotion validate case | 1–2d |
+| 🎯 3 | 2.3 | HyperFrames E2E validate case | 1–2d |
+| 🎯 4 | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | 2h |
 | 6 | 1A.4 | CLI wire `video_compose` + `corpus_builder` | 1d |
 | 7 | 4.1 | README demo gallery | 1d |
 

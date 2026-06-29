@@ -61,7 +61,7 @@ Latest local gate snapshot from the Stage 0 sync:
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
 | `npm.cmd run validate` | 73 passed, 0 failed |
-| `python -m pytest tests` | 355 passed, 8 skipped |
+| `python -m pytest tests` | 363 passed, 8 skipped |
 
 ## Agent Entry Points
 

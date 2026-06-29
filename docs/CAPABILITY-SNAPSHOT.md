@@ -13,8 +13,8 @@ Snapshot date: 2026-06-29.
 - **Editor export:** EDL, OTIO, and FCPXML verified through the bridge package.
 - **Blender:** real headless adapter exists when Blender is installed.
 - **Three.js / Manim:** adapters exist and report availability honestly; native output is runtime-gated.
-- **Playwright browser capture:** `playwright_recorder` is discoverable, supports interactive login
-  storageState, records browser video, and transcodes to MP4 through FFmpeg.
+- **Playwright browser capture:** `playwright_recorder` is discoverable, pytest-covered, supports
+  interactive login storageState, records browser video, and transcodes to MP4 through FFmpeg.
 - **Voice similarity:** `voice_id.py` and `@montara/hear` expose optional Resemblyzer/SpeechBrain/
   pyannote status without hard-failing.
 - **Documentary evidence craft:** generalized Montara skill at
@@ -29,7 +29,7 @@ Snapshot date: 2026-06-29.
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
 | `npm.cmd run validate` | 73 passed, 0 failed |
-| `python -m pytest tests` | 355 passed, 8 skipped |
+| `python -m pytest tests` | 363 passed, 8 skipped |
 
 ## Example Outputs
 
@@ -71,9 +71,8 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Add pytest coverage for `playwright_recorder`.
-2. Add `montara capture` wrapping the screen capture selector and Playwright login flow.
-3. Add native Remotion validate case.
-4. Add HyperFrames E2E validate case.
-5. Promote kinetic typography into `pipeline_defs/`.
-6. Wire Python `video_compose` and corpus tools through the CLI.
+1. Add `montara capture` wrapping the screen capture selector and Playwright login flow.
+2. Add native Remotion validate case.
+3. Add HyperFrames E2E validate case.
+4. Promote kinetic typography into `pipeline_defs/`.
+5. Wire Python `video_compose` and corpus tools through the CLI.
