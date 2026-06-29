@@ -259,6 +259,18 @@ def test_runtime_check_succeeds_when_npm_resolves(monkeypatch):
     assert rc["reasons"] == []
 
 
+def test_runtime_check_accepts_prevalidated_hyperframes_version(monkeypatch):
+    monkeypatch.setattr(
+        HyperFramesCompose, "_npm_resolve_cache", None, raising=False
+    )
+    monkeypatch.setenv("MONTARA_HYPERFRAMES_VERSION", "0.7.19")
+    rc = HyperFramesCompose()._runtime_check()
+    if rc["node_major"] is None or not rc["ffmpeg_available"] or not rc["npx_available"]:
+        pytest.skip("Local runtime floor not met on this machine")
+    assert rc["runtime_available"] is True
+    assert rc["npm_package_version"] == "0.7.19"
+
+
 def test_video_compose_render_engines_follow_hyperframes_runtime_check(monkeypatch):
     """Regression: `video_compose.get_info()['render_engines']['hyperframes']`
     must track the true availability, not just the local-binary floor.
@@ -822,6 +834,7 @@ def test_hyperframes_root_composition_has_data_start_and_duration(tmp_path):
     assert result.success, result.error
     html = (workspace / "index.html").read_text(encoding="utf-8")
     # Must have all four required root attributes per the HyperFrames contract.
+    assert 'id="root"' in html
     assert 'data-composition-id="root"' in html
     assert 'data-start="0"' in html  # per SKILL.md: root composition: use "0"
     # data-duration must match the timeline total; value can be '5' or '5.0' etc.
@@ -942,6 +955,8 @@ def test_scaffold_workspace_generates_html_and_assets(tmp_path: Path):
     assert 'paused: true' in html
     assert 'class="clip' in html
     assert "gsap" in html.lower()
+    assert "#root" in html
+    assert 'font-family: var(--font' not in html
 
     # Text card for c2 must carry data-start and data-duration.
     assert 'data-start="3"' in html
@@ -964,6 +979,55 @@ def test_scaffold_workspace_generates_html_and_assets(tmp_path: Path):
     assert design.is_file()
     design_text = design.read_text(encoding="utf-8")
     assert "#0B0F1A" in design_text or "test-playbook" in design_text
+
+
+def test_scaffold_generates_kinetic_typography_contract(tmp_path: Path):
+    workspace = tmp_path / "hyperframes"
+    result = HyperFramesCompose().execute(
+        {
+            "operation": "scaffold_workspace",
+            "workspace_path": str(workspace),
+            "edit_decisions": {
+                "version": "1.0",
+                "renderer_family": "kinetic-typography",
+                "render_runtime": "hyperframes",
+                "cuts": [
+                    {
+                        "id": "k1",
+                        "source": "",
+                        "in_seconds": 0,
+                        "out_seconds": 3,
+                        "type": "kinetic_typography",
+                        "text": "Kinetic type proves HyperFrames",
+                        "subtitle": "word-level GSAP choreography",
+                    }
+                ],
+            },
+            "asset_manifest": {"assets": []},
+            "playbook": {
+                "name": "kinetic-test",
+                "visual_language": {
+                    "color_palette": {
+                        "background": "#0B1020",
+                        "text": "#F8FAFC",
+                        "accent": "#12DCE8",
+                    }
+                },
+                "typography": {
+                    "heading": {"font": "Inter"},
+                    "body": {"font": "Inter"},
+                },
+            },
+        }
+    )
+
+    assert result.success, result.error
+    html = (workspace / "index.html").read_text(encoding="utf-8")
+    assert 'class="clip kinetic-card"' in html
+    assert 'class="word">Kinetic</span>' in html
+    assert 'tl.from("#cut-0 .word"' in html
+    assert "stagger: 0.07" in html
+    assert "<br>" not in html
 
 
 def test_scaffold_rejects_empty_cuts(tmp_path: Path):

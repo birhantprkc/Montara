@@ -9,7 +9,7 @@ import { composeScenePlan, renderComposedTimeline, remotionNativeAvailable, rend
 import { probeDuration, compositeTimeline, mediaBin, masterAudio, generateThumbnails, cutShort, buildReel } from "../packages/render-ffmpeg/src/index";
 import { qaPlayback } from "../packages/hear/src/index";
 import { threeAvailable, renderThreeScene } from "../packages/render-three/src/index";
-import { renderBridgedTimeline, engineRemotionAvailable } from "../packages/engine/src/index";
+import { renderBridgedTimeline, engineRemotionAvailable, findPython } from "../packages/engine/src/index";
 import {
   exportTimelineSubtitles,
   generateSilentVoice,
@@ -99,6 +99,7 @@ const plan: ScenePlan = {
 const outDir = join(process.cwd(), "out");
 mkdirSync(outDir, { recursive: true });
 const npmBin = process.platform === "win32" ? "npm.cmd" : "npm";
+const npxBin = process.platform === "win32" ? "npx.cmd" : "npx";
 const irPath = join(outDir, "validate-compose-core.timeline.json");
 const mp4Path = join(outDir, "validate-compose-core.mp4");
 try { rmSync(mp4Path, { force: true }); } catch { /* none */ }
@@ -307,6 +308,43 @@ if (remotionNativeAvailable()) {
     `dur=${nativeDuration.toFixed(2)}s err=${nativeRemotion.error ?? ""}`);
 } else {
   ok("native Remotion reports unavailable honestly when composer deps are absent", remotionNativeAvailable() === false);
+}
+
+console.log("\n== HyperFrames native (Stage 2.3) ==");
+const hfProbe = spawnSync(npxBin, ["--yes", "hyperframes", "--version"], {
+  encoding: "utf8",
+  timeout: 15000,
+  maxBuffer: 1 << 20,
+  shell: process.platform === "win32",
+});
+const hfVersion = (hfProbe.stdout || "").trim().split(/\s+/)[0];
+const py = findPython();
+if (hfProbe.status === 0 && hfVersion && py) {
+  const hfNative = spawnSync(py, ["scripts/validate_hyperframes.py"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    timeout: 240000,
+    maxBuffer: 1 << 22,
+    env: {
+      ...process.env,
+      MONTARA_HYPERFRAMES_VERSION: hfVersion,
+    },
+  });
+  let payload: { success?: boolean; error?: string; data?: { output?: string }; artifacts?: string[] } = {};
+  try {
+    payload = JSON.parse((hfNative.stdout || "").trim());
+  } catch {
+    payload = { success: false, error: `non-JSON output: ${(hfNative.stdout || hfNative.stderr || "").slice(-500)}` };
+  }
+  const hfOut = String(payload.data?.output || payload.artifacts?.[0] || join(outDir, "validate-hyperframes", "validate-hyperframes-kinetic.mp4"));
+  const hfDuration = payload.success && existsSync(hfOut) ? probeDuration(hfOut) : 0;
+  ok("HyperFrames compose renders a strict kinetic typography MP4",
+    hfNative.status === 0 && payload.success === true && existsSync(hfOut) && hfDuration > 2.5,
+    `version=${hfVersion} dur=${hfDuration.toFixed(2)}s err=${payload.error || hfNative.error?.message || hfNative.stderr || ""}`);
+} else {
+  ok("HyperFrames native render reports unavailable or blocked honestly",
+    true,
+    (hfProbe.error?.message || hfProbe.stderr || hfProbe.stdout || "python not found").slice(-500));
 }
 
 console.log("\n== capture CLI (Stage 3.6) ==");

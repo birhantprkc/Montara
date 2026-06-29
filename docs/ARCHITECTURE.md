@@ -40,7 +40,7 @@ workspace files are supporting artifacts.
 | Renderer | Current status | Validation rule |
 | --- | --- | --- |
 | FFmpeg | Working and reliable for local MP4 output. | Always acceptable fallback if the creative promise allows it. |
-| Remotion | Adapter/composition surface exists; native Remotion rendering is not guaranteed on every machine. | Do not call it fully working until a native Remotion validate case passes locally. |
+| Remotion | Native smoke render is validate-gated when `remotion-composer` deps are installed; full Timeline routing is not guaranteed on every machine. | Require the native Remotion validate case before promising it as final engine. |
 | Revideo | Runtime-gated adapter. | Require installed Revideo toolchain and MP4 probe. |
 | Three.js | Registered and partially implemented through browser/WebGL rendering. | Run headless browser/canvas checks before promising 3D output. |
 | Manim | Real external Manim path when installed. | Verify generated video and transcode. |
@@ -48,7 +48,7 @@ workspace files are supporting artifacts.
 | Motion Canvas | Adapter/runtime-gated. | Confirm Node toolchain and native render. |
 | Spline | Planned. | Needs a render package, selector registration, and validate case. |
 | Playwright | Browser recording/capture path, not a general render engine. | Validate login state, recording, transcode, and privacy review. |
-| HyperFrames | Strong external skill base; Montara-specific parity is incomplete. | Treat as runtime-gated until the compose path and validate case are green. |
+| HyperFrames | Python `hyperframes_compose` can strict-lint/validate/render a kinetic typography MP4 when `npx hyperframes` is available; broader pipeline parity is incomplete. | Treat as runtime-gated and require the Stage 2.3 validate case before promising it. |
 
 ## Understanding Status
 

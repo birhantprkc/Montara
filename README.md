@@ -26,7 +26,7 @@ Montara should be honest with users and agents:
 | Three.js | Registered and partially implemented through a headless browser path; still runtime-gated. |
 | Revideo / Motion Canvas | Adapter surfaces exist and depend on the local toolchain. Validate before promising native output. |
 | Remotion | Native smoke render is validate-gated when `remotion-composer` deps are installed; full Timeline default routing is still being hardened. |
-| HyperFrames | Layer 2 and Layer 3 skills exist; Montara-specific runtime parity is still in progress. |
+| HyperFrames | Native strict kinetic-typography smoke render is validate-gated when `npx hyperframes` is available; broader pipeline parity is still in progress. |
 | Video understanding | Current local path is FFmpeg/scene/audio signal analysis. Real CLIP/BLIP-style vision is a planned upgrade, not a shipped guarantee. |
 | Local LLM orchestration | The architecture supports local brains, but a fully shipped local orchestration loop is still being hardened. |
 | Screen recording | FFmpeg desktop capture, Cap pickup, and `montara capture` Playwright browser recording with user-login storageState. |
@@ -55,14 +55,14 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 2.1 sync:
+Latest local gate snapshot from the Stage 2.3 sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
-| `npm.cmd run validate` | 76 passed, 0 failed |
-| `python -m pytest tests` | 363 passed, 8 skipped |
+| `npm.cmd run validate` | 77 passed, 0 failed |
+| `python -m pytest tests` | 365 passed, 8 skipped |
 
 ## Agent Entry Points
 

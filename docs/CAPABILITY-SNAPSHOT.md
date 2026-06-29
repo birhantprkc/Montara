@@ -29,8 +29,8 @@ Snapshot date: 2026-06-29.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
-| `npm.cmd run validate` | 76 passed, 0 failed |
-| `python -m pytest tests` | 363 passed, 8 skipped |
+| `npm.cmd run validate` | 77 passed, 0 failed |
+| `python -m pytest tests` | 365 passed, 8 skipped |
 
 ## Example Outputs
 
@@ -39,6 +39,7 @@ Snapshot date: 2026-06-29.
 | Core validate render | `out/validate-compose-core.mp4` | FFmpeg fallback from Timeline IR |
 | Core validate IR | `out/validate-compose-core.timeline.json` | Timeline IR |
 | Native Remotion smoke | `out/validate-remotion-native.mp4` | Remotion native spring/caption composition when composer deps are installed |
+| Native HyperFrames smoke | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` | HyperFrames strict lint/validate/render kinetic typography when `npx hyperframes` is available |
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
 
@@ -51,7 +52,7 @@ Generated outputs live under `out/` and are not committed.
 | Remotion | Native smoke render validate-gated when `remotion-composer` deps are installed; full Timeline default routing pending. |
 | Revideo | Registered runtime-gated MIT fallback target; native package work pending. |
 | Motion Canvas | Registered runtime-gated kinetic typography target; native package work pending. |
-| HyperFrames | Layer 2/3 skills and upstream workflow present; Montara compose parity pending. |
+| HyperFrames | Python `hyperframes_compose` strict kinetic smoke is validate-gated; broader pipeline/runtime parity pending. |
 | Three.js | Adapter package exists; native headless proof depends on browser/runtime. |
 | Blender | Real adapter and native proof path when installed. |
 | Manim | Adapter package exists; native binary optional. |
@@ -73,7 +74,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Add HyperFrames E2E validate case.
-2. Promote kinetic typography into `pipeline_defs/`.
-3. Wire Python `video_compose` and corpus tools through the CLI.
-4. Finish Remotion default routing for Timeline scenes.
+1. Promote kinetic typography into `pipeline_defs/`.
+2. Wire Python `video_compose` and corpus tools through the CLI.
+3. Finish Remotion default routing for Timeline scenes.
+4. Add documentary stock-footage validate case.

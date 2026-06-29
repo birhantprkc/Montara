@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 2.1 native Remotion smoke.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 2.3 native HyperFrames smoke.
 
 This checklist tracks two things:
 
@@ -14,8 +14,8 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 272 passed, 0 failed.
-- `npm.cmd run validate` passed: 76 passed, 0 failed.
-- `python -m pytest tests` passed: 363 passed, 8 skipped.
+- `npm.cmd run validate` passed: 77 passed, 0 failed.
+- `python -m pytest tests` passed: 365 passed, 8 skipped.
 
 ## Snapshot
 
@@ -35,7 +35,7 @@ Latest local gates before this sync:
 | Playwright capture | ◐ | Tool/selector/skills, pytest coverage, and `montara capture` CLI exist; native browser runtime remains Playwright-gated. |
 | 9-engine registry | ☑ | Includes maturity labels: working, adapter, runtime-gated, planned. |
 | Native Remotion | ◐ | Native smoke MP4 validate-gated when composer deps are installed; default Timeline routing pending. |
-| HyperFrames | ◐ | Layer 2/3 skills and upstream guidance; Montara compose parity pending. |
+| HyperFrames | ◐ | Python `hyperframes_compose` strict kinetic smoke is validate-gated; broader pipeline parity pending. |
 | Revideo / Motion Canvas | ☐ | Registered/runtime-gated; native package work pending. |
 | Three.js / Manim | ◐ | Adapters exist; native proof depends on installed runtimes. |
 | Blender | ◐ | Real headless adapter; documented as runtime-gated. |
@@ -55,7 +55,7 @@ Latest local gates before this sync:
 | Remotion | ◐ | Native smoke MP4 validate-gated; full Timeline default routing pending. |
 | Revideo | ☐ | Runtime-gated adapter target. |
 | Motion Canvas | ☐ | Runtime-gated adapter target. |
-| HyperFrames | ◐ | Skills and upstream workflow present; CLI compose integration pending. |
+| HyperFrames | ◐ | Strict kinetic smoke renders through `hyperframes_compose`; CLI compose integration pending. |
 | Three.js | ◐ | Headless/WebGL adapter path; native availability depends on browser/runtime. |
 | Manim | ◐ | External adapter; native availability depends on Manim install. |
 | Blender | ◐ | Real external adapter; native availability depends on Blender install. |

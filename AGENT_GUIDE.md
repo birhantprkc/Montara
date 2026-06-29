@@ -333,7 +333,7 @@ The render stack is mixed maturity. Promise only what the machine can prove.
 | Blender | Use for pro 3D when Blender is installed; verify the render and transcode. |
 | Motion Canvas | Adapter/runtime-gated. Confirm the toolchain before committing. |
 | Spline | Treat as planned until a Montara render package and validate case exist. |
-| HyperFrames | Excellent Layer 3 skill base. Montara-specific integration is still being built, so call it out as runtime-gated. |
+| HyperFrames | Strict kinetic smoke renders through Python `hyperframes_compose` when `npx hyperframes` is available. Broader pipeline parity remains runtime-gated. |
 | Playwright | Browser capture/automation, including auth-state login. Not native desktop automation. |
 
 For brief-driven animation choices, read `skills/meta/animation-runtime-selector.md`.

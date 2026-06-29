@@ -263,6 +263,11 @@ class HyperFramesCompose(BaseTool):
         if cls._npm_resolve_cache is not None:
             return cls._npm_resolve_cache
 
+        env_version = os.environ.get("MONTARA_HYPERFRAMES_VERSION", "").strip()
+        if env_version:
+            cls._npm_resolve_cache = {"version": env_version}
+            return cls._npm_resolve_cache
+
         npm = shutil.which("npm")
         if not npm:
             cls._npm_resolve_cache = {"error": "npm not on PATH"}
@@ -956,6 +961,8 @@ class HyperFramesCompose(BaseTool):
         provides a functional starting skeleton.
         """
         vars_css = "\n      ".join(f"{k}: {v};" for k, v in css_vars.items())
+        body_font = self._css_font_stack(css_vars.get("--font-body", "Inter"))
+        heading_font = self._css_font_stack(css_vars.get("--font-heading", "Inter"))
 
         clip_html: list[str] = []
         entrance_tweens: list[str] = []
@@ -999,8 +1006,8 @@ class HyperFramesCompose(BaseTool):
     :root {{
       {vars_css}
     }}
-    body {{ margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: var(--font-body); }}
-    [data-composition-id="root"] {{
+    body {{ margin: 0; background: var(--color-bg); color: var(--color-fg); font-family: {body_font}; }}
+    #root {{
       position: relative;
       width: {width}px;
       height: {height}px;
@@ -1009,13 +1016,18 @@ class HyperFramesCompose(BaseTool):
     .clip {{ position: absolute; inset: 0; }}
     .clip.video-clip, .clip.image-clip {{ object-fit: cover; width: 100%; height: 100%; }}
     .clip.text-card {{ display: flex; align-items: center; justify-content: center; padding: 120px 160px; box-sizing: border-box; text-align: center; }}
-    .clip.text-card h1 {{ font-family: var(--font-heading); font-weight: 700; font-size: 96px; line-height: 1.1; margin: 0; color: var(--color-fg); }}
+    .clip.text-card h1 {{ font-family: {heading_font}; font-weight: 700; font-size: 96px; line-height: 1.1; margin: 0; color: var(--color-fg); }}
     .clip.text-card .subtitle {{ font-size: 36px; margin-top: 24px; color: var(--color-accent); }}
+    .clip.kinetic-card {{ display: flex; flex-direction: column; justify-content: center; padding: 108px 144px; box-sizing: border-box; overflow: hidden; }}
+    .kinetic-card .rule {{ width: 220px; height: 10px; background: var(--color-accent); border-radius: 8px; margin-bottom: 34px; transform-origin: left center; }}
+    .kinetic-card h1 {{ display: flex; flex-wrap: wrap; gap: 18px 28px; max-width: 1320px; font-family: {heading_font}; font-size: 118px; line-height: 0.95; letter-spacing: 0; margin: 0; color: var(--color-fg); }}
+    .kinetic-card .word {{ display: inline-block; will-change: transform, opacity; }}
+    .kinetic-card .subtitle {{ max-width: 960px; margin-top: 30px; font-size: 34px; line-height: 1.25; color: var(--color-accent); }}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
 </head>
 <body>
-  <div data-composition-id="root" data-start="0" data-duration="{self._f(total_duration)}" data-width="{width}" data-height="{height}">
+  <div id="root" data-composition-id="root" data-start="0" data-duration="{self._f(total_duration)}" data-width="{width}" data-height="{height}">
     {"".join(clip_html)}
     {"".join(audio_html)}
     <script>
@@ -1046,6 +1058,32 @@ class HyperFramesCompose(BaseTool):
         ext = src_path.suffix.lower() if src_path else ""
 
         # Decide scene shape
+        if cut_type in {"kinetic_typography", "kinetic_type", "kinetic"}:
+            words = [w for w in re.split(r"\s+", (text or f"Scene {index + 1}").strip()) if w]
+            word_html = "".join(
+                f'<span class="word">{self._escape_text(word)}</span>'
+                for word in words
+            )
+            subtitle = cut.get("subtitle") or cut.get("caption")
+            inner = f'<div class="rule"></div><h1>{word_html}</h1>'
+            if subtitle:
+                inner += f'<div class="subtitle">{self._escape_text(subtitle)}</div>'
+            html = (
+                f'<div id="{cut_id}" class="clip kinetic-card" '
+                f'data-start="{self._f(in_s)}" data-duration="{self._f(duration)}" '
+                f'data-track-index="1">{inner}</div>'
+            )
+            tween = (
+                f'tl.from("#{cut_id} .rule", {{ scaleX: 0, opacity: 0, duration: 0.35, '
+                f'ease: "power2.out" }}, {self._f(in_s + 0.1)});\n'
+                f'        tl.from("#{cut_id} .word", {{ y: 72, opacity: 0, scale: 0.92, '
+                f'rotation: -2, duration: 0.44, stagger: 0.07, ease: "back.out(1.7)" }}, '
+                f'{self._f(in_s + 0.18)});\n'
+                f'        tl.from("#{cut_id} .subtitle", {{ y: 26, opacity: 0, duration: 0.42, '
+                f'ease: "power2.out" }}, {self._f(in_s + 0.55)});'
+            )
+            return html, tween
+
         if cut_type in {"text_card", "hero_title", "callout"} or (not source and text):
             inner = f'<h1>{self._escape_text(text or f"Scene {index + 1}")}</h1>'
             subtitle = cut.get("subtitle") or cut.get("caption")
@@ -1183,6 +1221,15 @@ class HyperFramesCompose(BaseTool):
     @staticmethod
     def _escape_attr(s: str) -> str:
         return HyperFramesCompose._escape_text(s).replace('"', "&quot;")
+
+    @staticmethod
+    def _css_font_stack(font: Any) -> str:
+        raw = str(font or "Inter").strip().replace('"', "").replace("'", "")
+        if not raw:
+            raw = "Inter"
+        if "," in raw:
+            return raw
+        return f'"{raw}", Arial, Helvetica, sans-serif'
 
     @staticmethod
     def _rel_from_workspace(path: str) -> str:
