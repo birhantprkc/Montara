@@ -6,8 +6,9 @@ Snapshot date: 2026-06-29.
 
 - **Python engine bridge:** ready. Current bridge reports 116 tools, 18 lib modules, and 14 pipeline manifests.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
-- **CLI:** `doctor`, `make`, `plan`, `render`, `review`, `analyze`, `capture`, `reel`,
-  `music`, `voiceid`, provider listing, engine bridge commands, and 3D render commands.
+- **CLI:** `doctor`, `make`, `plan`, `render`, `review`, `analyze`, `capture`, `compose`,
+  `corpus`, `reel`, `music`, `voiceid`, provider listing, engine bridge commands,
+  and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
   extraction, audio mix/enhance, subtitles, reels, and simple composites.
 - **Editor export:** EDL, OTIO, and FCPXML verified through the bridge package.
@@ -29,7 +30,7 @@ Snapshot date: 2026-06-29.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
-| `npm.cmd run validate` | 77 passed, 0 failed |
+| `npm.cmd run validate` | 79 passed, 0 failed |
 | `python -m pytest tests` | 367 passed, 8 skipped |
 
 ## Example Outputs
@@ -38,6 +39,7 @@ Snapshot date: 2026-06-29.
 | --- | --- | --- |
 | Core validate render | `out/validate-compose-core.mp4` | FFmpeg fallback from Timeline IR |
 | Core validate IR | `out/validate-compose-core.timeline.json` | Timeline IR |
+| Python video compose CLI smoke | `out/validate-cli-video-compose.mp4` | `montara compose` -> Python `video_compose` |
 | Native Remotion smoke | `out/validate-remotion-native.mp4` | Remotion native spring/caption composition when composer deps are installed |
 | Native HyperFrames smoke | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` | HyperFrames strict lint/validate/render kinetic typography when `npx hyperframes` is available |
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
@@ -74,7 +76,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Wire Python `video_compose` and corpus tools through the CLI.
+1. Add README demo gallery with real local artifacts and command recipes.
 2. Finish Remotion default routing for Timeline scenes.
-3. Add documentary stock-footage validate case.
+3. Add documentary stock-footage validate case using the new corpus CLI surface.
 4. Add native package work for Revideo / Motion Canvas beyond registered adapters.

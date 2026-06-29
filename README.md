@@ -44,6 +44,8 @@ montara make "Make a 45-second explainer about why the sky is blue"
 montara render out/timeline.json
 montara export out/timeline.json --to otio
 montara capture --url https://example.com out/browser-capture.mp4
+montara compose out/edit-decisions.json out/final.mp4 --assets out/asset-manifest.json
+montara corpus sources
 ```
 
 For repository work:
@@ -61,7 +63,7 @@ Latest local gate snapshot from the Stage 2.3 sync:
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
-| `npm.cmd run validate` | 77 passed, 0 failed |
+| `npm.cmd run validate` | 79 passed, 0 failed |
 | `python -m pytest tests` | 365 passed, 8 skipped |
 
 ## Agent Entry Points

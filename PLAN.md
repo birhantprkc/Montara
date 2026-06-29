@@ -53,7 +53,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **FFmpeg render** (`@montara/render-ffmpeg`) | ☑ | Universal native renderer + fallback floor |
 | **Python engine** (`tools/`, `lib/`) | ☑ | 116 tools (115 parity + `playwright_recorder`), 18 lib modules at repo root |
 | **Engine bridge** (`engine_bridge.py`, `@montara/engine`) | ☑ | Stdlib JSON bridge; AST verify; composition ↔ IR mapping |
-| **CLI** (`packages/cli`) | ◐ | doctor, make, plan, render, export, hear, understand, engines — not every Python tool wired |
+| **CLI** (`packages/cli`) | ◐ | doctor, make, plan, render, export, capture, compose, corpus, reel, hear, understand, engines — not every Python tool wired |
 | **Editor export** (EDL, OTIO, FCPXML) | ☑ | `@montara/bridge`; verify tests green |
 | **Editor import** (round-trip) | ☐ | Export only today |
 | **CI** | ☑ | typecheck + verify + validate + pytest (+ optional native-render smoke) |
@@ -173,7 +173,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 | Stage | Name | Goal | Completion |
 |-------|------|------|------------|
 | **0** | Foundation & honesty | Runnable repo, gates, honest docs, CI | **100%** |
-| **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **~75%** |
+| **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **~85%** |
 | **2** | Native composition | Remotion + HyperFrames as real defaults, not FFmpeg solids | **~45%** |
 | **3** | Moat core | IR import, local LLM, CLI completeness, capture, craft gates | **~40%** |
 | **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~15%** |
@@ -222,7 +222,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ---
 
-## 7. STAGE 1 — OpenMontage parity (~75% complete)
+## 7. STAGE 1 — OpenMontage parity (~85% complete)
 
 Goal: **Every OpenMontage capability** available through Montara (Python tools and/or TS
 boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./docs/MONTARA-PARITY.md).
@@ -235,7 +235,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | 1A.1 | `engine_bridge.py` info + verify | ☑ | AST parse lib+tools |
 | 1A.2 | Timeline bridge (composition ↔ IR) | ☑ | `@montara/engine` tests green |
 | 1A.3 | CLI invokes bridge deliberately | ◐ | `montara` engine subcommands |
-| 1A.4 | Wire high-value Python tools from CLI | ◐ | corpus, clip_search, video_compose, cost_tracker |
+| 1A.4 | Wire high-value Python tools from CLI | ☑ | `montara compose`; `montara corpus sources|build|search|stats|get` |
 | 1A.5 | Contract tests (pytest) parity with upstream | ☑ | 34 test files |
 | 1A.6 | `playwright_recorder` in registry | ☑ | Auto-discovered via pkgutil |
 | 1A.7 | `playwright_recorder` pytest (mock or smoke) | ☑ | `tests/capture/test_playwright_recorder.py` |
@@ -271,7 +271,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | **E** Audio/TTS/music | ◐ | Piper local path; mixer/enhance via FFmpeg |
 | **F** Post/enhancement | ◐ | Model enhancers runtime-gated |
 | **G** Analysis/understanding | ◐ | Reference analysis ☑ in verify; CLIP vision ☐ |
-| **H** Intelligence (research, corpus, scoring) | ◐ | TS ports exist; Python corpus not default in CLI |
+| **H** Intelligence (research, corpus, scoring) | ◐ | TS ports exist; Python corpus has CLI build/search/status surface |
 | **I** Governance (pre-compose, self-review, budget) | ◐ | quality package; budget CLI ☐ |
 | **J** Styles (3) + output profiles (6) | ☑ | verify green |
 | **K** Agent layer (skills, schemas, checkpoints) | ◐ | skills ☑; checkpoint resume CLI ☐ |
@@ -284,7 +284,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | Remotion | ◐ native smoke | Stage 2.2 — default Timeline routing |
 | Revideo | ☐ runtime-gated | Implement `@montara/render-revideo` native entry |
 | Motion Canvas | ☐ runtime-gated | Implement `@montara/render-motioncanvas` native entry |
-| HyperFrames | ◐ native smoke | Strict kinetic smoke via `hyperframes_compose`; CLI compose integration still pending |
+| HyperFrames | ◐ native smoke | Strict kinetic smoke via `hyperframes_compose`; `montara compose` can call `video_compose` artifacts |
 | three.js | ◐ | Native headless proof, not fallback only |
 | Manim | ◐ | Native when `manim` installed |
 | Blender | ◐ | Proof exists; document in README |
@@ -439,8 +439,8 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 2.1 | Native Remotion validate case | done |
 | ✅ | 2.3 | HyperFrames E2E validate case | done |
 | ✅ | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | done |
-| 🎯 1 | 1A.4 | CLI wire `video_compose` + `corpus_builder` | 1d |
-| 7 | 4.1 | README demo gallery | 1d |
+| ✅ | 1A.4 | CLI wire `video_compose` + `corpus_builder` | done |
+| 🎯 1 | 4.1 | README demo gallery | 1d |
 
 ---
 

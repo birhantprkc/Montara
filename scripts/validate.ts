@@ -368,6 +368,44 @@ ok("capture CLI routes URL briefs to Playwright recommendation",
   captureRecommend.status === 0 && /Recommended:\*\* playwright|capture recommendation: playwright/.test(captureRecommend.stdout ?? ""),
   (captureRecommend.error?.message || captureRecommend.stderr || captureRecommend.stdout || "").slice(-500));
 
+console.log("\n== Python video tool CLI (Stage 1A.4) ==");
+const cliComposeEditPath = join(outDir, "validate-cli-compose.edit-decisions.json");
+const cliComposeOut = join(outDir, "validate-cli-video-compose.mp4");
+const cliComposeReport = join(outDir, "validate-cli-video-compose.render-report.json");
+for (const p of [cliComposeEditPath, cliComposeOut, cliComposeReport]) {
+  try { rmSync(p, { force: true }); } catch { /* none */ }
+}
+writeFileSync(cliComposeEditPath, `${JSON.stringify({
+  version: "1.0",
+  render_runtime: "ffmpeg",
+  renderer_family: "documentary-montage",
+  cuts: [
+    { source: mp4Path, in_seconds: 0, out_seconds: 1.2 },
+  ],
+}, null, 2)}\n`);
+const composeCli = spawnSync(npmBin, ["run", "montara", "--", "compose", cliComposeEditPath, cliComposeOut, "--operation", "compose", "--json"], {
+  encoding: "utf8",
+  timeout: 180000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+const composeCliDuration = existsSync(cliComposeOut) ? probeDuration(cliComposeOut) : 0;
+ok("compose CLI invokes Python video_compose and writes a real MP4",
+  composeCli.status === 0 && existsSync(cliComposeOut) && existsSync(cliComposeReport) && composeCliDuration > 1,
+  `status=${composeCli.status} dur=${composeCliDuration.toFixed(2)} stdout=${(composeCli.stdout || "").slice(-500)} stderr=${(composeCli.stderr || "").slice(-500)}`);
+
+const corpusSourcesCli = spawnSync(npmBin, ["run", "montara", "--", "corpus", "sources", "--json"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+ok("corpus CLI exposes corpus_builder source-provider discovery",
+  corpusSourcesCli.status === 0 &&
+    /"name":\s*"corpus_builder"/.test(corpusSourcesCli.stdout ?? "") &&
+    /"source_provider_summary"/.test(corpusSourcesCli.stdout ?? ""),
+  (corpusSourcesCli.error?.message || corpusSourcesCli.stderr || corpusSourcesCli.stdout || "").slice(-500));
+
 console.log("\n== style + output profiles (Phase 1.12 §J) ==");
 ok("3 styles + 6 output profiles registered", STYLE_PLAYBOOKS.length === 3 && OUTPUT_PROFILES.length === 6);
 const branded = applyOutputProfile(applyStyle(result.timeline, "clean-professional"), "shorts");

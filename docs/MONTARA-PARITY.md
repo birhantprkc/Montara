@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 1B.14 kinetic-typography promotion.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 1A.4 compose/corpus CLI wiring.
 
 This checklist tracks two things:
 
@@ -14,7 +14,7 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 272 passed, 0 failed.
-- `npm.cmd run validate` passed: 77 passed, 0 failed.
+- `npm.cmd run validate` passed: 79 passed, 0 failed.
 - `python -m pytest tests` passed: 367 passed, 8 skipped.
 
 ## Snapshot
@@ -25,7 +25,7 @@ Latest local gates before this sync:
 | FFmpeg renderer | ☑ | Universal native MP4 path and fallback. |
 | Python tool engine | ☑ | Root-level `tools/` + `lib/`; engine bridge verifies dependency-free. |
 | Engine bridge | ☑ | JSON bridge and composition <-> IR mapping. |
-| CLI | ◐ | Core commands exist; not every Python tool is surfaced yet. |
+| CLI | ◐ | Core commands plus `montara compose` and `montara corpus`; budget/resume/editor import still pending. |
 | Editor export | ☑ | EDL, OTIO, FCPXML export verified. |
 | Editor import | ☐ | Round-trip import remains Stage 3. |
 | CI | ☑ | typecheck + verify + validate + pytest. |
@@ -55,7 +55,7 @@ Latest local gates before this sync:
 | Remotion | ◐ | Native smoke MP4 validate-gated; full Timeline default routing pending. |
 | Revideo | ☐ | Runtime-gated adapter target. |
 | Motion Canvas | ☐ | Runtime-gated adapter target. |
-| HyperFrames | ◐ | Strict kinetic smoke renders through `hyperframes_compose`; CLI compose integration pending. |
+| HyperFrames | ◐ | Strict kinetic smoke renders through `hyperframes_compose`; `montara compose` can route `video_compose` artifacts, native HyperFrames still runtime-gated. |
 | Three.js | ◐ | Headless/WebGL adapter path; native availability depends on browser/runtime. |
 | Manim | ◐ | External adapter; native availability depends on Manim install. |
 | Blender | ◐ | Real external adapter; native availability depends on Blender install. |
@@ -71,7 +71,7 @@ Latest local gates before this sync:
 | avatar-spokesperson | ☑ | Manifest + skills; runtime constraints documented. |
 | cinematic | ☑ | Manifest + skills. |
 | clip-factory | ☑ | Manifest + skills. |
-| documentary-montage | ◐ | Needs CLI E2E validate using corpus/CLIP or stock-footage fallback. |
+| documentary-montage | ◐ | Corpus build/search CLI exists; needs stock-footage MP4 E2E validate. |
 | hybrid | ☑ | Manifest + skills. |
 | localization-dub | ☑ | Manifest + skills. |
 | podcast-repurpose | ☑ | Manifest + skills. |
@@ -89,7 +89,7 @@ Latest local gates before this sync:
 | E Audio/TTS/music | ◐ | Local/offline fallbacks and analysis exist; premium providers BYOK/runtime-gated. |
 | F Post/enhancement | ◐ | Core FFmpeg operations work; model enhancers runtime-gated. |
 | G Analysis/understanding | ◐ | Reference analysis and signalstats work; full CLIP/BLIP default pending. |
-| H Intelligence | ◐ | Research/corpus/scoring ports exist; Python corpus not CLI-default. |
+| H Intelligence | ◐ | Research/corpus/scoring ports exist; Python corpus has CLI source/build/search/status surface. |
 | I Governance | ◐ | Quality gates exist; budget CLI pending. |
 | J Styles/output profiles | ☑ | 3 styles and 6 output profiles verified. |
 | K Agent layer | ◐ | Skills/configs/schemas/checkpoints exist; resume CLI/onboarding depth pending. |
@@ -124,7 +124,7 @@ and the Stage 0 gate set passed before commit `0x26`.
 Stage 1 exits when:
 
 - all partial pipelines have offline validate MP4 cases;
-- Python compose/corpus tools are wired through CLI;
+- Python compose/corpus tools are wired through CLI; (done in `0x32`)
 - screen-demo uses the capture CLI in a real offline MP4 flow.
 
 Stage 2 exits when native Remotion, HyperFrames, and documentary stock-footage validate cases are green.

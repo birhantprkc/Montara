@@ -523,6 +523,8 @@ Agents should prefer the public CLI when it exists:
 | source/reference analysis | `montara analyze <mp4>` or `montara understand <mp4>` |
 | audio/music analysis | `montara hear <audio>` or `montara music analyze <audio>` |
 | smart source reel | `montara reel <input.mp4>` |
+| Python compose artifact render | `montara compose <edit-decisions.json> [out.mp4] [--assets asset-manifest.json]` |
+| stock/corpus discovery and retrieval | `montara corpus sources|build|search|stats|get` |
 | editor handoff | `montara export <ir.json> --to otio|fcpxml|edl` |
 | engine inventory | `montara engines` |
 | Python engine bridge | `montara engine info|smoke|providers|timeline|render` |

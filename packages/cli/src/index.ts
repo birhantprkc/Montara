@@ -75,6 +75,14 @@ function readJson(path: string): unknown {
   return JSON.parse(readFileSync(path, "utf8")) as unknown;
 }
 
+function readJsonRecord(path: string): Record<string, unknown> {
+  const value = readJson(path);
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error(`expected a JSON object: ${path}`);
+  }
+  return value as Record<string, unknown>;
+}
+
 function isTimeline(value: unknown): value is Timeline {
   return Boolean(
     value &&
@@ -114,6 +122,20 @@ function optionValue(args: string[], name: string): string | undefined {
   return i >= 0 ? args[i + 1] : undefined;
 }
 
+function optionValues(args: string[], name: string): string[] {
+  const values: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] ?? "";
+    if (arg.startsWith(`${name}=`)) {
+      values.push(arg.slice(name.length + 1));
+    } else if (arg === name && args[i + 1]) {
+      values.push(args[i + 1]!);
+      i++;
+    }
+  }
+  return values;
+}
+
 function numberOption(args: string[], name: string, fallback: number): number {
   const raw = optionValue(args, name);
   if (raw == null) return fallback;
@@ -132,6 +154,36 @@ const VALUE_FLAGS = new Set([
   "--width",
   "--height",
   "--fps",
+  "--assets",
+  "--asset-manifest",
+  "--proposal",
+  "--profile",
+  "--operation",
+  "--runtime",
+  "--audio",
+  "--subtitles",
+  "--subtitle",
+  "--transcript",
+  "--script",
+  "--report",
+  "--query",
+  "--source",
+  "--max-new",
+  "--per-source",
+  "--thumbs",
+  "--kind",
+  "--orientation",
+  "--min-duration",
+  "--max-duration",
+  "--min-width",
+  "--k",
+  "--motion-min",
+  "--tag-weight",
+  "--seed",
+  "--clip-id",
+  "--n",
+  "--diversity",
+  "--candidate-pool",
   "--region",
   "--since",
   "--timeout",
@@ -158,6 +210,20 @@ function parseRegion(value: string | undefined): { x: number; y: number; width: 
   return { x, y, width, height };
 }
 
+function maybeNumberOption(args: string[], name: string): number | undefined {
+  const raw = optionValue(args, name);
+  if (raw == null) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function splitOptionList(values: string[]): string[] {
+  return values
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
 interface PythonToolResult {
   success: boolean;
   data: Record<string, unknown>;
@@ -167,14 +233,44 @@ interface PythonToolResult {
   duration_seconds?: number;
 }
 
-function runPythonTool(toolName: string, inputs: Record<string, unknown>, timeoutMs = 120_000): PythonToolResult {
+function pythonEnv(): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = { ...process.env, PYTHONIOENCODING: "utf-8" };
+  const localPackages = join(process.cwd(), ".python-packages");
+  if (existsSync(localPackages)) {
+    const pathDelimiter = process.platform === "win32" ? ";" : ":";
+    env.PYTHONPATH = [localPackages, env.PYTHONPATH].filter(Boolean).join(pathDelimiter);
+  }
+  return env;
+}
+
+function parsePythonToolJson(stdout: string, stderr: string): PythonToolResult {
+  const text = (stdout || "").trim();
+  const jsonLine = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .reverse()
+    .find((line) => line.startsWith("{") && line.endsWith("}"));
+  try {
+    return JSON.parse(jsonLine ?? text) as PythonToolResult;
+  } catch {
+    return { success: false, data: {}, artifacts: [], error: `non-JSON tool output: ${(stdout || stderr || "").slice(-1000)}` };
+  }
+}
+
+function runPythonTool(
+  toolName: string,
+  inputs: Record<string, unknown>,
+  timeoutMs = 120_000,
+  discoverModules: string[] = ["tools.capture"],
+): PythonToolResult {
   const py = findPython();
   if (!py) return { success: false, data: {}, artifacts: [], error: "Python 3 not found on PATH" };
   const code = [
     "import json, sys",
     "from tools.tool_registry import registry",
     "payload = json.loads(sys.stdin.read() or '{}')",
-    "registry.ensure_discovered('tools.capture')",
+    "for package_name in json.loads(sys.argv[2]):",
+    "    registry.ensure_discovered(package_name)",
     "tool = registry.get(sys.argv[1])",
     "if tool is None:",
     "    print(json.dumps({'success': False, 'data': {}, 'artifacts': [], 'error': f'tool not found: {sys.argv[1]}'}))",
@@ -189,10 +285,11 @@ function runPythonTool(toolName: string, inputs: Record<string, unknown>, timeou
     "    'duration_seconds': result.duration_seconds,",
     "}, default=str))",
   ].join("\n");
-  const proc = spawnSync(py, ["-c", code, toolName], {
+  const proc = spawnSync(py, ["-c", code, toolName, JSON.stringify(discoverModules)], {
     cwd: process.cwd(),
     input: JSON.stringify(inputs),
     encoding: "utf8",
+    env: pythonEnv(),
     timeout: timeoutMs,
     maxBuffer: 1 << 22,
   });
@@ -202,11 +299,39 @@ function runPythonTool(toolName: string, inputs: Record<string, unknown>, timeou
   if (proc.status !== 0) {
     return { success: false, data: {}, artifacts: [], error: (proc.stderr || `python exited ${proc.status}`).trim().slice(-1000) };
   }
-  try {
-    return JSON.parse((proc.stdout || "").trim()) as PythonToolResult;
-  } catch {
-    return { success: false, data: {}, artifacts: [], error: `non-JSON tool output: ${(proc.stdout || proc.stderr || "").slice(-1000)}` };
+  return parsePythonToolJson(proc.stdout || "", proc.stderr || "");
+}
+
+function runPythonToolInfo(toolName: string, discoverModules: string[] = ["tools.capture"], timeoutMs = 120_000): PythonToolResult {
+  const py = findPython();
+  if (!py) return { success: false, data: {}, artifacts: [], error: "Python 3 not found on PATH" };
+  const code = [
+    "import json, sys",
+    "from tools.tool_registry import registry",
+    "for package_name in json.loads(sys.argv[2]):",
+    "    registry.ensure_discovered(package_name)",
+    "tool = registry.get(sys.argv[1])",
+    "if tool is None:",
+    "    print(json.dumps({'success': False, 'data': {}, 'artifacts': [], 'error': f'tool not found: {sys.argv[1]}'}))",
+    "    sys.exit(0)",
+    "info = tool.get_info()",
+    "info['status'] = tool.get_status().value",
+    "print(json.dumps({'success': True, 'data': info, 'artifacts': [], 'error': None, 'cost_usd': 0.0, 'duration_seconds': 0.0}, default=str))",
+  ].join("\n");
+  const proc = spawnSync(py, ["-c", code, toolName, JSON.stringify(discoverModules)], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: pythonEnv(),
+    timeout: timeoutMs,
+    maxBuffer: 1 << 22,
+  });
+  if (proc.error) {
+    return { success: false, data: {}, artifacts: [], error: proc.error.message };
   }
+  if (proc.status !== 0) {
+    return { success: false, data: {}, artifacts: [], error: (proc.stderr || `python exited ${proc.status}`).trim().slice(-1000) };
+  }
+  return parsePythonToolJson(proc.stdout || "", proc.stderr || "");
 }
 
 function printPythonToolResult(result: PythonToolResult, json: boolean): void {
@@ -343,6 +468,264 @@ function runCaptureCommand(rest: string[]): number {
   }
 
   console.error("usage: montara capture [recommend|status|setup|login|record|pick-latest] [--url URL] [out.mp4] [--provider auto|ffmpeg|cap|playwright]");
+  return 1;
+}
+
+const VIDEO_COMPOSE_MODULE = ["tools.video.video_compose"];
+const CORPUS_BUILDER_MODULE = ["tools.video.corpus_builder"];
+const CLIP_SEARCH_MODULE = ["tools.video.clip_search"];
+
+function printComposeRuntimes(result: PythonToolResult, json: boolean): number {
+  if (json) {
+    printPythonToolResult(result, true);
+    return result.success ? 0 : 1;
+  }
+  if (!result.success) {
+    console.error(result.error || "compose runtime discovery failed");
+    return 1;
+  }
+  const engines = (result.data.render_engines ?? result.data.render_runtimes ?? {}) as Record<string, unknown>;
+  console.log(`video_compose: ${String(result.data.status ?? "unknown")}`);
+  for (const [runtime, available] of Object.entries(engines)) {
+    console.log(`  ${runtime.padEnd(12)} ${available ? "available" : "unavailable"}`);
+  }
+  if (typeof result.data.runtime_governance === "string") console.log(`governance: ${result.data.runtime_governance}`);
+  if (typeof result.data.remotion_note === "string") console.log(`remotion: ${result.data.remotion_note}`);
+  if (typeof result.data.hyperframes_note === "string") console.log(`hyperframes: ${result.data.hyperframes_note}`);
+  return 0;
+}
+
+function runComposeCommand(rest: string[]): number {
+  const sub = rest[0];
+  if (!sub || sub === "help" || sub === "--help") {
+    console.error("usage: montara compose <edit-decisions.json> [out.mp4] [--assets asset-manifest.json] [--proposal proposal.json] [--operation render|compose|remotion_render] [--runtime ffmpeg|remotion|hyperframes] [--json]");
+    console.error("       montara compose runtimes [--json]");
+    return sub ? 0 : 1;
+  }
+
+  const json = rest.includes("--json");
+  if (sub === "runtimes" || sub === "info" || sub === "status") {
+    return printComposeRuntimes(runPythonToolInfo("video_compose", VIDEO_COMPOSE_MODULE), json);
+  }
+
+  const args = rest;
+  const positional = positionalArgs(args);
+  const editPath = positional[0];
+  if (!editPath || !existsSync(editPath)) {
+    console.error("usage: montara compose <edit-decisions.json> [out.mp4] [--assets asset-manifest.json] [--proposal proposal.json] [--operation render|compose|remotion_render]");
+    return 1;
+  }
+  const out = optionValue(args, "--output") ??
+    (positional[1] && !positional[1].startsWith("--") ? positional[1] : join(process.cwd(), "out", "montara-compose.mp4"));
+  const assetsPath = optionValue(args, "--assets") ?? optionValue(args, "--asset-manifest");
+  const proposalPath = optionValue(args, "--proposal");
+  const operation = optionValue(args, "--operation") ?? (assetsPath ? "render" : "compose");
+  const editDecisions = readJsonRecord(editPath);
+  const runtimeOverride = optionValue(args, "--runtime");
+  if (runtimeOverride) editDecisions.render_runtime = runtimeOverride;
+
+  if (operation === "render" && !assetsPath) {
+    console.error("operation=render requires --assets <asset-manifest.json>. Use --operation compose for direct source-path cuts.");
+    return 1;
+  }
+
+  const payload: Record<string, unknown> = {
+    operation,
+    edit_decisions: editDecisions,
+    output_path: out,
+  };
+  if (assetsPath) payload.asset_manifest = readJsonRecord(assetsPath);
+  if (proposalPath) payload.proposal_packet = readJsonRecord(proposalPath);
+  const profile = optionValue(args, "--profile");
+  if (profile) payload.profile = profile;
+  const audio = optionValue(args, "--audio");
+  if (audio) payload.audio_path = audio;
+  const subtitles = optionValue(args, "--subtitles") ?? optionValue(args, "--subtitle");
+  if (subtitles) payload.subtitle_path = subtitles;
+  const transcript = optionValue(args, "--transcript");
+  if (transcript) payload.narration_transcript_path = transcript;
+  const scriptPath = optionValue(args, "--script");
+  if (scriptPath) payload.script_path = scriptPath;
+
+  const result = runPythonTool("video_compose", payload, 900_000, VIDEO_COMPOSE_MODULE);
+  const reportPath = optionValue(args, "--report") ?? out.replace(/\.mp4$/i, ".render-report.json");
+  if (result.success || result.data && Object.keys(result.data).length) {
+    mkdirSync(dirname(reportPath), { recursive: true });
+    writeFileSync(reportPath, `${JSON.stringify(result, null, 2)}\n`);
+  }
+  if (json) {
+    printPythonToolResult(result, true);
+    return result.success ? 0 : 1;
+  }
+  if (!result.success) {
+    console.error(result.error || "compose failed");
+    if (existsSync(reportPath)) console.error(`report: ${reportPath}`);
+    return 1;
+  }
+  console.log(`compose -> ${String(result.data.output ?? out)}`);
+  if (result.data.operation) console.log(`operation: ${String(result.data.operation)}`);
+  if (result.data.final_review_status) console.log(`final_review: ${String(result.data.final_review_status)}`);
+  console.log(`report: ${reportPath}`);
+  for (const artifact of result.artifacts) console.log(`artifact: ${artifact}`);
+  return 0;
+}
+
+function printCorpusSources(result: PythonToolResult, json: boolean): number {
+  if (json) {
+    printPythonToolResult(result, true);
+    return result.success ? 0 : 1;
+  }
+  if (!result.success) {
+    console.error(result.error || "corpus source discovery failed");
+    return 1;
+  }
+  const summary = (result.data.source_provider_summary ?? {}) as Record<string, unknown>;
+  console.log(`corpus_builder: ${String(result.data.status ?? "unknown")}`);
+  console.log(`sources: ${String(summary.configured ?? 0)} configured / ${String(summary.total ?? 0)} total`);
+  const available = Array.isArray(summary.available_source_names) ? summary.available_source_names : [];
+  const unavailable = Array.isArray(summary.unavailable_source_names) ? summary.unavailable_source_names : [];
+  console.log(`available: ${available.join(", ") || "none"}`);
+  console.log(`unavailable: ${unavailable.join(", ") || "none"}`);
+  return 0;
+}
+
+function runCorpusCommand(rest: string[]): number {
+  const sub = rest[0] ?? "sources";
+  const args = rest.slice(1);
+  const json = args.includes("--json") || rest.includes("--json");
+
+  if (sub === "help" || sub === "--help") {
+    console.log("usage: montara corpus sources [--json]");
+    console.log("       montara corpus build <corpus-dir> \"query\" [--query TEXT ...] [--source archive_org] [--max-new 20] [--per-source 10]");
+    console.log("       montara corpus search <corpus-dir> \"slot description\" [--k 10] [--motion-min 0.2]");
+    console.log("       montara corpus stats <corpus-dir>");
+    console.log("       montara corpus get <corpus-dir> <clip-id>");
+    return 0;
+  }
+
+  if (sub === "sources" || sub === "providers" || sub === "status") {
+    return printCorpusSources(runPythonToolInfo("corpus_builder", CORPUS_BUILDER_MODULE), json);
+  }
+
+  if (sub === "build") {
+    const positional = positionalArgs(args);
+    const corpusDir = positional[0];
+    const inlineQuery = positional.slice(1).join(" ").trim();
+    const queryTexts = splitOptionList(optionValues(args, "--query"));
+    if (inlineQuery) queryTexts.unshift(inlineQuery);
+    if (!corpusDir || queryTexts.length === 0) {
+      console.error("usage: montara corpus build <corpus-dir> \"query\" [--query TEXT ...] [--source archive_org] [--max-new 20]");
+      return 1;
+    }
+    const kind = optionValue(args, "--kind") ?? "video";
+    const perSource = numberOption(args, "--per-source", 10);
+    const filters: Record<string, unknown> = {};
+    for (const [flag, key] of [
+      ["--min-duration", "min_duration"],
+      ["--max-duration", "max_duration"],
+      ["--min-width", "min_width"],
+    ] as const) {
+      const value = maybeNumberOption(args, flag);
+      if (value !== undefined) filters[key] = value;
+    }
+    const orientation = optionValue(args, "--orientation");
+    if (orientation) filters.orientation = orientation;
+
+    const payload: Record<string, unknown> = {
+      corpus_dir: corpusDir,
+      queries: queryTexts.map((query) => ({ query, kind, per_source: perSource })),
+      max_new_clips: numberOption(args, "--max-new", 25),
+      thumbs_per_video: numberOption(args, "--thumbs", 5),
+      skip_existing: !args.includes("--no-skip-existing"),
+    };
+    const sources = splitOptionList(optionValues(args, "--source"));
+    if (sources.length) payload.sources = sources;
+    if (Object.keys(filters).length) payload.filters = filters;
+
+    const timeout = Math.max(120_000, numberOption(args, "--timeout", 900) * 1000);
+    const result = runPythonTool("corpus_builder", payload, timeout, CORPUS_BUILDER_MODULE);
+    if (json) {
+      printPythonToolResult(result, true);
+      return result.success ? 0 : 1;
+    }
+    if (!result.success) {
+      console.error(result.error || "corpus build failed");
+      return 1;
+    }
+    console.log(`corpus -> ${String(result.data.corpus_dir ?? corpusDir)}`);
+    console.log(`added ${String(result.data.clips_added ?? 0)} clip(s), skipped ${String(result.data.clips_skipped_existing ?? 0)}, failed ${String(result.data.clips_failed ?? 0)}`);
+    console.log(`sources: ${(result.data.resolved_sources as unknown[] | undefined)?.join(", ") ?? "unknown"}`);
+    return 0;
+  }
+
+  if (sub === "search") {
+    const positional = positionalArgs(args);
+    const corpusDir = positional[0];
+    const queryText = optionValue(args, "--query") ?? positional.slice(1).join(" ").trim();
+    if (!corpusDir || !queryText) {
+      console.error("usage: montara corpus search <corpus-dir> \"slot description\" [--k 10] [--motion-min 0.2]");
+      return 1;
+    }
+    const payload: Record<string, unknown> = {
+      operation: "rank_for_slot",
+      corpus_dir: corpusDir,
+      query_text: queryText,
+      k: numberOption(args, "--k", 10),
+      tag_weight: numberOption(args, "--tag-weight", 0.3),
+    };
+    const motionMin = maybeNumberOption(args, "--motion-min");
+    if (motionMin !== undefined) payload.motion_min = motionMin;
+    const kind = optionValue(args, "--kind");
+    if (kind) payload.kind = kind;
+    const result = runPythonTool("clip_search", payload, 180_000, CLIP_SEARCH_MODULE);
+    if (json) {
+      printPythonToolResult(result, true);
+      return result.success ? 0 : 1;
+    }
+    if (!result.success) {
+      console.error(result.error || "corpus search failed");
+      return 1;
+    }
+    const rows = (result.data.results as Array<Record<string, unknown>> | undefined) ?? [];
+    console.log(`matches: ${rows.length} from ${String(result.data.corpus_size ?? "?")} corpus rows`);
+    for (const row of rows.slice(0, 10)) {
+      const record = (row.record ?? {}) as Record<string, unknown>;
+      console.log(`${Number(row.score ?? 0).toFixed(3)} ${String(record.clip_id ?? "")} ${String(record.local_path ?? "")}`);
+    }
+    return 0;
+  }
+
+  if (sub === "stats" || sub === "get" || sub === "similar") {
+    const positional = positionalArgs(args);
+    const corpusDir = positional[0];
+    if (!corpusDir) {
+      console.error(`usage: montara corpus ${sub} <corpus-dir>${sub === "get" ? " <clip-id>" : ""}`);
+      return 1;
+    }
+    const payload: Record<string, unknown> = { corpus_dir: corpusDir, operation: sub === "similar" ? "find_similar_set" : sub };
+    if (sub === "get") {
+      const clipId = optionValue(args, "--clip-id") ?? positional[1];
+      if (!clipId) { console.error("usage: montara corpus get <corpus-dir> <clip-id>"); return 1; }
+      payload.clip_id = clipId;
+    }
+    if (sub === "similar") {
+      const seed = optionValue(args, "--seed") ?? positional[1];
+      if (!seed) { console.error("usage: montara corpus similar <corpus-dir> <seed-clip-id> [--n 5]"); return 1; }
+      payload.seed_clip_id = seed;
+      payload.n = numberOption(args, "--n", 5);
+      payload.diversity = numberOption(args, "--diversity", 0.3);
+      payload.candidate_pool = numberOption(args, "--candidate-pool", 30);
+    }
+    const result = runPythonTool("clip_search", payload, 120_000, CLIP_SEARCH_MODULE);
+    if (json) {
+      printPythonToolResult(result, true);
+      return result.success ? 0 : 1;
+    }
+    printPythonToolResult(result, false);
+    return result.success ? 0 : 1;
+  }
+
+  console.error("usage: montara corpus <sources|build|search|stats|get|similar>");
   return 1;
 }
 
@@ -524,6 +907,9 @@ Commands:
   review <mp4>                    post-render self-review report for an MP4
   analyze <mp4>                   scene/understanding analysis + concept variants for a video
   capture [--url URL] [out.mp4]    record/recommend screen capture; Playwright auth via capture login
+  compose <edit-decisions.json> [out.mp4]
+                                  run Python video_compose; pass --assets for high-level render artifacts
+  corpus <sources|build|search>    stock-footage corpus discovery, population, and retrieval
   reel <input.mp4> [out]           understand + smart-edit a source clip; writes MP4 + Timeline IR + edit decisions
   agent                           regenerate pipeline manifests + schemas + assistant configs
 
@@ -544,6 +930,8 @@ export function main(argv = process.argv.slice(2)): number {
     if (command === "doctor") return runDoctor(rest);
     if (command === "reel") return runReelCommand(rest);
     if (command === "capture") return runCaptureCommand(rest);
+    if (command === "compose") return runComposeCommand(rest);
+    if (command === "corpus") return runCorpusCommand(rest);
 
     if (command === "voiceid") {
       const sub = rest[0];
