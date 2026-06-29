@@ -264,7 +264,7 @@ function printHelp(): void {
   console.log(`montara <command>
 
 Commands:
-  doctor                          check local render prerequisites + Python engine
+  doctor [--fix]                  check local render prerequisites + Python engine; print setup guide with --fix
   render3d blender [out]          render the 3D intro via headless Blender + ffmpeg
   voiceid compare <test> ...      speaker-ID: classify a clip against labelled reference clips
   voiceid verify <a> <b>          speaker-ID: are two clips the same speaker?
@@ -308,7 +308,7 @@ export function main(argv = process.argv.slice(2)): number {
       return 0;
     }
 
-    if (command === "doctor") return runDoctor();
+    if (command === "doctor") return runDoctor(rest);
     if (command === "reel") return runReelCommand(rest);
 
     if (command === "voiceid") {

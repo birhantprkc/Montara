@@ -3,35 +3,21 @@ dist/
 *.tsbuildinfo
 .env
 .env.*
-# downloaded GGUF / ONNX weights — never commit
+
+# downloaded GGUF / ONNX weights - never commit
 models/
+
+# generated outputs / caches
 out/
 .montara-cache/
 .python-packages/
-# esbuild-bundled test artifacts
+.pytest-deps/
 scripts/.verify.mjs
 scripts/.doctor.mjs
 scripts/.validate.mjs
 packages/cli/.montara.mjs
 
-# private strategy / planning — never committed or published
-PLAN.md
-AGENTS.md
-CLAUDE.md
-AGENT_GUIDE.md
-CURSOR.md
-CODEX.md
-COPILOT.md
-.windsurfrules
-README.md
-NOTICE
-LICENSE
-docs/
-BRANDING-PROVENANCE-PLAN.md
-MONTARA_ENGINE.md
-PROJECT_CONTEXT.md
-
-# --- Python engine (root-level) — caches, outputs, corpora, secrets, generated media ---
+# Python engine caches, outputs, corpora, secrets, generated media
 assets/
 remotion-composer/node_modules/
 __pycache__/
@@ -53,11 +39,15 @@ output/
 pipeline/
 tests/qa/output/
 projects/
+projects/**/auth/
 corpus/
 **/corpus/
 music_library/
 *.env
 .youtube-token.json
+**/playwright-auth*.json
+**/storageState*.json
+**/auth_state*.json
 gcp-*.json
 *-service-account.json
 service-account*.json

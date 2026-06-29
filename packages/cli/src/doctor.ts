@@ -9,7 +9,29 @@ const tool = (label: string, bin: string): boolean => {
   return ok;
 };
 
-export function runDoctor(): number {
+function printFixGuide(): void {
+  console.log("\n== guided setup ==");
+  console.log("Montara will not install tools without your approval. Use the commands that fit your machine:\n");
+  console.log("Windows:");
+  console.log("  winget install Gyan.FFmpeg");
+  console.log("  winget install OpenJS.NodeJS.LTS");
+  console.log("  python -m pip install -r requirements-dev.txt");
+  console.log("  npm install -D playwright @playwright/test");
+  console.log("  npx playwright install chromium\n");
+  console.log("Optional composition/runtime unlocks:");
+  console.log("  Remotion: install project dependencies for remotion-composer, then validate native render locally");
+  console.log("  HyperFrames: npx @hyperframes/cli doctor");
+  console.log("  Piper: install piper and set PIPER_BIN if it is not on PATH");
+  console.log("  Manim: python -m pip install manim");
+  console.log("  Blender: install Blender and set BLENDER_BIN if it is not on PATH\n");
+  console.log("Local LLM backends:");
+  console.log("  Ollama: install Ollama and keep it running on http://127.0.0.1:11434");
+  console.log("  LM Studio: enable the local server on http://127.0.0.1:1234");
+  console.log("  llama.cpp: set LLAMA_CPP_SERVER_URL when using a local server\n");
+  console.log("Secrets stay out of the repo. Put API keys in your shell, OS keychain, or local .env.");
+}
+
+export function runDoctor(args: string[] = []): number {
   console.log("== montara doctor ==\n");
   console.log(`  ok node     ${process.version}`);
   const ffmpeg = tool("ffmpeg", mediaBin("ffmpeg"));
@@ -34,5 +56,6 @@ export function runDoctor(): number {
       ? "\n  Ready to render."
       : "\n  Install FFmpeg (for example `winget install Gyan.FFmpeg`) to render.",
   );
+  if (args.includes("--fix")) printFixGuide();
   return ffmpeg && ffprobe ? 0 : 1;
 }

@@ -1,0 +1,2 @@
+Montara: no MCP — read AGENT_GUIDE.md + CLAUDE.md + skills/, then drive via the `montara` CLI.
+Local-first, never hard-fail, verify before done, keep it open (AGPL), no secrets in the repo.

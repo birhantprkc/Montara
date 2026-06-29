@@ -10,6 +10,20 @@ CLI.
 These should work without paid API keys by using the local/free path and FFmpeg
 fallbacks.
 
+### Fast Sanity Render
+
+> "Make a 20-second zero-key video about why Montara uses a Timeline IR. Use text, simple motion, captions, and export the IR plus MP4."
+
+Expected treatment: no cloud calls, no generated imagery requirement, quick
+Timeline IR render through the FFmpeg path.
+
+### Data Card Explainer
+
+> "Create a 45-second data-card explainer about why shipping lanes matter. Use three animated stat cards, one comparison frame, and a clean final takeaway."
+
+Expected treatment: designed text/shape/card clips rather than fake generated
+footage; good for proving the free local path.
+
 ### Content-Aware Talking-Head Reel
 
 > "Make a 45-second reel explaining the design of Fable 5 using this talking-head footage. Keep the speaker visible, add only overlays that clarify game-design ideas, and export Timeline IR plus MP4."
@@ -47,6 +61,13 @@ Expected treatment: run `playwright_recorder` `interactive_login`, save
 `storageState` in the project workspace, record with that state, transcode to
 MP4, and review for private data.
 
+### Long Video To Shorts
+
+> "Turn this 12-minute interview into 3 Shorts. Cut on transcript boundaries, keep the best claims in context, add captions, and export each Short plus the edit decisions."
+
+Expected treatment: source review, transcript-aware cut points, vertical-safe
+layout, no guessed fixed end timing.
+
 ## Style Switch Prompts
 
 Use the same source material and ask for different styles. The Timeline IR
@@ -67,6 +88,14 @@ decisions should be visibly different.
 ### Minimal
 
 > "Make a minimal version. Preserve the best source moments, use very few overlays, and keep the color and typography quiet."
+
+### Smart Talking Head
+
+> "Make this talking-head clip feel premium but not fake. Keep the speaker visible, remove dead air, add helpful topic-specific overlays, and avoid generic explainer cards."
+
+### Product Demo
+
+> "Make this product demo quiet and professional. Focus on the actual workflow, not hype text. Use zooms and callouts only where they help the viewer follow the UI."
 
 ## Runtime-Specific Prompts
 
@@ -94,6 +123,14 @@ decisions should be visibly different.
 
 > "Use native Remotion only if the local native Remotion validate case passes. Otherwise explain the blocker and recommend the closest verified runtime."
 
+### Revideo / Motion Canvas
+
+> "If Revideo or Motion Canvas is installed, use it for a kinetic typography proof. If not, produce a verified FFmpeg fallback and tell me exactly what runtime is missing."
+
+### Blender
+
+> "Render one Blender 3D title shot if Blender is installed, then assemble it with captions and music into the Timeline IR."
+
 ## Provider-Aware Prompts
 
 ### No Paid APIs
@@ -108,6 +145,62 @@ decisions should be visibly different.
 
 > "Before using any cloud provider, check the official docs for the current endpoint/model names, then update the request builder or tell me what is stale."
 
+### One-Key Image Path
+
+> "Use my configured OpenAI or Google image provider for three exact support visuals, but keep all text as Timeline IR overlays so the words stay correct."
+
+### Premium Voice Path
+
+> "Use premium TTS only after showing me the voice provider, model, expected cost, and why it fits the tone. Keep the local fallback available."
+
+## Pipeline-Specific Prompts
+
+### Animated Explainer
+
+> "Make a 60-second animated explainer about how photosynthesis works for 8th graders. Use simple diagrams, friendly narration, and a clear recap."
+
+### Hybrid Footage
+
+> "Use this event footage as the base, then add diagrams and captions where they clarify what is happening. Do not replace the real footage with generic cards."
+
+### Cinematic Trailer
+
+> "Create a 30-second cinematic teaser for a fictional sci-fi tool. Use dramatic pacing, a moving cold open, and title beats, but keep the runtime choices honest."
+
+### Podcast Repurpose
+
+> "Turn this podcast segment into a quote-led social clip with captions, a waveform or subtle visual bed, and a hook that preserves context."
+
+### Character Animation
+
+> "Create a short character-animation scene explaining a security concept. Use a reusable rig or SVG parts, then QA visibility and motion."
+
+### Localization
+
+> "Create an English-captioned and Hindi-captioned version of this source clip. Preserve timing and export per-locale artifacts."
+
+## Gallery Demo Set
+
+Use this set when testing Montara after a fresh setup:
+
+1. Zero-key Timeline IR explainer.
+2. Talking-head smart overlay reel.
+3. Browser-auth Playwright capture.
+4. Documentary evidence cut.
+5. Editor handoff with MP4 + EDL + OTIO + FCPXML.
+
+Each demo should record:
+
+- prompt;
+- pipeline;
+- runtime;
+- provider/tool choices;
+- cost;
+- MP4 path;
+- Timeline IR path;
+- QA notes;
+- export paths.
+
 ## Export Prompts
 
 ### Editor Handoff
@@ -117,6 +210,10 @@ decisions should be visibly different.
 ### Revision-Friendly
 
 > "Make the first pass with editable Timeline IR and keep all scene decisions explicit so I can change text, timing, overlays, and render runtime later."
+
+### Compare Runtime Choices
+
+> "Give me two options before rendering: a reliable FFmpeg version and a native-runtime version if available. Recommend one, log the decision, then render the approved path."
 
 ## Tips
 

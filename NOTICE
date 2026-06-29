@@ -1,0 +1,29 @@
+Montara
+Copyright (c) 2026 Abhinav Shrivastava and Warfront AI.
+
+Montara is an open, local-first video production system distributed under the
+GNU Affero General Public License version 3.0. See LICENSE.
+
+This repository includes derived code, structure, pipeline guidance, tests, and
+ideas from the OpenMontage project located at C:\OpenMontage in the development
+environment. OpenMontage is treated as an AGPL-3.0 source project for Montara's
+porting/provenance purposes.
+
+Montara-specific additions include, among other work:
+
+- the editable Timeline IR boundary and editor export surfaces;
+- TypeScript verification and validation gates;
+- Montara CLI and render/export bridge behavior;
+- generalized documentary evidence craft;
+- content-aware reel planning;
+- runtime-honesty and provider-audit documentation;
+- Playwright authenticated browser capture workflow;
+- Layer 2 Montara skills and Layer 3 skill wiring;
+- CI for typecheck, verify, validate, and pytest.
+
+Legal/provenance detail is maintained in docs/PORTING-PROVENANCE.md.
+Dependency attribution is maintained in docs/ATTRIBUTION.md.
+
+New Montara work may use the commit trailer:
+
+Co-Authored-By: WARFRONT AI <hello@warfront.live>
