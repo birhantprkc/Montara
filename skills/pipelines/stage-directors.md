@@ -17,7 +17,7 @@ montara plan --pipeline <id> --seconds 30 "<idea>"
 | `animation` | Title in → Idea → Detail → Payoff |
 | `avatar-spokesperson` | Intro → Message → Proof → Call to action |
 | `cinematic` | Cold open → The build → The reveal → Resolve |
-| `clip-factory` | Hook → Payoff → Follow for more |
+| `clip-factory` | Hook -> payoff -> next action |
 | `documentary-montage` | Cold open → Context → Evidence → What it means → Close |
 | `hybrid` | Open → Footage → Support visual → Close |
 | `localization-dub` | Source segment → Translated caption → Dub note |

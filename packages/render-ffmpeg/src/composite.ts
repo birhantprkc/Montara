@@ -18,8 +18,7 @@ import {
   type Timeline,
 } from "../../core/src/index";
 import { mediaBin } from "./ffmpegPath";
-
-const FONT = "C\\:/Windows/Fonts/arialbd.ttf";
+import { drawtextFont } from "./font";
 
 function run(bin: string, args: string[]): void {
   const r = spawnSync(bin, args, { encoding: "utf8" });
@@ -116,7 +115,7 @@ function drawtextFor(clip: TextClip, compW: number, compH: number): string {
   const cx = clip.transform?.x ?? compW / 2;
   const cy = clip.transform?.y ?? compH / 2;
   const shadow = clip.style?.shadow !== false ? ":shadowcolor=black@0.7:shadowx=2:shadowy=2" : "";
-  return `drawtext=fontfile='${FONT}':text='${text}':fontcolor=0x${color}:fontsize=${size}:x=${cx}-text_w/2:y=${cy}-text_h/2${shadow}:enable='between(t\\,${clip.startSec}\\,${(clip.startSec + clip.durationSec).toFixed(3)})'`;
+  return `drawtext=${drawtextFont({ fontFamily: clip.style?.fontFamily })}:text='${text}':fontcolor=0x${color}:fontsize=${size}:x=${cx}-text_w/2:y=${cy}-text_h/2${shadow}:enable='between(t\\,${clip.startSec}\\,${(clip.startSec + clip.durationSec).toFixed(3)})'`;
 }
 
 /** Compile a layered Timeline into a single composited MP4. Honors PiP / collage / mask / effects. */

@@ -31,9 +31,15 @@ import {
   isMediaClip,
   pictureInPicture as pipTimeline,
   collage as collageTimeline,
+  scenePlanArtifactToTimeline,
+  timelineToScenePlanArtifact,
+  editDecisionsToTimeline,
+  timelineToEditDecisions,
+  type EditDecisionsArtifact,
+  type ScenePlanArtifact,
   type ScenePlan,
 } from "../packages/core/src/index";
-import { directScene, directScript, resolveEmotion } from "../packages/quality/src/index";
+import { directScene, directScript, resolveEmotion, planReelTreatment, createReelArtifacts } from "../packages/quality/src/index";
 import { exportTimeline, timelineToEDL, timelineToOTIO, timelineToFCPXML, framesToTimecode } from "../packages/bridge/src/index";
 import { brainCatalogue, ollamaInstalled } from "../packages/llm/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
@@ -54,6 +60,8 @@ import {
   runImageGeneration,
   TTS_PROVIDERS,
   MUSIC_PROVIDERS,
+  LOCAL_TTS_FALLBACK,
+  LOCAL_MUSIC_FALLBACK,
   getTtsProvider,
   buildTtsRequest,
   planSpeechGeneration,
@@ -68,6 +76,7 @@ import {
   ENHANCEMENT_TOOLS,
   getEnhancementTool,
   enhancementAvailable,
+  planMattingPipeline,
 } from "../packages/providers/src/index";
 import {
   DecisionTrail,
@@ -143,7 +152,7 @@ import {
 } from "../packages/tools/src/index";
 import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck, engineCompliance } from "../packages/engine/src/index";
 import { blenderAvailable, blenderBin } from "../packages/render-blender/src/index";
-import { voiceIdAvailable } from "../packages/hear/src/index";
+import { analyzeMusic, findDialogueByVoice, planSceneMappedMusic, speakerIntelligenceStatus, voiceIdAvailable } from "../packages/hear/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -178,6 +187,8 @@ import {
   renderAssistantConfig,
   ASSISTANT_TARGETS,
   SKILLS_ENTRY,
+  listSkills,
+  findSkills,
 } from "../packages/agent/src/index";
 
 let pass = 0;
@@ -210,6 +221,52 @@ const timeline = scenePlanToTimeline(plan);
 ok("scene plan compiles to Timeline IR", timeline.tracks.length === 2 && timeline.composition.durationSec === 3);
 ok("Timeline IR validates", validateTimeline(timeline).length === 0, validateTimeline(timeline).join("; "));
 ok("timelineDuration reads clip ends", timelineDuration(timeline) === 3, `got ${timelineDuration(timeline)}`);
+
+const upstreamScenePlan: ScenePlanArtifact = {
+  version: "1.0",
+  style_playbook: "explainer-data",
+  scenes: [
+    {
+      id: "system-loop",
+      type: "diagram",
+      description: "Show the quest progression loop",
+      start_seconds: 0,
+      end_seconds: 2,
+      information_role: "Quest -> skill -> gear -> choice",
+    },
+    {
+      id: "ui-example",
+      type: "screen_recording",
+      description: "Mock the player-facing rule UI",
+      start_seconds: 2,
+      end_seconds: 4.5,
+      shot_intent: "Make the abstract design rule inspectable",
+    },
+  ],
+};
+const bridgedSceneTimeline = scenePlanArtifactToTimeline(upstreamScenePlan, { width: 1280, height: 720, fps: 24 });
+const sceneRoundTrip = timelineToScenePlanArtifact(bridgedSceneTimeline);
+ok("scene_plan artifacts bridge into valid Timeline IR",
+  validateTimeline(bridgedSceneTimeline).length === 0 &&
+  bridgedSceneTimeline.composition.durationSec === 4.5 &&
+  sceneRoundTrip.scenes.length === 2);
+
+const upstreamEditDecisions: EditDecisionsArtifact = {
+  version: "1.0",
+  render_runtime: "hyperframes",
+  renderer_family: "explainer-data",
+  cuts: [
+    { id: "a", source: "solid:101820", in_seconds: 0, out_seconds: 1.25, title: "A rule appears" },
+    { id: "b", source: "solid:214f4b", in_seconds: 0, out_seconds: 1.75, title: "The system reacts" },
+  ],
+};
+const bridgedEditTimeline = editDecisionsToTimeline(upstreamEditDecisions, { width: 1080, height: 1920 });
+const editRoundTrip = timelineToEditDecisions(bridgedEditTimeline, { renderRuntime: "ffmpeg", rendererFamily: "presenter" });
+ok("edit_decisions artifacts bridge into Timeline IR and back",
+  validateTimeline(bridgedEditTimeline).length === 0 &&
+  bridgedEditTimeline.composition.durationSec === 3 &&
+  editRoundTrip.render_runtime === "ffmpeg" &&
+  editRoundTrip.cuts.length === 2);
 
 console.log("\n== foundation config + delivery (P1) ==");
 const defaults = createConfig();
@@ -505,7 +562,7 @@ ok("every image provider is category image", IMAGE_PROVIDERS.every((p) => p.cate
 
 const iInput = { prompt: "a narrow strait seen from orbit", outPath: join(process.cwd(), "out", "verify-image.png"), width: 512, height: 512 };
 const dalleReq = buildImageRequest(getImageProvider("dalle3")!, iInput, { OPENAI_API_KEY: "ok" });
-ok("DALL·E request is a Bearer POST with model + prompt", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer ok" && Boolean(dalleReq.body?.includes("dall-e-3")));
+ok("OpenAI image request is a Bearer POST with GPT Image model + prompt", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer ok" && Boolean(dalleReq.body?.includes("gpt-image-1")));
 const unsplashReq = buildImageRequest(getImageProvider("unsplash")!, iInput, { UNSPLASH_ACCESS_KEY: "uk" });
 ok("Unsplash request is a GET with Client-ID auth", unsplashReq.method === "GET" && unsplashReq.headers.Authorization === "Client-ID uk");
 
@@ -535,6 +592,20 @@ const speech = runSpeechGeneration({ text: "a measured line of narration about t
 ok("offline TTS writes a real PCM voice bed", Boolean(speech.result) && existsSync(voicePath) && probeDuration(voicePath) > 0.8);
 const music = runMusicGeneration({ prompt: "tense documentary underscore", outPath: musicPath, durationSec: 1.2 }, {});
 ok("offline music writes a real tone score", Boolean(music.result) && existsSync(musicPath) && probeDuration(musicPath) > 0.8);
+const musicAnalysis = analyzeMusic(musicPath);
+const scoreCues = planSceneMappedMusic(musicAnalysis, [
+  { id: "hook", startSec: 0, endSec: 0.6, role: "hook", emphasis: "high" },
+  { id: "explain", startSec: 0.6, endSec: 1.2, role: "support", emphasis: "medium" },
+]);
+ok("music analyzer inspects real audio and returns quality gates",
+  musicAnalysis.ok &&
+  musicAnalysis.durationSec > 0.8 &&
+  musicAnalysis.qualityGates.some((g) => g.id === "target-lufs") &&
+  musicAnalysis.suggestions.some((s) => s.includes("-14 LUFS")));
+ok("scene-mapped music planner adds fades, gain, and intentional silence",
+  scoreCues.length === 2 &&
+  scoreCues[0]!.silenceBeforeSec > 0 &&
+  scoreCues.every((cue) => cue.fadeInSec >= 0 && cue.fadeOutSec > 0 && cue.gainDb < 0));
 
 const mixPath = join(process.cwd(), "out", "verify-mix.wav");
 mixAudioTracks({ tracks: [{ path: voicePath, volume: 1 }, { path: musicPath, volume: 0.5, delaySec: 0.2 }], outPath: mixPath, duckUnderFirst: true });
@@ -566,10 +637,16 @@ const upPath = join(process.cwd(), "out", "verify-upscale.mp4");
 upscaleVideo({ inputPath: clipA, outPath: upPath, factor: 2 });
 ok("lanczos upscale writes a real MP4", existsSync(upPath) && probeDuration(upPath) > 0.8);
 
-ok("6 model enhancement tools registered", ENHANCEMENT_TOOLS.length === 6);
-ok("enhancement tools cover upscale/bg-remove/face/avatar/lip-sync", ["upscale", "bg-remove", "face-enhance", "face-restore", "talking-head", "lip-sync"].every((k) => ENHANCEMENT_TOOLS.some((t) => t.kind === k)));
+ok("10 model enhancement tools registered, including matting and tracking", ENHANCEMENT_TOOLS.length === 10);
+ok("enhancement tools cover upscale/bg-remove/matting/refine/tracking/face/avatar/lip-sync",
+  ["upscale", "bg-remove", "matting", "mask-refine", "motion-track", "face-enhance", "face-restore", "talking-head", "lip-sync"].every((k) => ENHANCEMENT_TOOLS.some((t) => t.kind === k)));
 const esrgan = getEnhancementTool("real-esrgan")!;
 ok("enhancer is unavailable without its runtime, available with it", !enhancementAvailable(esrgan, {}) && enhancementAvailable(esrgan, { REALESRGAN_BIN: "x" }) && esrgan.hasLocalFallback);
+const mattingPlan = planMattingPipeline({ SAM2_URL: "http://localhost:7861", BIREFNET_URL: "http://localhost:7862", OPENCV_TRACKING: "1" });
+ok("matting pipeline can plan text-behind-subject quality stages",
+  mattingPlan.supportsTextBehindSubject &&
+  mattingPlan.stages.some((s) => s.id === "edge-refine" && s.tool === "birefnet") &&
+  mattingPlan.stages.some((s) => s.id === "temporal-stability" && s.tool === "opencv-tracker"));
 
 console.log("\n== analysis / understanding (§G) ==");
 const sceneClip = join(process.cwd(), "out", "verify-scenes.mp4");
@@ -592,21 +669,34 @@ const transcript = transcribe({ inputPath: sceneClip }, {});
 ok("transcriber degrades to an empty transcript with no runtime", transcript.engine === "none" && transcript.segments.length === 0);
 
 const understanding = understandVideo(sceneClip, { maxFrames: 3 });
-ok("video understanding emits frame descriptors + tags", understanding.frames.length >= 2 && understanding.tags.length === 3 && understanding.sceneCount >= 2);
+ok("video understanding emits frame descriptors, tags, and five-aspect shot breakdowns",
+  understanding.frames.length >= 2 &&
+  understanding.tags.length >= 5 &&
+  understanding.sceneCount >= 2 &&
+  understanding.aspectBreakdown.length >= 1 &&
+  understanding.aspectBreakdown.every((shot) => Boolean(shot.subject && shot.subjectMotion && shot.scene && shot.spatialFraming && shot.camera)));
 
 const refAnalysis = analyzeReferenceVideo(sceneClip, {});
-ok("reference analysis proposes 2-3 concepts + a cost estimate", refAnalysis.concepts.length >= 2 && refAnalysis.concepts.length <= 3 && refAnalysis.costEstimateUsd > 0);
+ok("reference analysis proposes concepts, capability-aware needs, and a cost estimate",
+  refAnalysis.concepts.length >= 2 &&
+  refAnalysis.concepts.length <= 3 &&
+  refAnalysis.referenceNeeds.length >= 1 &&
+  refAnalysis.costEstimateUsd > 0);
 
 console.log("\n== render engines (§A) ==");
-ok("7 composition engines registered", listEngines().length === 7);
-ok("engines include revideo/motion-canvas/three/manim/blender", ["revideo", "motion-canvas", "three", "manim", "blender"].every((id) => Boolean(getEngine(id))));
+ok("9 composition/capture engines registered", listEngines().length === 9);
+ok("engines include revideo/motion-canvas/three/manim/blender/spline/playwright", ["revideo", "motion-canvas", "three", "manim", "blender", "spline", "playwright"].every((id) => Boolean(getEngine(id))));
+ok("engine registry marks adapter/runtime/planned maturity honestly",
+  getEngine("remotion")?.maturity === "adapter" &&
+  getEngine("playwright")?.maturity === "runtime-gated" &&
+  getEngine("spline")?.maturity === "planned");
 ok("scene-type auto-pick maps kinetic-typography to Motion Canvas", preferredEngine("kinetic-typography").id === "motion-canvas");
 ok("scene-type auto-pick maps 3d to three.js and math to Manim", preferredEngine("3d").id === "three" && preferredEngine("math").id === "manim");
 ok("an engine is unavailable without its runtime, ffmpeg always available", !engineAvailable(getEngine("three")!, {}) && engineAvailable(getEngine("ffmpeg")!, {}));
 
 const engineOut = join(process.cwd(), "out", "verify-engine.mp4");
 const engResult = renderWithEngine("motion-canvas", timeline, engineOut, {});
-ok("an engine adapter degrades to ffmpeg and renders a real MP4", existsSync(engineOut) && engResult.renderer === "degraded-ffmpeg");
+ok("generic engine dispatcher degrades honestly to ffmpeg and renders a real MP4", existsSync(engineOut) && engResult.renderer === "degraded-ffmpeg" && engResult.note.includes("fallback"));
 const ffOut = join(process.cwd(), "out", "verify-engine-ff.mp4");
 const ffResult = renderWithEngine("ffmpeg", timeline, ffOut, {});
 ok("the ffmpeg engine renders natively", existsSync(ffOut) && ffResult.renderer === "native");
@@ -987,6 +1077,21 @@ ok("compliance scan covers the whole source tree", Boolean(compliance) && compli
 console.log("\n== Voice-ID hear engine (2.4) ==");
 ok("voice-ID availability is a boolean (degrade-friendly), never throws", typeof voiceIdAvailable() === "boolean");
 ok("voice_id.py speaker-embedding tool ships in the repo", existsSync(join(process.cwd(), "voice_id.py")));
+const speakerStatus = speakerIntelligenceStatus();
+ok("speaker intelligence reports Resemblyzer/SpeechBrain/pyannote availability as booleans",
+  typeof speakerStatus.resemblyzer === "boolean" &&
+  typeof speakerStatus.speechbrainEcapa === "boolean" &&
+  typeof speakerStatus.pyannote === "boolean");
+const dialogueMatches = findDialogueByVoice({
+  queryAudioPath: join(process.cwd(), "out", "missing-query.wav"),
+  requestedLine: "picture abhi baaki hai mere dost",
+  corpus: [
+    { id: "srk-1", speaker: "Shah Rukh Khan", path: join(process.cwd(), "out", "missing-srk.wav"), line: "Picture abhi baaki hai mere dost" },
+    { id: "other-1", speaker: "Other", path: join(process.cwd(), "out", "missing-other.wav"), line: "This is a totally different line" },
+  ],
+});
+ok("dialogue search degrades to line-aware ranking when voice embeddings are unavailable",
+  dialogueMatches[0]?.clip.id === "srk-1" && dialogueMatches[0]!.lineScore > dialogueMatches[1]!.lineScore);
 
 console.log("\n== Render runtimes — Blender (2.3) ==");
 ok("blender availability is a boolean (degrade-friendly), never throws", typeof blenderAvailable() === "boolean");
@@ -1180,6 +1285,123 @@ ok("brain catalogues the three local backends (zero-key, offline)", (() => {
 })());
 ok("brain backends carry a base URL and a kind", brainCatalogue().every((b) => b.baseUrl.startsWith("http") && (b.kind === "ollama" || b.kind === "openai-compatible")));
 ok("ollamaInstalled() is a boolean probe (never throws)", typeof ollamaInstalled() === "boolean");
+
+// ---- Find-skills: search the real skills library ----
+ok("listSkills() discovers the skills library with titles", (() => {
+  const all = listSkills();
+  return all.length > 20 && all.every((s) => s.id.endsWith(".md") && s.title.length > 0) && all.some((s) => s.id.startsWith("editing/"));
+})());
+ok("findSkills ranks the masking doc top for a mask query", (() => {
+  const hits = findSkills("mask circular webcam ellipse");
+  return hits.length > 0 && hits[0]!.id.includes("masks");
+})());
+ok("findSkills surfaces the craft doc for a loudness query", (() => {
+  const hits = findSkills("master loudness lufs");
+  return hits.some((s) => s.id.includes("craft"));
+})());
+
+const reelPlan = planReelTreatment({
+  understanding: { durationSec: 12, sceneCount: 1, tags: ["bright", "muted", "slow-cut"] },
+  captions: [{ startSec: 0.4, endSec: 2.8, text: "AI employees are not a single prompt" }],
+  skills: findSkills("reel source media understand captions edit music voice mask").map((s) => ({ id: s.id, title: s.title, summary: s.summary })),
+  availableVoiceProviders: ["system"],
+  ttsProviders: [LOCAL_TTS_FALLBACK],
+  musicProviders: [LOCAL_MUSIC_FALLBACK],
+  capabilities: { localStt: true, voiceId: false, aiHumanMask: false, localBrain: false },
+});
+ok("planReelTreatment creates a source-aware reel plan with skills/tools/providers", (() => {
+  return reelPlan.beats.length >= 1 &&
+    reelPlan.visualDirectives.some((d) => d.kind === "source-primary") &&
+    reelPlan.selectedSkills.length > 0 &&
+    reelPlan.selectedTools.includes("planReelTreatment") &&
+    reelPlan.ttsDecision.mode === "skip" &&
+    reelPlan.musicDecision.mode === "skip" &&
+    reelPlan.maskingDecision.id === "safe-zone-overlays";
+})());
+
+const fablePlan = planReelTreatment({
+  understanding: { durationSec: 24, sceneCount: 1, tags: ["slow-cut", "vertical", "speech-capable"], caption: "talking head source" },
+  captions: [
+    { startSec: 1, endSec: 4, text: "Fable 5 needs player choice that changes quests and progression" },
+    { startSec: 9, endSec: 12, text: "The interface should make consequences readable before combat starts" },
+  ],
+  skills: findSkills("reel game design talking head overlays").map((s) => ({ id: s.id, title: s.title, summary: s.summary })),
+  availableVoiceProviders: ["system"],
+  ttsProviders: [LOCAL_TTS_FALLBACK],
+  musicProviders: [LOCAL_MUSIC_FALLBACK],
+  capabilities: { localStt: true, voiceId: false, aiHumanMask: false, localBrain: false },
+  prompt: "Make a reel about explaining the design of Fable 5 using this talking-head footage",
+});
+ok("Fable 5 talking-head prompt creates topic-specific game-design directives",
+  fablePlan.inputKind === "talking-head" &&
+  fablePlan.style === "smart-talking-head" &&
+  fablePlan.visualDirectives.some((d) => d.title === "PROGRESSION LOOP") &&
+  fablePlan.visualDirectives.some((d) => d.kind === "ui-mock") &&
+  fablePlan.editIntent.some((line) => line.includes("game-design visualizations")) &&
+  fablePlan.cta === "");
+
+const cinematicPlan = planReelTreatment({
+  understanding: { durationSec: 18, sceneCount: 4, tags: ["fast-cut"] },
+  captions: [],
+  skills: [],
+  availableVoiceProviders: ["system"],
+  ttsProviders: [LOCAL_TTS_FALLBACK],
+  musicProviders: [LOCAL_MUSIC_FALLBACK],
+  capabilities: { localStt: false, voiceId: false, aiHumanMask: false, localBrain: false },
+  prompt: "cinematic reel about the same design idea",
+});
+const minimalPlan = planReelTreatment({
+  understanding: { durationSec: 18, sceneCount: 4, tags: ["fast-cut"] },
+  captions: [],
+  skills: [],
+  availableVoiceProviders: ["system"],
+  ttsProviders: [LOCAL_TTS_FALLBACK],
+  musicProviders: [LOCAL_MUSIC_FALLBACK],
+  capabilities: { localStt: false, voiceId: false, aiHumanMask: false, localBrain: false },
+  prompt: "minimal reel about the same design idea",
+});
+const warfrontPlan = planReelTreatment({
+  understanding: { durationSec: 18, sceneCount: 4, tags: ["fast-cut"] },
+  captions: [],
+  skills: [],
+  availableVoiceProviders: ["system"],
+  ttsProviders: [LOCAL_TTS_FALLBACK],
+  musicProviders: [LOCAL_MUSIC_FALLBACK],
+  capabilities: { localStt: false, voiceId: false, aiHumanMask: false, localBrain: false },
+  prompt: "Warfront-style documentary reel with evidence and maps",
+});
+ok("requested reel styles produce distinct visual/timing treatments",
+  cinematicPlan.style === "cinematic" &&
+  minimalPlan.style === "minimal" &&
+  warfrontPlan.style === "warfront-documentary" &&
+  minimalPlan.timing.endCardDurationSec === 0 &&
+  warfrontPlan.visualDirectives.some((d) => d.kind === "map-or-data") &&
+  cinematicPlan.renderStyle.accent !== minimalPlan.renderStyle.accent);
+
+const reelArtifacts = createReelArtifacts({
+  inputPath: "source-talking-head.mp4",
+  understanding: { durationSec: 24, sceneCount: 1, tags: ["vertical", "slow-cut"] },
+  plan: fablePlan,
+  captions: [{ startSec: 1, endSec: 2.5, text: "choice needs readable stakes" }],
+});
+ok("content-aware reel plan emits editable Timeline IR plus edit_decisions",
+  validateTimeline(reelArtifacts.timeline).length === 0 &&
+  reelArtifacts.timeline.metadata?.reel_style === "smart-talking-head" &&
+  Array.isArray(reelArtifacts.timeline.metadata?.visual_directives) &&
+  reelArtifacts.editDecisions.render_runtime === "ffmpeg" &&
+  reelArtifacts.editDecisions.metadata?.visual_directives instanceof Array &&
+  reelArtifacts.editDecisions.cuts.length >= 1);
+
+const reelHardcodeFiles = [
+  join(process.cwd(), "packages", "render-ffmpeg", "src", "reel.ts"),
+  join(process.cwd(), "packages", "quality", "src", "reelPlanner.ts"),
+  join(process.cwd(), "packages", "quality", "src", "reelArtifacts.ts"),
+  join(process.cwd(), "packages", "cli", "src", "index.ts"),
+];
+const reelHardcodeText = reelHardcodeFiles.map((file) => readFileSync(file, "utf8")).join("\n");
+ok("reel path has no baked hooks or fixed ffmpeg layout/timing policy",
+  !/WATCH THE TURN|ONE TAKE, SHARPER EDIT|WATCH THE CUT|WATCH THE POINT BUILD|THIS ISN'T ONE PROMPT|dynamicWindow|capY|capSize|wrapAt|fontFamily: "Arial"|follow warfront|warfront\.live/.test(reelHardcodeText) &&
+  !/H \* 0\.[0-9]+|W \* 0\.[0-9]+|between\(t,[^)]+\)/.test(readFileSync(join(process.cwd(), "packages", "render-ffmpeg", "src", "reel.ts"), "utf8")));
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

@@ -7,6 +7,11 @@ Usage: python transcribe_local.py <media> [model] [language]
 """
 import json
 import sys
+from pathlib import Path
+
+VENDOR_PACKAGES = Path(__file__).resolve().parent / ".python-packages"
+if VENDOR_PACKAGES.exists():
+    sys.path.insert(0, str(VENDOR_PACKAGES))
 
 
 def main() -> int:

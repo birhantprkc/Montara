@@ -3,17 +3,17 @@ import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import type { ScenePlan, Timeline } from "../../core/src/index";
 import { validateTimeline, pictureInPicture, collage, type Corner, type MediaSpec } from "../../core/src/index";
-import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts, buildReel, type Caption } from "../../render-ffmpeg/src/index";
+import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts, buildReel, type Caption, type ThumbConcept } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
 import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable } from "../../providers/src/index";
-import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, directScript, type SceneEmotion } from "../../quality/src/index";
+import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, directScript, reviewSourceMedia, planReelTreatment, createReelArtifacts, type ReelInputKind, type ReelStyleMode, type SceneEmotion } from "../../quality/src/index";
 import { TTSSelector } from "../../tools/src/audio/tts-selector";
 import { runResearch } from "../../research/src/index";
-import { analyzeReferenceVideo } from "../../understand/src/index";
+import { analyzeReferenceVideo, understandVideo, type VideoUnderstanding } from "../../understand/src/index";
 import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
-import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY } from "../../agent/src/index";
+import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY, listSkills, findSkills } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
 import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
@@ -21,7 +21,7 @@ import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { exportTimeline, type EditorFormat } from "../../bridge/src/index";
 import { brainCatalogue, ollamaInstalled, ollamaModelsSync, ollamaCompleteSync } from "../../llm/src/index";
-import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback, transcribeAvailable, localTranscribe } from "../../hear/src/index";
+import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback, transcribeAvailable, localTranscribe, analyzeMusic, planSceneMappedMusic, speakerIntelligenceStatus, findDialogueByVoice } from "../../hear/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -102,6 +102,164 @@ function renderFile(inputPath: string, outPath: string): string {
   throw new Error(`unsupported input JSON: ${inputPath}`);
 }
 
+function pythonModuleAvailable(moduleName: string): boolean {
+  const r = spawnSync("python", ["-c", `import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('${moduleName}') else 1)`], { encoding: "utf8" });
+  return r.status === 0;
+}
+
+function optionValue(args: string[], name: string): string | undefined {
+  const eq = args.find((a) => a.startsWith(`${name}=`));
+  if (eq) return eq.slice(name.length + 1);
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : undefined;
+}
+
+function thumbnailConcepts(args: string[], durationSec: number): ThumbConcept[] {
+  const hooks = optionValue(args, "--hooks")
+    ?.split("|")
+    .map((h) => h.trim())
+    .filter(Boolean);
+  const labels = hooks?.length ? hooks : ["SOURCE TENSION", "CLEAR CONTRAST", "VIEWER STAKES"];
+  return labels.slice(0, 3).map((hook, index) => ({
+    hook,
+    atSec: durationSec * ((index + 1) / (labels.slice(0, 3).length + 1)),
+  }));
+}
+
+function runReelCommand(rest: string[]): number {
+  const input = rest[0];
+  if (!input || !existsSync(input)) {
+    console.error("usage: montara reel <input.mp4> [out] [--prompt TEXT] [--style cinematic|warfront-documentary|minimal|kinetic-typography] [--hook TEXT] [--cta TEXT] [--no-captions] [--model base] [--simple]");
+    return 1;
+  }
+
+  const out = (rest[1] && !rest[1].startsWith("--")) ? rest[1] : join(process.cwd(), "out", "montara-reel.mp4");
+  const modelI = rest.indexOf("--model");
+  const prompt = optionValue(rest, "--prompt") ?? optionValue(rest, "--about");
+  const requestedHook = optionValue(rest, "--hook");
+  const requestedCta = rest.includes("--no-cta") ? "" : optionValue(rest, "--cta");
+  const requestedStyle = optionValue(rest, "--style") as ReelStyleMode | undefined;
+  const inputKind = optionValue(rest, "--input-kind") as ReelInputKind | undefined;
+  const simple = rest.includes("--simple");
+  const noCaptions = rest.includes("--no-captions");
+
+  console.log("reviewing source media...");
+  const sourceReview = reviewSourceMedia([input]);
+
+  let understanding: VideoUnderstanding | null = null;
+  if (!rest.includes("--no-understand")) {
+    console.log("understanding source (frames + pacing)...");
+    try {
+      understanding = understandVideo(input, { maxFrames: 5 });
+      console.log(`  ${understanding.durationSec.toFixed(1)}s | ${understanding.sceneCount} scene(s) | tags ${understanding.tags.join(", ")}`);
+    } catch (err) {
+      console.log(`  understanding unavailable; using playback QA fallback (${err instanceof Error ? err.message : String(err)})`);
+    }
+  }
+
+  const qaBefore = qaPlayback(input);
+  if (!understanding) {
+    understanding = {
+      durationSec: qaBefore.durationSec,
+      sceneCount: Math.max(1, qaBefore.sceneChanges + 1),
+      frames: [],
+      tags: [
+        qaBefore.sceneChanges <= 1 ? "slow-cut" : "fast-cut",
+        qaBefore.width < qaBefore.height ? "vertical" : "horizontal",
+        qaBefore.hasAudio ? "speech-capable" : "silent",
+      ],
+      caption: "Fallback playback probe summary.",
+      aspectBreakdown: [],
+    };
+  }
+
+  const localStt = transcribeAvailable();
+  let captions: Caption[] = [];
+  if (!noCaptions) {
+    if (localStt) {
+      console.log("transcribing (local faster-whisper)...");
+      const t = localTranscribe(input, { model: modelI >= 0 ? rest[modelI + 1] : "base" });
+      if (t) {
+        captions = t.segments.map((s) => ({ startSec: s.start, endSec: s.end, text: s.text }));
+        console.log(`  ${captions.length} caption cues (${t.language}, ${t.duration}s)`);
+      } else {
+        console.log("  transcription failed; building reel without generated captions");
+      }
+    } else {
+      console.log("local STT unavailable (pip install faster-whisper); building reel without generated captions");
+    }
+  }
+
+  const skillHits = findSkills("reel source media understand captions edit music voice mask").slice(0, 8);
+  const availableTtsProviders = listTtsProviders(true).filter((p) => p.tier === "local-free" || providerAvailable(p));
+  const availableMusicProviders = listMusicProviders(true).filter((p) => p.tier === "local-free" || providerAvailable(p));
+  const plan = planReelTreatment({
+    understanding,
+    captions,
+    skills: skillHits.map((s) => ({ id: s.id, title: s.title, summary: s.summary })),
+    availableVoiceProviders: new TTSSelector().availableProviders(),
+    ttsProviders: availableTtsProviders,
+    musicProviders: availableMusicProviders,
+    capabilities: {
+      localStt: localStt && !noCaptions,
+      voiceId: voiceIdAvailable(),
+      aiHumanMask: pythonModuleAvailable("rembg"),
+      localBrain: ollamaInstalled(),
+    },
+    prompt,
+    requestedStyle,
+    inputKind,
+    requestedHook,
+    requestedCta,
+  });
+  if (simple) plan.renderOptions.smart = false;
+
+  const planPath = out.replace(/\.mp4$/i, ".reel-plan.json");
+  const timelinePath = out.replace(/\.mp4$/i, ".timeline.json");
+  const editDecisionsPath = out.replace(/\.mp4$/i, ".edit-decisions.json");
+  const artifacts = createReelArtifacts({ inputPath: input, understanding, plan, captions });
+  mkdirSync(dirname(planPath), { recursive: true });
+  writeFileSync(timelinePath, `${JSON.stringify(artifacts.timeline, null, 2)}\n`);
+  writeFileSync(editDecisionsPath, `${JSON.stringify(artifacts.editDecisions, null, 2)}\n`);
+  writeFileSync(planPath, JSON.stringify({
+    source_review: sourceReview,
+    reel_plan: plan,
+    timeline_path: timelinePath,
+    edit_decisions_path: editDecisionsPath,
+  }, null, 2));
+
+  console.log(`planning reel treatment -> ${planPath}`);
+  console.log(`  style: ${plan.style}; input: ${plan.inputKind}; prompt: ${plan.promptSummary}`);
+  console.log(`  intent: ${plan.editIntent.slice(0, 3).join("; ")}`);
+  console.log(`  directives: ${plan.visualDirectives.slice(0, 4).map((d) => d.title).join(", ")}`);
+  console.log(`  skills: ${plan.selectedSkills.map((s) => s.id).join(", ")}`);
+  console.log(`  tts: ${plan.ttsDecision.id} (${plan.ttsDecision.mode}); music: ${plan.musicDecision.id} (${plan.musicDecision.mode}); mask: ${plan.maskingDecision.id} (${plan.maskingDecision.mode})`);
+  console.log(`  IR: ${timelinePath}`);
+  console.log(`  edit decisions: ${editDecisionsPath}`);
+  console.log(`composing reel (${plan.renderOptions.smart ? "planned smart treatment" : "simple overlay treatment"} + -14 LUFS master)...`);
+
+  const res = buildReel(input, out, {
+    hook: plan.hook,
+    endCard: plan.cta || undefined,
+    captions,
+    lufs: -14,
+    smart: plan.renderOptions.smart,
+    beats: plan.beats,
+    style: plan.renderStyle,
+    timing: plan.timing,
+    timeline: artifacts.timeline,
+  });
+  if (!res.ok) {
+    console.error(`reel failed: ${res.error}`);
+    return 1;
+  }
+  const qa = qaPlayback(out);
+  console.log(`reel -> ${out}`);
+  console.log(`  ${res.captions} captions burned | ${qa.width}x${qa.height} ${qa.durationSec.toFixed(1)}s | audio ${qa.meanVolumeDb}dB/${qa.maxVolumeDb}dB peak | cuts ${qa.sceneChanges}`);
+  if (qa.issues.length) console.log(`  QA notes: ${qa.issues.join("; ")}`);
+  return res.ok ? 0 : 1;
+}
+
 function printHelp(): void {
   console.log(`montara <command>
 
@@ -110,6 +268,11 @@ Commands:
   render3d blender [out]          render the 3D intro via headless Blender + ffmpeg
   voiceid compare <test> ...      speaker-ID: classify a clip against labelled reference clips
   voiceid verify <a> <b>          speaker-ID: are two clips the same speaker?
+  voiceid search <query> <corpus.json> [--line TEXT]
+                                  find dialogue clips by local voice similarity + line match
+  music analyze <audio>           deep local music analysis + quality gates
+  music score <audio> <scenes.json>
+                                  scene-mapped score cues with crossfades/silence
   engine [info|smoke]             show Python engine readiness, or run the integrity smoke
   engine timeline <name>          bridge an engine composition into Montara Timeline IR
   engine render <name> [out]      render a bridged composition to MP4 (ffmpeg; --engine remotion)
@@ -128,6 +291,7 @@ Commands:
   render <ir.json>                render a ScenePlan or Timeline IR JSON to MP4
   review <mp4>                    post-render self-review report for an MP4
   analyze <mp4>                   scene/understanding analysis + concept variants for a video
+  reel <input.mp4> [out]           understand + smart-edit a source clip; writes MP4 + Timeline IR + edit decisions
   agent                           regenerate pipeline manifests + schemas + assistant configs
 
 Options (plan/make):
@@ -145,12 +309,28 @@ export function main(argv = process.argv.slice(2)): number {
     }
 
     if (command === "doctor") return runDoctor();
+    if (command === "reel") return runReelCommand(rest);
 
     if (command === "voiceid") {
       const sub = rest[0];
-      if (!voiceIdAvailable()) { console.error("voice-ID unavailable (pip install resemblyzer)."); return 1; }
+      if (sub === "status") {
+        const status = speakerIntelligenceStatus();
+        console.log(`speaker intelligence: resemblyzer=${status.resemblyzer} speechbrain-ecapa=${status.speechbrainEcapa} pyannote=${status.pyannote}`);
+        return 0;
+      }
       const a = rest[1];
       const b = rest[2];
+      if (sub === "search" && a && b && existsSync(b)) {
+        const line = optionValue(rest, "--line");
+        const corpus = JSON.parse(readFileSync(b, "utf8")) as { id: string; speaker: string; path: string; line?: string; tags?: string[] }[];
+        const matches = findDialogueByVoice({ queryAudioPath: a, requestedLine: line, corpus }).slice(0, 10);
+        for (const m of matches) {
+          console.log(`${m.combinedScore.toFixed(3)} voice=${m.voiceScore ?? "n/a"} line=${m.lineScore.toFixed(3)} ${m.clip.speaker} :: ${m.clip.line ?? m.clip.id}`);
+          console.log(`  ${m.clip.path}`);
+        }
+        return matches.length ? 0 : 1;
+      }
+      if (!voiceIdAvailable()) { console.error("voice-ID unavailable (pip install resemblyzer)."); return 1; }
       if (sub === "verify" && a && b) {
         const r = voiceVerify(a, b);
         if (!r) { console.error("voice verify failed"); return 1; }
@@ -166,7 +346,37 @@ export function main(argv = process.argv.slice(2)): number {
         for (const [label, score] of Object.entries(r.scores)) console.log(`  ${label}: ${score}`);
         return 0;
       }
-      console.error("usage: voiceid verify <a.wav> <b.wav>  |  voiceid compare <test.wav> <labelA> <refA.wav> <labelB> <refB.wav>");
+      console.error("usage: voiceid status | voiceid verify <a.wav> <b.wav> | voiceid compare <test.wav> <labelA> <refA.wav> <labelB> <refB.wav> | voiceid search <query.wav> <corpus.json> [--line TEXT]");
+      return 1;
+    }
+
+    if (command === "music") {
+      const sub = rest[0] ?? "analyze";
+      const audio = rest[1];
+      if (!audio || !existsSync(audio)) { console.error("usage: montara music analyze <audio> | montara music score <audio> <scenes.json>"); return 1; }
+      const analysis = analyzeMusic(audio);
+      if (sub === "analyze") {
+        const out = join(process.cwd(), "out", `${slug(audio.replace(/\.[a-z0-9]+$/i, ""))}.music-analysis.json`);
+        mkdirSync(dirname(out), { recursive: true });
+        writeFileSync(out, `${JSON.stringify(analysis, null, 2)}\n`);
+        console.log(`music: ${analysis.durationSec.toFixed(2)}s mean=${analysis.loudness.meanDb ?? "?"}dB peak=${analysis.loudness.peakDb ?? "?"}dB approx=${analysis.loudness.approximateLufs ?? "?"} LUFS`);
+        for (const gate of analysis.qualityGates) console.log(`  ${gate.ok ? "ok" : "warn"} ${gate.id}: ${gate.detail}`);
+        console.log(out);
+        return analysis.ok ? 0 : 1;
+      }
+      if (sub === "score") {
+        const scenePath = rest[2];
+        if (!scenePath || !existsSync(scenePath)) { console.error("usage: montara music score <audio> <scenes.json>"); return 1; }
+        const scenes = JSON.parse(readFileSync(scenePath, "utf8")) as { id: string; startSec: number; endSec: number; role?: string; emphasis?: "low" | "medium" | "high" }[];
+        const cues = planSceneMappedMusic(analysis, scenes);
+        const out = join(process.cwd(), "out", `${slug(scenePath.replace(/\.json$/i, ""))}.music-cues.json`);
+        mkdirSync(dirname(out), { recursive: true });
+        writeFileSync(out, `${JSON.stringify({ analysis, cues }, null, 2)}\n`);
+        console.log(`music cues -> ${out}`);
+        for (const cue of cues) console.log(`  ${cue.sceneId}: ${cue.startSec}-${cue.endSec}s gain ${cue.gainDb}dB silence ${cue.silenceBeforeSec}s`);
+        return 0;
+      }
+      console.error("usage: montara music analyze <audio> | montara music score <audio> <scenes.json>");
       return 1;
     }
 
@@ -198,6 +408,23 @@ export function main(argv = process.argv.slice(2)): number {
       }
       console.error(`unknown 3d renderer: ${kind} (supported: blender, three, manim)`);
       return 1;
+    }
+
+    if (command === "skills") {
+      const sub = rest[0] ?? "list";
+      if (sub === "find") {
+        const query = rest.slice(1).join(" ");
+        if (!query) { console.error('usage: montara skills find "<query>"'); return 1; }
+        const hits = findSkills(query);
+        if (!hits.length) { console.log(`no skills match "${query}"`); return 0; }
+        for (const s of hits) console.log(`${s.id.padEnd(34)} ${s.title}${s.summary ? ` — ${s.summary.slice(0, 70)}` : ""}`);
+        return 0;
+      }
+      const all = listSkills();
+      const cat = rest[1];
+      for (const s of all.filter((s) => !cat || s.category === cat)) console.log(`${s.id.padEnd(34)} ${s.title}`);
+      console.log(`\n${all.length} skills. Use: montara skills find "<query>"`);
+      return 0;
     }
 
     if (command === "brain") {
@@ -270,13 +497,25 @@ export function main(argv = process.argv.slice(2)): number {
       return 1;
     }
 
-    if (command === "reel") {
+    /*
+    if (false && command === "reel") {
       const input = rest[0];
-      if (!input || !existsSync(input)) { console.error("usage: montara reel <input.mp4> [out] [--hook TEXT] [--cta TEXT] [--no-captions] [--model base]"); return 1; }
+      if (!input || !existsSync(input)) { console.error("usage: montara reel <input.mp4> [out] [--hook TEXT] [--cta TEXT] [--no-captions] [--model base] [--simple]"); return 1; }
       const out = (rest[1] && !rest[1].startsWith("--")) ? rest[1] : join(process.cwd(), "out", "montara-reel.mp4");
       const hookI = rest.indexOf("--hook"); const ctaI = rest.indexOf("--cta"); const modelI = rest.indexOf("--model");
-      const hook = hookI >= 0 ? rest[hookI + 1] : "WATCH THIS";
-      const cta = ctaI >= 0 ? rest[ctaI + 1] : "FOLLOW FOR MORE";
+      const smart = !rest.includes("--simple");
+      let understanding: VideoUnderstanding | null = null;
+      if (!rest.includes("--no-understand")) {
+        console.log("understanding source (frames + pacing)…");
+        try {
+          understanding = understandVideo(input, { maxFrames: 5 });
+          console.log(`  ${understanding.durationSec.toFixed(1)}s · ${understanding.sceneCount} scene(s) · tags ${understanding.tags.join(", ")}`);
+        } catch (err) {
+          console.log(`  understanding unavailable — continuing with fallback reel treatment (${err instanceof Error ? err.message : String(err)})`);
+        }
+      }
+      const hook = hookI >= 0 ? rest[hookI + 1] : "";
+      const cta = ctaI >= 0 ? rest[ctaI + 1] : "";
 
       let captions: Caption[] = [];
       if (!rest.includes("--no-captions")) {
@@ -290,8 +529,8 @@ export function main(argv = process.argv.slice(2)): number {
         }
       }
 
-      console.log(`composing reel (hook + captions + end card + -14 LUFS master)…`);
-      const res = buildReel(input, out, { hook, endCard: cta, captions, lufs: -14 });
+      console.log(`composing reel (${smart ? "smart motion treatment" : "simple overlay treatment"} + -14 LUFS master)…`);
+      const res = buildReel(input, out, { hook, endCard: cta, captions, lufs: -14, smart });
       if (!res.ok) { console.error(`reel failed: ${res.error}`); return 1; }
       const qa = qaPlayback(out);
       console.log(`reel -> ${out}`);
@@ -299,6 +538,7 @@ export function main(argv = process.argv.slice(2)): number {
       if (qa.issues.length) console.log(`  QA notes: ${qa.issues.join("; ")}`);
       return res.ok ? 0 : 1;
     }
+    */
 
     if (command === "master") {
       const input = rest[0];
@@ -323,14 +563,10 @@ export function main(argv = process.argv.slice(2)): number {
 
     if (command === "thumbnail") {
       const video = rest[0];
-      if (!video || !existsSync(video)) { console.error("usage: montara thumbnail <video> [outDir]"); return 1; }
+      if (!video || !existsSync(video)) { console.error('usage: montara thumbnail <video> [outDir] [--hooks "A|B|C"]'); return 1; }
       const outDir = rest[1] || join(process.cwd(), "out", "thumbnails");
       const dur = probeDuration(video);
-      const paths = generateThumbnails(video, outDir, [
-        { hook: "WAIT FOR IT", accent: "ff3b3b", atSec: dur * 0.15 },
-        { hook: "THE PART NOBODY SHOWS", accent: "12dce8", atSec: dur * 0.5 },
-        { hook: "HOW IT ACTUALLY ENDS", accent: "f2c14e", atSec: dur * 0.8 },
-      ]);
+      const paths = generateThumbnails(video, outDir, thumbnailConcepts(rest, Math.max(dur, 1)));
       console.log(`thumbnails -> ${paths.length} distinct concepts in ${outDir}`);
       return paths.length ? 0 : 1;
     }
@@ -341,7 +577,8 @@ export function main(argv = process.argv.slice(2)): number {
       const outDir = rest[1] || join(process.cwd(), "out", "shorts");
       const dur = probeDuration(video);
       const seg = Math.min(20, Math.max(6, dur / 3));
-      const cuts = [0, dur / 2].filter((s) => s + seg <= dur + 0.5).map((s, i) => ({ startSec: s, endSec: Math.min(dur, s + seg), caption: i === 0 ? "THE HOOK" : "THE PAYOFF", captionAccent: "f2c14e" }));
+      const candidateStarts = Array.from({ length: 2 }, (_, i) => Math.max(0, (dur - seg) * (i / Math.max(1, 1))));
+      const cuts = candidateStarts.filter((s) => s + seg <= dur + 0.5).map((s) => ({ startSec: s, endSec: Math.min(dur, s + seg) }));
       const paths = cutShorts(video, cuts.length ? cuts : [{ startSec: 0, endSec: Math.min(dur, seg) }], outDir);
       console.log(`shorts -> ${paths.length} vertical 9:16 cut(s) in ${outDir}`);
       return paths.length ? 0 : 1;

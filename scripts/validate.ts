@@ -273,7 +273,7 @@ crossfadeStitch({ inputPaths: [genVideoPath, clip2], outPath: xfadePath, crossfa
 ok("crossfade stitch overlaps two clips", existsSync(xfadePath) && probeDuration(xfadePath) > 1.4);
 upscaleVideo({ inputPath: genVideoPath, outPath: upscaledPath, factor: 2 });
 ok("lanczos upscale produces a real MP4", existsSync(upscaledPath) && probeDuration(upscaledPath) > 0.8);
-ok("6 model enhancement tools registered + runtime-gated", ENHANCEMENT_TOOLS.length === 6 && !enhancementAvailable(getEnhancementTool("rembg")!, {}));
+ok("10 model enhancement tools registered + runtime-gated", ENHANCEMENT_TOOLS.length === 10 && !enhancementAvailable(getEnhancementTool("rembg")!, {}));
 
 console.log("\n== analysis / understanding (Phase 1.10 §G) ==");
 const refAnalysis = analyzeReferenceVideo(mp4Path, {});
@@ -285,12 +285,16 @@ writeFileSync(analysisPath, `${JSON.stringify(refAnalysis, null, 2)}\n`);
 ok("reference analysis emitted to disk", existsSync(analysisPath));
 
 console.log("\n== render engines (Phase 1.11 §A) ==");
-ok("7 composition engines registered", listEngines().length === 7);
+ok("9 composition/capture engines registered", listEngines().length === 9);
+ok("engine registry exposes maturity truth",
+  listEngines().some((e) => e.id === "remotion" && e.maturity === "adapter") &&
+  listEngines().some((e) => e.id === "spline" && e.maturity === "planned") &&
+  listEngines().some((e) => e.id === "playwright" && e.maturity === "runtime-gated"));
 ok("auto-pick maps scene types to engines", preferredEngine("kinetic-typography").id === "motion-canvas" && preferredEngine("3d").id === "three");
 const enginePath = join(outDir, "validate-engine.mp4");
 try { rmSync(enginePath, { force: true }); } catch { /* none */ }
 const engResult = renderWithEngine("motion-canvas", result.timeline, enginePath, {});
-ok("a non-ffmpeg engine renders the IR (degraded) to a real MP4", existsSync(enginePath) && probeDuration(enginePath) > 1 && engResult.renderer === "degraded-ffmpeg");
+ok("generic non-ffmpeg dispatch is honest fallback, not claimed native", existsSync(enginePath) && probeDuration(enginePath) > 1 && engResult.renderer === "degraded-ffmpeg" && engResult.note.includes("fallback"));
 
 console.log("\n== style + output profiles (Phase 1.12 §J) ==");
 ok("3 styles + 6 output profiles registered", STYLE_PLAYBOOKS.length === 3 && OUTPUT_PROFILES.length === 6);
@@ -386,7 +390,7 @@ ok("qaPlayback inspects real playback (dims, audio, scene variety)",
   `cuts=${qa.sceneChanges} issues=${qa.issues.join("|")}`);
 
 const thumbs = generateThumbnails(qaClip, join(outDir, "vc-thumbs"), [
-  { hook: "ONE", accent: "ff3b3b", atSec: 0.3 }, { hook: "TWO", accent: "12dce8", atSec: 0.7 }, { hook: "THREE", accent: "f2c14e", atSec: 1.1 },
+  { hook: "ONE", accent: "ff3b3b", atSec: 0.3 }, { hook: "TWO", accent: "12dce8", atSec: 0.7 }, { hook: "THREE", accent: "e6b44c", atSec: 1.1 },
 ]);
 ok("generateThumbnails produces 3 distinct thumbnail concepts", thumbs.length === 3 && thumbs.every((p) => existsSync(p)));
 
@@ -400,7 +404,7 @@ if (threeAvailable()) {
   const threeOut = join(outDir, "validate-three.mp4");
   const tr = renderThreeScene(threeOut, { width: 320, height: 180, fps: 10, seconds: 0.2, title: "M" });
   const threeRes = (spawnSync(mediaBin("ffprobe"), ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", threeOut], { encoding: "utf8" }).stdout || "").trim();
-  ok("render-three produces a real WebGL MP4 (headless Chrome)", tr.ok && tr.renderer === "three-webgl" && threeRes === "320x180", `frames=${tr.frames} res=${threeRes} err=${tr.error ?? ""}`);
+  ok("render-three produces a real MP4 or graceful fallback", tr.ok && (tr.renderer === "three-webgl" || tr.renderer === "ffmpeg-fallback") && threeRes === "320x180", `renderer=${tr.renderer} frames=${tr.frames} res=${threeRes} err=${tr.error ?? ""}`);
 } else {
   ok("render-three reports unavailable honestly when no browser/three", threeAvailable() === false);
 }
@@ -409,9 +413,13 @@ if (threeAvailable()) {
 const reelSrc = join(outDir, "vc-reel-src.mp4");
 spawnSync(ff, ["-y", "-f", "lavfi", "-i", "testsrc2=s=540x960:r=24", "-f", "lavfi", "-i", "sine=frequency=200", "-t", "3", "-pix_fmt", "yuv420p", "-shortest", reelSrc], { encoding: "utf8" });
 const reelOut = join(outDir, "validate-reel.mp4");
-const reel = buildReel(reelSrc, reelOut, { hook: "WATCH", endCard: "FOLLOW", captions: [{ startSec: 0.2, endSec: 1.5, text: "a real burned caption with punctuation: it works!" }], lufs: -14 });
+const reel = buildReel(reelSrc, reelOut, { hook: "WATCH", endCard: "NEXT", captions: [{ startSec: 0.2, endSec: 1.5, text: "a real burned caption with punctuation: it works!" }], lufs: -14 });
 const reelQa = qaPlayback(reelOut);
 ok("buildReel produces a captioned, audio-bearing vertical reel", reel.ok && reelQa.hasVideo && reelQa.hasAudio && reelQa.width === 540 && reelQa.durationSec > 2, `err=${reel.error ?? ""} ${reelQa.width}x${reelQa.height}`);
+const smartReelOut = join(outDir, "validate-smart-reel.mp4");
+const smartReel = buildReel(reelSrc, smartReelOut, { hook: "WATCH", endCard: "NEXT", lufs: -14, smart: true });
+const smartReelQa = qaPlayback(smartReelOut);
+ok("buildReel smart mode adds motion treatment and still produces a valid reel", smartReel.ok && smartReelQa.hasVideo && smartReelQa.hasAudio && smartReelQa.width === 540 && smartReelQa.durationSec > 2, `err=${smartReel.error ?? ""} ${smartReelQa.width}x${smartReelQa.height}`);
 
 console.log(`\nArtifact:    ${mp4Path}`);
 console.log(`IR:          ${irPath}`);

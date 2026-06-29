@@ -35,6 +35,6 @@ montara voice providers            # what voices are usable right now
 ## How it plugs into craft
 
 This is craft rule 1 ("voice is measurable / pick by emotion + music"). For documentary work the
-**baseline** voice is still the measured reference match (see `warfront-craft.md`); the director then
+**baseline** voice is still the measured reference match (see `documentary-evidence-craft.md`); the director then
 chooses *expression per scene* on top of that baseline. The `gainDb` and `musicDuckDb` it emits feed
 the mix and the `-14 LUFS` master (`render-ffmpeg/master.ts`), so dynamic volumes survive mastering.

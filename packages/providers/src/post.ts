@@ -130,7 +130,16 @@ export function upscaleVideo(input: UpscaleInput): ToolRunResult {
 }
 
 // ---- model-based enhancement catalogue (BYO local runtime) -----------------
-export type EnhancementKind = "upscale" | "bg-remove" | "face-enhance" | "face-restore" | "talking-head" | "lip-sync";
+export type EnhancementKind =
+  | "upscale"
+  | "bg-remove"
+  | "matting"
+  | "mask-refine"
+  | "motion-track"
+  | "face-enhance"
+  | "face-restore"
+  | "talking-head"
+  | "lip-sync";
 
 export interface EnhancementTool {
   id: string;
@@ -147,6 +156,10 @@ export interface EnhancementTool {
 export const ENHANCEMENT_TOOLS: EnhancementTool[] = [
   { id: "real-esrgan", name: "Real-ESRGAN", vendor: "xinntao", kind: "upscale", runtimeEnv: "REALESRGAN_BIN", hasLocalFallback: true, notes: "AI super-resolution; falls back to lanczos upscale." },
   { id: "rembg", name: "rembg (U2Net)", vendor: "danielgatis", kind: "bg-remove", runtimeEnv: "REMBG_URL", hasLocalFallback: false, notes: "Background removal / matting." },
+  { id: "sam2-video", name: "SAM 2 Video Masks", vendor: "Meta", kind: "matting", runtimeEnv: "SAM2_URL", hasLocalFallback: false, notes: "Promptable video object masks for layered effects and holdout mattes." },
+  { id: "rvm", name: "Robust Video Matting", vendor: "PeterL1n", kind: "matting", runtimeEnv: "RVM_BIN", hasLocalFallback: false, notes: "Temporal human matting with hair and motion awareness." },
+  { id: "birefnet", name: "BiRefNet", vendor: "ZhengPeng7", kind: "mask-refine", runtimeEnv: "BIREFNET_URL", hasLocalFallback: false, notes: "High-quality still/image segmentation refinement for edges and hair." },
+  { id: "opencv-tracker", name: "OpenCV Tracker", vendor: "OpenCV", kind: "motion-track", runtimeEnv: "OPENCV_TRACKING", hasLocalFallback: false, notes: "Local point/box tracking for text-behind-subject and attached graphics." },
   { id: "gfpgan", name: "GFPGAN", vendor: "TencentARC", kind: "face-enhance", runtimeEnv: "GFPGAN_BIN", hasLocalFallback: false, notes: "Face enhancement." },
   { id: "codeformer", name: "CodeFormer", vendor: "sczhou", kind: "face-restore", runtimeEnv: "CODEFORMER_BIN", hasLocalFallback: false, notes: "Face restoration." },
   { id: "sadtalker", name: "SadTalker", vendor: "OpenTalker", kind: "talking-head", runtimeEnv: "SADTALKER_URL", hasLocalFallback: false, notes: "Audio-driven talking-head avatar." },
@@ -163,4 +176,30 @@ export function getEnhancementTool(id: string): EnhancementTool | undefined {
 
 export function enhancementAvailable(tool: EnhancementTool, secrets: Record<string, string | undefined> = process.env): boolean {
   return Boolean(secrets[tool.runtimeEnv]);
+}
+
+export interface MattingPipelinePlan {
+  availableTools: string[];
+  unavailableTools: string[];
+  stages: { id: string; tool: string; purpose: string; required: boolean }[];
+  fallback: "safe-zone-overlays" | "chroma-key" | "manual-mask";
+  supportsTextBehindSubject: boolean;
+}
+
+export function planMattingPipeline(secrets: Record<string, string | undefined> = process.env): MattingPipelinePlan {
+  const relevant = ENHANCEMENT_TOOLS.filter((tool) => ["bg-remove", "matting", "mask-refine", "motion-track"].includes(tool.kind));
+  const availableTools = relevant.filter((tool) => enhancementAvailable(tool, secrets)).map((tool) => tool.id);
+  const unavailableTools = relevant.filter((tool) => !enhancementAvailable(tool, secrets)).map((tool) => tool.id);
+  const supportsTextBehindSubject = availableTools.some((id) => ["sam2-video", "rvm", "rembg"].includes(id));
+  return {
+    availableTools,
+    unavailableTools,
+    stages: [
+      { id: "initial-mask", tool: availableTools.find((id) => id === "sam2-video" || id === "rvm" || id === "rembg") ?? "safe-zone-overlays", purpose: "subject separation", required: true },
+      { id: "edge-refine", tool: availableTools.find((id) => id === "birefnet") ?? "feathered-alpha", purpose: "hair/edge refinement", required: false },
+      { id: "temporal-stability", tool: availableTools.find((id) => id === "opencv-tracker" || id === "rvm") ?? "static-safe-zone", purpose: "motion-aware consistency", required: false },
+    ],
+    fallback: supportsTextBehindSubject ? "manual-mask" : "safe-zone-overlays",
+    supportsTextBehindSubject,
+  };
 }

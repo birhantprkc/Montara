@@ -1,38 +1,120 @@
-// @montara/render-engines — the composition engine registry (§A).
-// Montara renders the same Timeline IR through any of seven engines. Native engines (Remotion,
-// Revideo, Motion Canvas, three.js, Manim, Blender) are invoked when present; otherwise the
-// renderer degrades to FFmpeg so a run always produces a real MP4. Auto-pick maps a scene type to
-// the engine best suited to it.
+// @montara/render-engines - composition/capture engine registry.
+// This registry is deliberately honest: some engines have native adapters
+// today, some are runtime-gated, and some are planned entries kept visible so
+// agents can report capability gaps instead of treating FFmpeg degradation as
+// native rendering.
 
 import type { Timeline } from "../../core/src/index";
 import { renderTimeline } from "../../render-ffmpeg/src/index";
 
-export type EngineId = "ffmpeg" | "remotion" | "revideo" | "motion-canvas" | "three" | "manim" | "blender";
+export type EngineId =
+  | "ffmpeg"
+  | "remotion"
+  | "revideo"
+  | "motion-canvas"
+  | "three"
+  | "manim"
+  | "blender"
+  | "spline"
+  | "playwright";
 
 export interface RenderEngine {
   id: EngineId;
   name: string;
   role: string;
   sceneTypes: string[];
-  /** env var that signals the native engine is installed/usable */
+  /** Optional env var that may hint the runtime is configured. Real probes live in autoRender.ts. */
   availabilityEnv?: string;
   license: string;
+  maturity: "working" | "adapter" | "runtime-gated" | "planned";
 }
 
 export interface EngineRenderResult {
   engine: EngineId;
   renderer: "native" | "degraded-ffmpeg";
   outPath: string;
+  note: string;
 }
 
 export const RENDER_ENGINES: RenderEngine[] = [
-  { id: "ffmpeg", name: "FFmpeg", role: "assembly + universal fallback", sceneTypes: ["assembly", "caption-card"], license: "LGPL/GPL" },
-  { id: "remotion", name: "Remotion", role: "default composition (React)", sceneTypes: ["explainer", "stat-reveal", "captions"], availabilityEnv: "REMOTION_ENABLED", license: "source-available" },
-  { id: "revideo", name: "Revideo", role: "license-safe composition fallback", sceneTypes: ["explainer-mit", "captions"], availabilityEnv: "REVIDEO_ENABLED", license: "MIT" },
-  { id: "motion-canvas", name: "Motion Canvas", role: "kinetic typography / motion graphics", sceneTypes: ["kinetic-typography", "motion-graphics"], availabilityEnv: "MOTIONCANVAS_ENABLED", license: "MIT" },
-  { id: "three", name: "three.js", role: "3D scenes / titles", sceneTypes: ["3d", "title-3d"], availabilityEnv: "THREE_ENABLED", license: "MIT" },
-  { id: "manim", name: "Manim", role: "math / educational animation", sceneTypes: ["math", "diagram"], availabilityEnv: "MANIM_BIN", license: "MIT" },
-  { id: "blender", name: "Blender", role: "pro 3D (shell)", sceneTypes: ["3d-pro"], availabilityEnv: "BLENDER_BIN", license: "GPL" },
+  {
+    id: "ffmpeg",
+    name: "FFmpeg",
+    role: "assembly + universal fallback",
+    sceneTypes: ["assembly", "caption-card"],
+    license: "LGPL/GPL",
+    maturity: "working",
+  },
+  {
+    id: "remotion",
+    name: "Remotion",
+    role: "React composition surface",
+    sceneTypes: ["explainer", "stat-reveal", "captions"],
+    availabilityEnv: "REMOTION_ENABLED",
+    license: "source-available",
+    maturity: "adapter",
+  },
+  {
+    id: "revideo",
+    name: "Revideo",
+    role: "license-safe composition fallback",
+    sceneTypes: ["explainer-mit", "captions"],
+    availabilityEnv: "REVIDEO_ENABLED",
+    license: "MIT",
+    maturity: "runtime-gated",
+  },
+  {
+    id: "motion-canvas",
+    name: "Motion Canvas",
+    role: "kinetic typography / motion graphics",
+    sceneTypes: ["kinetic-typography", "motion-graphics"],
+    availabilityEnv: "MOTIONCANVAS_ENABLED",
+    license: "MIT",
+    maturity: "runtime-gated",
+  },
+  {
+    id: "three",
+    name: "three.js",
+    role: "3D scenes / titles",
+    sceneTypes: ["3d", "title-3d"],
+    availabilityEnv: "THREE_ENABLED",
+    license: "MIT",
+    maturity: "runtime-gated",
+  },
+  {
+    id: "manim",
+    name: "Manim",
+    role: "math / educational animation",
+    sceneTypes: ["math", "diagram"],
+    availabilityEnv: "MANIM_BIN",
+    license: "MIT",
+    maturity: "runtime-gated",
+  },
+  {
+    id: "blender",
+    name: "Blender",
+    role: "pro 3D (shell)",
+    sceneTypes: ["3d-pro"],
+    availabilityEnv: "BLENDER_BIN",
+    license: "GPL",
+    maturity: "runtime-gated",
+  },
+  {
+    id: "spline",
+    name: "Spline",
+    role: "interactive/web 3D capture",
+    sceneTypes: ["web-3d", "spline"],
+    license: "SaaS/export-dependent",
+    maturity: "planned",
+  },
+  {
+    id: "playwright",
+    name: "Playwright",
+    role: "browser capture / website trailer recording",
+    sceneTypes: ["website-demo", "browser-recording"],
+    license: "Apache-2.0",
+    maturity: "runtime-gated",
+  },
 ];
 
 export * from "./autoRender";
@@ -55,16 +137,25 @@ export function preferredEngine(sceneType: string): RenderEngine {
   return RENDER_ENGINES.find((e) => e.sceneTypes.includes(sceneType)) ?? getEngine("ffmpeg")!;
 }
 
-/** Resolve the engine that will actually run: the preferred one if available, else FFmpeg. */
-export function selectEngine(sceneType: string, secrets: Record<string, string | undefined> = process.env): { preferred: RenderEngine; engine: RenderEngine; degraded: boolean } {
+/** Resolve the engine that will actually run according to env hints only. */
+export function selectEngine(
+  sceneType: string,
+  secrets: Record<string, string | undefined> = process.env,
+): { preferred: RenderEngine; engine: RenderEngine; degraded: boolean } {
   const preferred = preferredEngine(sceneType);
-  if (engineAvailable(preferred, secrets)) return { preferred, engine: preferred, degraded: preferred.id !== "ffmpeg" ? false : false };
+  if (engineAvailable(preferred, secrets)) {
+    return { preferred, engine: preferred, degraded: preferred.id !== "ffmpeg" ? false : false };
+  }
   return { preferred, engine: getEngine("ffmpeg")!, degraded: true };
 }
 
 /**
- * Render the IR through the named engine. Stage 1 ships the engines as honest adapters: when the
- * native engine is not wired/installed the render degrades to FFmpeg, always producing a real MP4.
+ * Generic dispatcher fallback.
+ *
+ * Package-specific native adapters exist for selected engines, but this generic
+ * dispatcher intentionally produces a verified FFmpeg fallback unless the
+ * caller reaches for a concrete native adapter. This prevents a package name or
+ * env var from being mistaken for a native render guarantee.
  */
 export function renderWithEngine(
   engineId: EngineId,
@@ -76,5 +167,12 @@ export function renderWithEngine(
   renderTimeline(timeline, outPath);
   const renderer: EngineRenderResult["renderer"] = engine.id === "ffmpeg" ? "native" : "degraded-ffmpeg";
   void engineAvailable(engine, secrets);
-  return { engine: engine.id, renderer, outPath };
+  return {
+    engine: engine.id,
+    renderer,
+    outPath,
+    note: engine.id === "ffmpeg"
+      ? "Rendered through the working FFmpeg path."
+      : `${engine.name} native rendering is not proven through this generic dispatcher; produced a verified FFmpeg fallback MP4.`,
+  };
 }

@@ -173,7 +173,7 @@ export interface Timeline {
   version: TimelineVersion;
   composition: Composition;
   tracks: Track[];
-  metadata?: Record<string, string | number | boolean>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface RenderOptions {

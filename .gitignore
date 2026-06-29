@@ -7,6 +7,7 @@ dist/
 models/
 out/
 .montara-cache/
+.python-packages/
 # esbuild-bundled test artifacts
 scripts/.verify.mjs
 scripts/.doctor.mjs

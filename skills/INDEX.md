@@ -21,7 +21,7 @@ Layer 2: skills/                          "How Montara uses these tools"
 
 Layer 3: .agents/skills/                  "How the technology itself works"
          Generic API knowledge from        Correct import paths, code patterns,
-         skills.sh (47 installed skills)   constraints, parameters â€" tech-agnostic
+         skills.sh (69 installed skills)   constraints, parameters â€" tech-agnostic
 ```
 
 **How the agent uses this:**
@@ -84,6 +84,8 @@ Key capability families to look for in the output:
 | WhisperX | `core/whisperx.md` | Transcription with word-level timestamps | `speech-to-text` |
 | Subtitle Sync | `core/subtitle-sync.md` | Subtitle timing and alignment | `remotion-best-practices` |
 | Color Grading | `core/color-grading.md` | FFmpeg color profiles, LUT workflow, accessibility | `ffmpeg` |
+| Playwright Recording | `core/playwright-recording.md` | Browser trailers, login-wall recording, storageState workflow | `playwright-recording` |
+| Desktop Screen Capture | `core/desktop-screen-capture.md` | Native app trailers and capture routing | `ffmpeg`, `playwright-recording` |
 | Timeline Editing | `editing/README.md` | Layered editing — PiP, collage, masks, effects, opacity, z-order on the Timeline IR | `ffmpeg`, `timeline-ir` |
 
 ## Editing Reference (`editing/`)
@@ -99,6 +101,7 @@ building PiP / collage / masks / effects.
 | `editing/masks.md` | rect / ellipse / rounded-rect alpha masks with feather |
 | `editing/effects.md` | blur, colour, grayscale, sharpen, chromakey chains |
 | `editing/collage.md` | Grid collage & split-screen |
+| `editing/subject-matting-effects.md` | production matting, text behind subject, tracking-aware layered compositing |
 
 ## Creative Skills
 
@@ -126,6 +129,8 @@ building PiP / collage / masks / effects.
 | Scene Detect Usage | `creative/scene-detect-usage.md` | Threshold tuning, algorithm selection, content presets | â€" |
 | Diagram Gen Usage | `creative/diagram-gen-usage.md` | Complexity limits, progressive building, themes | `beautiful-mermaid` |
 | Music Gen Usage | `creative/music-gen-usage.md` | BPM selection, prompt engineering, duration matching | `music`, `elevenlabs` |
+| Music Intelligence | `creative/music-intelligence.md` | Deep audio analysis, scene-mapped scoring, mastering gates | `music`, `sound-effects` |
+| Speaker / Voice Intelligence | `creative/speaker-voice-intelligence.md` | Speaker matching, dialogue corpus search, voice-ID governance | `speech-to-text` |
 | Background Removal | `creative/bg-remove-usage.md` | Model selection, alpha matting, compositing workflows | â€" |
 | Upscaling | `creative/upscale-usage.md` | Scale factor, model selection, face-aware upscaling | â€" |
 | Face Restoration | `creative/face-restore-usage.md` | CodeFormer/GFPGAN selection, fidelity tuning, vs face_enhance | â€" |
@@ -295,7 +300,8 @@ Cross-cutting skills that apply to all pipelines:
 | Reviewer | `meta/reviewer.md` | Self-review protocol after every stage |
 | Checkpoint Protocol | `meta/checkpoint-protocol.md` | When/how to checkpoint and request human approval |
 | Craft | `meta/craft.md` | Universal taste layer for ANY video — voice/music/mastering(-14 LUFS)/motion/text/QA/thumbnails/Shorts |
-| Warfront / Documentary Craft | `meta/warfront-craft.md` | Genre extension of Craft: maps & facts honest, measured reference voice, traceable claims |
+| Montara Documentary Evidence Craft | `meta/documentary-evidence-craft.md` | Genre extension of Craft: honest maps, measured reference voice, source-backed claims |
+| Warfront Craft Alias | `meta/warfront-craft.md` | Compatibility pointer to the generalized Montara documentary evidence skill |
 | Voice Direction | `meta/voice-direction.md` | Pick & shape the voice by scene emotion + music bed (dynamic rate/gain) |
 | Skill Creator | `meta/skill-creator.md` | Dynamically create new skills during pipeline runs |
 

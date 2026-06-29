@@ -10,14 +10,14 @@ import { tmpdir } from "node:os";
 import type { ScenePlan, Timeline } from "../../core/src/index";
 import { timelineToScenePlan, validateTimeline } from "../../core/src/index";
 import { mediaBin } from "./ffmpegPath";
+import { drawtextFont } from "./font";
 
 export { mediaBin };
+export { drawtextFont, resolveFontFile, type DrawtextFontOptions } from "./font";
 export { compositeTimeline } from "./composite";
 export { masterAudio, measureLoudness, type LoudnessStats, type MasterOptions, type MasterResult } from "./master";
 export { generateThumbnails, cutShort, cutShorts, type ThumbConcept, type ShortCut } from "./craft";
-export { buildReel, type Caption, type ReelOptions, type ReelResult } from "./reel";
-
-const FONT = "C\\:/Windows/Fonts/arialbd.ttf";
+export { buildReel, type Caption, type ReelBeat, type ReelOptions, type ReelResult, type ReelTimingOptions, type ReelVisualStyle } from "./reel";
 
 function run(bin: string, args: string[]): void {
   const r = spawnSync(bin, args, { encoding: "utf8" });
@@ -42,7 +42,7 @@ export function renderScenePlan(plan: ScenePlan, outPath: string): string {
     const bg = (sc.background || "0a0a0a").replace(/^#/, "");
     const title = (sc.title || "").replace(/[':\\]/g, " ").trim().slice(0, 60);
     const vf = title
-      ? `drawtext=fontfile='${FONT}':text='${title}':fontcolor=white:fontsize=28:x=(w-text_w)/2:y=(h-text_h)/2`
+      ? `drawtext=${drawtextFont()}:text='${title}':fontcolor=white:fontsize=28:x=(w-text_w)/2:y=(h-text_h)/2`
       : "null";
     run(ff, [
       "-y",

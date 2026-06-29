@@ -84,12 +84,12 @@ export const PIPELINE_DEFS: PipelineDef[] = [
   {
     id: "clip-factory",
     name: "Clip Factory",
-    blurb: "One self-contained short: hook → payoff → CTA.",
+    blurb: "One self-contained short: hook -> payoff -> next action.",
     palette: ["0a0a0a", "1d1d1d", "2a1240"],
     beats: [
       { label: "Hook", weight: 1.0 },
       { label: "Payoff", weight: 1.4 },
-      { label: "Follow for more", weight: 0.8 },
+      { label: "Next action", weight: 0.8 },
     ],
   },
   {

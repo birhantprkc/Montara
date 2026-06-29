@@ -49,7 +49,7 @@ export const VIDEO_PROVIDERS: MediaProvider[] = [
   // cloud (7)
   { id: "kling", name: "Kling", vendor: "Kuaishou", category: "video", tier: "cloud", authEnv: "KLING_API_KEY", endpoint: "https://api.klingai.com/v1/videos/text2video", notes: "Text/image-to-video, strong motion." },
   { id: "runway-gen3", name: "Runway Gen-3/4", vendor: "Runway", category: "video", tier: "cloud", authEnv: "RUNWAY_API_KEY", endpoint: "https://api.dev.runwayml.com/v1/image_to_video", notes: "Cinematic image-to-video." },
-  { id: "google-veo3", name: "Google Veo 3", vendor: "Google", category: "video", tier: "cloud", authEnv: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models/veo-3.0-generate-001:predictLongRunning", notes: "High-fidelity text-to-video with audio." },
+  { id: "google-veo3", name: "Google Veo 3", vendor: "Google", category: "video", tier: "cloud", authEnv: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models/veo-3.0-generate-preview:predictLongRunning", notes: "High-fidelity text-to-video with audio; live executor must follow current Gemini video docs." },
   { id: "grok-video", name: "Grok Imagine Video", vendor: "xAI", category: "video", tier: "cloud", authEnv: "XAI_API_KEY", endpoint: "https://api.x.ai/v1/video/generations", notes: "Fast stylised text-to-video." },
   { id: "higgsfield", name: "Higgsfield (Soul ID)", vendor: "Higgsfield", category: "video", tier: "cloud", authEnv: "HIGGSFIELD_API_KEY", endpoint: "https://platform.higgsfield.ai/v1/text2video", notes: "Character-consistent motion (Soul ID)." },
   { id: "minimax-video", name: "MiniMax (Hailuo)", vendor: "MiniMax", category: "video", tier: "cloud", authEnv: "MINIMAX_API_KEY", endpoint: "https://api.minimax.chat/v1/video_generation", notes: "Hailuo text/image-to-video." },
@@ -206,9 +206,9 @@ export interface ImageGenInput {
 export const IMAGE_PROVIDERS: MediaProvider[] = [
   // cloud (5)
   { id: "flux", name: "FLUX", vendor: "Black Forest Labs", category: "image", tier: "cloud", authEnv: "BFL_API_KEY", endpoint: "https://api.bfl.ai/v1/flux-pro-1.1", notes: "High-quality text-to-image." },
-  { id: "imagen", name: "Google Imagen", vendor: "Google", category: "image", tier: "cloud", authEnv: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict", notes: "Photoreal text-to-image." },
+  { id: "imagen", name: "Google Imagen", vendor: "Google", category: "image", tier: "cloud", authEnv: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict", notes: "Photoreal text-to-image via current Gemini Imagen family." },
   { id: "grok-image", name: "Grok Imagine Image", vendor: "xAI", category: "image", tier: "cloud", authEnv: "XAI_API_KEY", endpoint: "https://api.x.ai/v1/images/generations", notes: "Stylised text-to-image." },
-  { id: "dalle3", name: "DALL·E 3", vendor: "OpenAI", category: "image", tier: "cloud", authEnv: "OPENAI_API_KEY", endpoint: "https://api.openai.com/v1/images/generations", notes: "Text-to-image with strong prompt following." },
+  { id: "dalle3", name: "OpenAI Images", vendor: "OpenAI", category: "image", tier: "cloud", authEnv: "OPENAI_API_KEY", endpoint: "https://api.openai.com/v1/images/generations", notes: "Legacy id kept for compatibility; request defaults to GPT Image." },
   { id: "recraft", name: "Recraft", vendor: "Recraft", category: "image", tier: "cloud", authEnv: "RECRAFT_API_KEY", endpoint: "https://external.api.recraft.ai/v1/images/generations", notes: "Vector / brand-style image generation." },
   // local GPU (2)
   { id: "stable-diffusion", name: "Stable Diffusion", vendor: "Stability", category: "image", tier: "local-runtime", authEnv: "COMFYUI_URL", endpoint: "/prompt", notes: "Local SD/SDXL/FLUX via ComfyUI or A1111." },
@@ -274,8 +274,23 @@ export function buildImageRequest(
   // cloud
   const headers: Record<string, string> = { "Content-Type": "application/json", Authorization: `Bearer ${key}` };
   const body: Record<string, unknown> = { prompt, size };
-  if (provider.id === "dalle3") body.model = "dall-e-3";
-  if (provider.id === "imagen") { headers["x-goog-api-key"] = key; delete headers.Authorization; }
+  if (provider.id === "dalle3") body.model = "gpt-image-1";
+  if (provider.id === "imagen") {
+    headers["x-goog-api-key"] = key;
+    delete headers.Authorization;
+    return {
+      method: "POST",
+      url: endpoint,
+      headers,
+      body: JSON.stringify({
+        instances: [{ prompt }],
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: (input.width ?? 1024) === (input.height ?? 1024) ? "1:1" : `${input.width ?? 1024}:${input.height ?? 1024}`,
+        },
+      }),
+    };
+  }
   return { method: "POST", url: endpoint, headers, body: JSON.stringify(body) };
 }
 
@@ -399,7 +414,7 @@ export function buildTtsRequest(
     return { method: "POST", url: `${endpoint}?key=${encodeURIComponent(key)}`, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ input: { text }, voice: { languageCode: "en-US" }, audioConfig: { audioEncoding: "MP3" } }) };
   }
   if (provider.id === "openai-tts") {
-    return { method: "POST", url: endpoint, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: "tts-1", input: text, voice: input.voice ?? "alloy" }) };
+    return { method: "POST", url: endpoint, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify({ model: "gpt-4o-mini-tts", input: text, voice: input.voice ?? "alloy" }) };
   }
   // piper (local)
   return { method: "POST", url: "local://piper", headers: {}, body: JSON.stringify({ bin: secrets.PIPER_BIN ?? "piper", text, voice: input.voice ?? "en_US-amy-medium" }) };

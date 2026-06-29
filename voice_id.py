@@ -1,8 +1,8 @@
 """Montara voice-ID — speaker differentiation via Resemblyzer embeddings.
 
-Extracts a 256-d speaker "fingerprint" from short reference clips and compares a new clip
-to them with cosine similarity. This is the "is this voice closer to speaker A or B?" tool
-(e.g. Salman vs SRK): supply clean reference clips per speaker, then classify new audio.
+Extracts a 256-d speaker "fingerprint" from labelled reference clips and compares a new clip
+to them with cosine similarity. This is the "is this voice closer to speaker A or B?" tool:
+supply consented, licensed reference clips per speaker, then classify new audio against those labels.
 
 Heavy (imports torch via Resemblyzer), so it runs as a standalone tool — never inside the
 verify/validate gates. JSON in, JSON out.

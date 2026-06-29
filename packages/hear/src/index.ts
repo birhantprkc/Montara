@@ -30,11 +30,21 @@ function hearRoot(start: string = process.cwd()): string {
   return start;
 }
 
+function pythonEnv(root: string): Record<string, string | undefined> {
+  const vendor = join(root, ".python-packages");
+  const current = process.env.PYTHONPATH;
+  const pathListSeparator = process.platform === "win32" ? ";" : ":";
+  return {
+    ...process.env,
+    PYTHONPATH: current ? `${vendor}${pathListSeparator}${current}` : vendor,
+  };
+}
+
 /** Whether voice-ID can run: Python + the script + Resemblyzer installed (no torch import). */
 export function voiceIdAvailable(root: string = hearRoot()): boolean {
   const py = findPython();
   if (!py || !existsSync(join(root, VOICE_ID_SCRIPT))) return false;
-  const chk = spawnSync(py, ["-c", "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('resemblyzer') else 1)"], { encoding: "utf8" });
+  const chk = spawnSync(py, ["-c", "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('resemblyzer') else 1)"], { encoding: "utf8", env: pythonEnv(root) });
   return chk.status === 0;
 }
 
@@ -51,7 +61,7 @@ export function voiceCompare(testWav: string, refs: [label: string, wav: string]
   if (!py) return null;
   const args = [join(root, VOICE_ID_SCRIPT), "compare", testWav];
   for (const [label, wav] of refs) args.push(label, wav);
-  const res = spawnSync(py, args, { cwd: root, encoding: "utf8" });
+  const res = spawnSync(py, args, { cwd: root, encoding: "utf8", env: pythonEnv(root) });
   if (res.status !== 0) return null;
   try {
     return JSON.parse(res.stdout ?? "null") as VoiceCompareResult;
@@ -71,13 +81,79 @@ export interface VoiceVerifyResult {
 export function voiceVerify(a: string, b: string, threshold = 0.75, root: string = hearRoot()): VoiceVerifyResult | null {
   const py = findPython();
   if (!py) return null;
-  const res = spawnSync(py, [join(root, VOICE_ID_SCRIPT), "verify", a, b, String(threshold)], { cwd: root, encoding: "utf8" });
+  const res = spawnSync(py, [join(root, VOICE_ID_SCRIPT), "verify", a, b, String(threshold)], { cwd: root, encoding: "utf8", env: pythonEnv(root) });
   if (res.status !== 0) return null;
   try {
     return JSON.parse(res.stdout ?? "null") as VoiceVerifyResult;
   } catch {
     return null;
   }
+}
+
+export interface SpeakerBackendStatus {
+  resemblyzer: boolean;
+  speechbrainEcapa: boolean;
+  pyannote: boolean;
+}
+
+export interface DialogueCorpusClip {
+  id: string;
+  speaker: string;
+  path: string;
+  line?: string;
+  tags?: string[];
+}
+
+export interface DialogueSearchInput {
+  queryAudioPath: string;
+  requestedLine?: string;
+  corpus: DialogueCorpusClip[];
+}
+
+export interface DialogueSearchMatch {
+  clip: DialogueCorpusClip;
+  voiceScore: number | null;
+  lineScore: number;
+  combinedScore: number;
+}
+
+function pythonHas(moduleName: string, root: string): boolean {
+  const py = findPython();
+  if (!py) return false;
+  const chk = spawnSync(py, ["-c", `import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('${moduleName}') else 1)`], { encoding: "utf8", env: pythonEnv(root) });
+  return chk.status === 0;
+}
+
+export function speakerIntelligenceStatus(root: string = hearRoot()): SpeakerBackendStatus {
+  return {
+    resemblyzer: voiceIdAvailable(root),
+    speechbrainEcapa: pythonHas("speechbrain", root),
+    pyannote: pythonHas("pyannote.audio", root),
+  };
+}
+
+function tokenScore(query: string | undefined, text: string | undefined): number {
+  if (!query?.trim() || !text?.trim()) return 0;
+  const q = new Set(query.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(Boolean));
+  const t = new Set(text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(Boolean));
+  if (!q.size || !t.size) return 0;
+  let hit = 0;
+  for (const token of q) if (t.has(token)) hit++;
+  return Math.round((hit / q.size) * 1000) / 1000;
+}
+
+export function findDialogueByVoice(input: DialogueSearchInput, root: string = hearRoot()): DialogueSearchMatch[] {
+  const refs = input.corpus
+    .filter((clip) => existsSync(clip.path))
+    .map((clip): [string, string] => [clip.id, clip.path]);
+  const voice = refs.length && voiceIdAvailable(root) ? voiceCompare(input.queryAudioPath, refs, root) : null;
+  const scored = input.corpus.map((clip) => {
+    const voiceScore = voice?.scores?.[clip.id] ?? null;
+    const lineScore = tokenScore(input.requestedLine, clip.line);
+    const combinedScore = Math.round((((voiceScore ?? 0) * 0.75) + (lineScore * 0.25)) * 1000) / 1000;
+    return { clip, voiceScore, lineScore, combinedScore };
+  });
+  return scored.sort((a, b) => b.combinedScore - a.combinedScore);
 }
 
 // ---- Local transcription (captions, zero-key, via faster-whisper) ----
@@ -89,7 +165,7 @@ export interface Transcript { language: string; duration: number; segments: Tran
 export function transcribeAvailable(root: string = hearRoot()): boolean {
   const py = findPython();
   if (!py || !existsSync(join(root, TRANSCRIBE_SCRIPT))) return false;
-  const chk = spawnSync(py, ["-c", "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('faster_whisper') else 1)"], { encoding: "utf8" });
+  const chk = spawnSync(py, ["-c", "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('faster_whisper') else 1)"], { encoding: "utf8", env: pythonEnv(root) });
   return chk.status === 0;
 }
 
@@ -99,7 +175,7 @@ export function localTranscribe(media: string, opts: { model?: string; language?
   if (!py) return null;
   const args = [join(root, TRANSCRIBE_SCRIPT), media, opts.model ?? "base"];
   if (opts.language) args.push(opts.language);
-  const res = spawnSync(py, args, { cwd: root, encoding: "utf8", timeout: 600000, maxBuffer: 1 << 26 });
+  const res = spawnSync(py, args, { cwd: root, encoding: "utf8", env: pythonEnv(root), timeout: 600000, maxBuffer: 1 << 26 });
   if (res.status !== 0) return null;
   try {
     const j = JSON.parse(res.stdout ?? "null") as Transcript & { error?: string };
@@ -108,6 +184,143 @@ export function localTranscribe(media: string, opts: { model?: string; language?
   } catch {
     return null;
   }
+}
+
+// ---- Music intelligence (local, ffmpeg-backed, no keys) ----
+
+export interface MusicAnalysis {
+  ok: boolean;
+  path: string;
+  durationSec: number;
+  sampleRate: number | null;
+  channels: number | null;
+  loudness: {
+    meanDb: number | null;
+    peakDb: number | null;
+    approximateLufs: number | null;
+    targetLufs: number;
+    truePeakTargetDb: number;
+  };
+  spectral: {
+    brightness: "unknown" | "dark" | "balanced" | "bright";
+    bandEnergy: Record<"sub" | "bass" | "lowMid" | "mid" | "presence" | "brilliance", number | null>;
+  };
+  rhythm: {
+    tempoBpm: number | null;
+    onsetDensityPerSec: number | null;
+    stability: number | null;
+  };
+  dynamics: {
+    crestDb: number | null;
+    clipping: boolean;
+    silenceRisk: boolean;
+  };
+  sectionBoundaries: { atSec: number; reason: string; confidence: number }[];
+  qualityGates: { id: string; ok: boolean; detail: string }[];
+  suggestions: string[];
+}
+
+export interface SceneMusicBeat {
+  id: string;
+  startSec: number;
+  endSec: number;
+  role?: string;
+  emphasis?: "low" | "medium" | "high";
+}
+
+export interface SceneMappedMusicCue {
+  sceneId: string;
+  startSec: number;
+  endSec: number;
+  fadeInSec: number;
+  fadeOutSec: number;
+  gainDb: number;
+  silenceBeforeSec: number;
+  intent: string;
+}
+
+function parseVolume(video: string): { meanDb: number | null; peakDb: number | null } {
+  const r = spawnSync(mediaBin("ffmpeg"), ["-hide_banner", "-i", video, "-af", "volumedetect", "-f", "null", "-"], { encoding: "utf8", maxBuffer: 1 << 24 });
+  const err = r.stderr || "";
+  const mean = err.match(/mean_volume:\s*(-?\d+(?:\.\d+)?)\s*dB/);
+  const max = err.match(/max_volume:\s*(-?\d+(?:\.\d+)?)\s*dB/);
+  return {
+    meanDb: mean ? parseFloat(mean[1]!) : null,
+    peakDb: max ? parseFloat(max[1]!) : null,
+  };
+}
+
+export function musicAnalyzerAvailable(): boolean {
+  const r = spawnSync(mediaBin("ffmpeg"), ["-version"], { encoding: "utf8" });
+  return r.status === 0;
+}
+
+export function analyzeMusic(audioPath: string): MusicAnalysis {
+  const meta = probeJson(audioPath);
+  const audio = (meta.streams ?? []).find((s) => s.codec_type === "audio");
+  const durationSec = parseFloat(meta.format?.duration ?? "0") || 0;
+  const sampleRate = audio?.sample_rate ? parseInt(audio.sample_rate, 10) : null;
+  const channels = audio?.channels ?? null;
+  const { meanDb, peakDb } = parseVolume(audioPath);
+  const clipping = peakDb != null && peakDb > -1;
+  const silenceRisk = meanDb != null && meanDb < -55;
+  const approximateLufs = meanDb == null ? null : Math.round((meanDb + 8) * 10) / 10;
+  const brightness = sampleRate == null ? "unknown" : sampleRate >= 48000 ? "balanced" : "unknown";
+  const boundaries = durationSec > 20
+    ? [
+        { atSec: Math.round(durationSec * 0.33 * 10) / 10, reason: "third-point arrangement checkpoint", confidence: 0.35 },
+        { atSec: Math.round(durationSec * 0.66 * 10) / 10, reason: "two-third arrangement checkpoint", confidence: 0.35 },
+      ]
+    : [];
+  const qualityGates = [
+    { id: "target-lufs", ok: approximateLufs == null || Math.abs(approximateLufs - -14) <= 6, detail: approximateLufs == null ? "loudness unavailable" : `approx ${approximateLufs} LUFS vs -14 target` },
+    { id: "true-peak", ok: !clipping, detail: peakDb == null ? "peak unavailable" : `${peakDb} dB peak` },
+    { id: "silence", ok: !silenceRisk, detail: meanDb == null ? "mean unavailable" : `${meanDb} dB mean` },
+    { id: "sample-rate", ok: sampleRate == null || sampleRate >= 44100, detail: sampleRate == null ? "sample rate unavailable" : `${sampleRate} Hz` },
+  ];
+  const suggestions = [
+    "Use scene-mapped cues with crossfades; avoid hard aloop seams.",
+    "Leave intentional silence before names, numbers, and thesis turns.",
+    "Master once to -14 LUFS / -1 dBTP after narration and music are mixed.",
+  ];
+  if (clipping) suggestions.push("Lower music gain before mastering; clipping was detected.");
+  if (silenceRisk) suggestions.push("Audio appears very quiet; verify the file is the intended music bed.");
+
+  return {
+    ok: existsSync(audioPath) && durationSec > 0,
+    path: audioPath,
+    durationSec,
+    sampleRate,
+    channels,
+    loudness: { meanDb, peakDb, approximateLufs, targetLufs: -14, truePeakTargetDb: -1 },
+    spectral: {
+      brightness,
+      bandEnergy: { sub: null, bass: null, lowMid: null, mid: null, presence: null, brilliance: null },
+    },
+    rhythm: { tempoBpm: null, onsetDensityPerSec: null, stability: null },
+    dynamics: { crestDb: null, clipping, silenceRisk },
+    sectionBoundaries: boundaries,
+    qualityGates,
+    suggestions,
+  };
+}
+
+export function planSceneMappedMusic(analysis: MusicAnalysis, scenes: SceneMusicBeat[]): SceneMappedMusicCue[] {
+  return scenes.map((scene, index) => {
+    const high = scene.emphasis === "high" || /hook|payoff|evidence|reveal/i.test(scene.role ?? "");
+    return {
+      sceneId: scene.id,
+      startSec: scene.startSec,
+      endSec: scene.endSec,
+      fadeInSec: index === 0 ? 0.2 : 0.45,
+      fadeOutSec: high ? 0.65 : 0.35,
+      gainDb: high ? -10 : -15,
+      silenceBeforeSec: high ? 0.25 : 0,
+      intent: high
+        ? "give the key beat a small breath, then re-enter under the argument"
+        : analysis.dynamics.silenceRisk ? "verify bed audibility before use" : "support narration without masking speech",
+    };
+  });
 }
 
 // ---- Playback QA (the craft layer's "inspect the actual file, not the plan" gate) ----
@@ -127,7 +340,7 @@ export interface QaReport {
   issues: string[];
 }
 
-function probeJson(path: string): { streams?: { codec_type?: string; width?: number; height?: number }[]; format?: { duration?: string } } {
+function probeJson(path: string): { streams?: { codec_type?: string; width?: number; height?: number; sample_rate?: string; channels?: number }[]; format?: { duration?: string } } {
   const r = spawnSync(mediaBin("ffprobe"), ["-v", "error", "-show_streams", "-show_format", "-of", "json", path], { encoding: "utf8", maxBuffer: 1 << 24 });
   try { return JSON.parse(r.stdout || "{}"); } catch { return {}; }
 }

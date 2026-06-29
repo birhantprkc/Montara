@@ -8,6 +8,7 @@ and educational media under one searchable catalogue.
 from __future__ import annotations
 
 import html
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,7 @@ from .base import Candidate, SearchFilters
 
 
 _API_URL = "https://commons.wikimedia.org/w/api.php"
-_USER_AGENT = "MontaraBot/0.1 (contact: hello@warfront.live)"
+_USER_AGENT = os.environ.get("MONTARA_USER_AGENT", "MontaraBot/0.1")
 _COMMONS_LICENSE = "Wikimedia Commons (verify per-file license)"
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 

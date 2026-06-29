@@ -1,8 +1,9 @@
-"""Capability-level screen capture selector — routes between FFmpeg and Cap.
+"""Capability-level screen capture selector — routes between FFmpeg, Cap, and Playwright.
 
-Presents two options to the agent/user:
+Presents three options to the agent/user:
   1. FFmpeg (screen_recorder) — ready immediately, CLI-driven, no webcam
   2. Cap (cap_recorder) — needs install, polished UI, webcam overlay, cursor effects
+  3. Playwright (playwright_recorder) — browser automation + optional user login
 
 Provider discovery is automatic via the registry (capability="screen_capture").
 """
@@ -39,12 +40,15 @@ class ScreenCaptureSelector(BaseTool):
 
     capabilities = [
         "screen_recording",
+        "browser_recording",
+        "authenticated_browser_recording",
         "provider_selection",
         "cap_setup_guidance",
     ]
 
     best_for = [
         "Choosing between quick FFmpeg recording and polished Cap recording",
+        "Routing website and SaaS trailer captures to Playwright",
         "Guiding users through screen capture setup",
         "Routing screen-demo pipeline to the right capture tool",
     ]
@@ -68,9 +72,17 @@ class ScreenCaptureSelector(BaseTool):
             },
             "preferred_provider": {
                 "type": "string",
-                "enum": ["auto", "ffmpeg", "cap"],
+                "enum": ["auto", "ffmpeg", "cap", "playwright"],
                 "default": "auto",
                 "description": "Provider preference. 'auto' picks the best available.",
+            },
+            "url": {
+                "type": "string",
+                "description": "Browser URL for Playwright capture.",
+            },
+            "auth_state_path": {
+                "type": "string",
+                "description": "Optional Playwright storageState file for authenticated browser capture.",
             },
             "output_path": {
                 "type": "string",
@@ -158,11 +170,12 @@ class ScreenCaptureSelector(BaseTool):
             )
 
     def _recommend(self, inputs: dict[str, Any]) -> ToolResult:
-        """Assess both providers and return a recommendation with tradeoffs."""
+        """Assess providers and return a recommendation with tradeoffs."""
         providers = self._providers()
 
         ffmpeg_tool = providers.get("ffmpeg")
         cap_tool = providers.get("cap")
+        playwright_tool = providers.get("playwright")
 
         options = []
 
@@ -222,12 +235,36 @@ class ScreenCaptureSelector(BaseTool):
                 "setup_time": "~2 minutes" if not cap_installed else None,
             })
 
+        if playwright_tool:
+            playwright_status = playwright_tool.get_status()
+            options.append({
+                "provider": "playwright",
+                "tool": "playwright_recorder",
+                "label": "Browser Recording (Playwright)",
+                "available": playwright_status == ToolStatus.AVAILABLE,
+                "setup_required": playwright_status != ToolStatus.AVAILABLE,
+                "strengths": [
+                    "Records repeatable browser walkthroughs",
+                    "Can reuse a user-approved login storageState",
+                    "Works well for SaaS, dashboards, and websites behind auth",
+                    "Free/local; no paid capture service required",
+                ],
+                "limitations": [
+                    "Browser only -- not native desktop apps",
+                    "Requires Playwright + Chromium install",
+                    "User must log in manually for protected sites",
+                    "Needs privacy review before publishing authenticated recordings",
+                ],
+                "best_when": "You need a website or web-app trailer, especially behind a login wall",
+                "setup_time": "~2 minutes" if playwright_status != ToolStatus.AVAILABLE else None,
+            })
+
         # Determine recommendation
         preferred = inputs.get("preferred_provider", "auto")
-        if preferred == "cap" and any(o["provider"] == "cap" for o in options):
-            recommended = "cap"
-        elif preferred == "ffmpeg" and any(o["provider"] == "ffmpeg" for o in options):
-            recommended = "ffmpeg"
+        if preferred in {"cap", "ffmpeg", "playwright"} and any(o["provider"] == preferred for o in options):
+            recommended = preferred
+        elif inputs.get("url") and any(o["provider"] == "playwright" and o["available"] for o in options):
+            recommended = "playwright"
         else:
             # Auto: recommend Cap if installed+running, otherwise FFmpeg
             cap_option = next((o for o in options if o["provider"] == "cap"), None)
@@ -253,6 +290,7 @@ class ScreenCaptureSelector(BaseTool):
         """Build a human-readable recommendation message for the agent to present."""
         cap_option = next((o for o in options if o["provider"] == "cap"), None)
         ffmpeg_option = next((o for o in options if o["provider"] == "ffmpeg"), None)
+        playwright_option = next((o for o in options if o["provider"] == "playwright"), None)
 
         lines = ["**Screen Recording Options:**\n"]
 
@@ -267,6 +305,15 @@ class ScreenCaptureSelector(BaseTool):
             lines.append("  Webcam overlay, cursor effects, built-in editor. Professional output.")
             if not cap_option.get("available"):
                 lines.append("  Setup takes ~2 minutes. I can guide you through it.\n")
+            else:
+                lines.append("")
+
+        if playwright_option:
+            status = "Ready" if playwright_option["available"] else "Needs Playwright install"
+            lines.append(f"**Option 3 — Browser Recording (Playwright)** [{status}]")
+            lines.append("  Repeatable browser capture with storageState login support.")
+            if not playwright_option.get("available"):
+                lines.append("  Setup: npm install -D playwright @playwright/test && npx playwright install chromium\n")
             else:
                 lines.append("")
 
@@ -286,7 +333,34 @@ class ScreenCaptureSelector(BaseTool):
                 return tool.execute({"operation": "pick_latest", "output_dir": inputs.get("output_path")})
             return ToolResult(success=False, error="Cap provider not found in registry.")
 
+        if preferred == "playwright":
+            tool = providers.get("playwright")
+            if not tool:
+                return ToolResult(success=False, error="Playwright provider not found in registry.")
+            return tool.execute({
+                "operation": "record",
+                "url": inputs.get("url"),
+                "output_path": inputs.get("output_path", "recording.mp4"),
+                "auth_state_path": inputs.get("auth_state_path"),
+                "duration_seconds": inputs.get("duration_seconds", 60),
+                "width": inputs.get("width", 1920),
+                "height": inputs.get("height", 1080),
+            })
+
         if preferred == "ffmpeg" or preferred == "auto":
+            if preferred == "auto" and inputs.get("url"):
+                playwright_tool = providers.get("playwright")
+                if playwright_tool and playwright_tool.get_status() == ToolStatus.AVAILABLE:
+                    return playwright_tool.execute({
+                        "operation": "record",
+                        "url": inputs.get("url"),
+                        "output_path": inputs.get("output_path", "recording.mp4"),
+                        "auth_state_path": inputs.get("auth_state_path"),
+                        "duration_seconds": inputs.get("duration_seconds", 60),
+                        "width": inputs.get("width", 1920),
+                        "height": inputs.get("height", 1080),
+                    })
+
             tool = providers.get("ffmpeg")
             if tool and tool.get_status() == ToolStatus.AVAILABLE:
                 return tool.execute({
@@ -309,7 +383,7 @@ class ScreenCaptureSelector(BaseTool):
 
             return ToolResult(
                 success=False,
-                error="No screen capture provider available. Install FFmpeg or Cap.",
+                error="No screen capture provider available. Install FFmpeg, Cap, or Playwright.",
             )
 
         return ToolResult(success=False, error=f"Unknown provider: {preferred}")

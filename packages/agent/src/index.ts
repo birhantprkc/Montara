@@ -7,3 +7,4 @@ export * from "./pipelineCheckpoint";
 export * from "./pipelineLoader";
 export * from "./yaml";
 export * from "./assistants";
+export * from "./skillFinder";

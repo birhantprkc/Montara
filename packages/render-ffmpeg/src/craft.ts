@@ -6,8 +6,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { mediaBin } from "./ffmpegPath";
-
-const FONT = "C\\:/Windows/Fonts/arialbd.ttf";
+import { drawtextFont } from "./font";
 
 function run(bin: string, args: string[]): boolean {
   return (spawnSync(bin, args, { encoding: "utf8" }).status ?? -1) === 0;
@@ -30,7 +29,7 @@ export function generateThumbnails(video: string, outDir: string, concepts: Thum
   const out: string[] = [];
   concepts.forEach((c, i) => {
     const p = join(outDir, `thumb-${i + 1}.png`);
-    const accent = (c.accent ?? "f2c14e").replace(/^#/, "");
+    const accent = (c.accent ?? "ffffff").replace(/^#/, "");
     const hook = esc(c.hook).slice(0, 48);
     const vf = [
       `scale=1280:720:force_original_aspect_ratio=increase`,
@@ -38,7 +37,7 @@ export function generateThumbnails(video: string, outDir: string, concepts: Thum
       `eq=contrast=1.08:saturation=1.12`,
       `drawbox=x=0:y=560:w=1280:h=160:color=black@0.55:t=fill`,
       `drawbox=x=0:y=556:w=1280:h=6:color=0x${accent}:t=fill`,
-      `drawtext=fontfile='${FONT}':text='${hook}':fontcolor=white:fontsize=58:x=(w-text_w)/2:y=600:shadowcolor=black:shadowx=3:shadowy=3`,
+      `drawtext=${drawtextFont()}:text='${hook}':fontcolor=white:fontsize=58:x=(w-text_w)/2:y=600:shadowcolor=black:shadowx=3:shadowy=3`,
     ].join(",");
     if (run(ff, ["-y", "-ss", String(c.atSec ?? 1), "-i", video, "-frames:v", "1", "-vf", vf, p])) out.push(p);
   });
@@ -63,7 +62,7 @@ export function cutShort(video: string, cut: ShortCut, outPath: string): boolean
     const accent = (cut.captionAccent ?? "ffffff").replace(/^#/, "");
     filters.push(
       `drawbox=x=0:y=1500:w=1080:h=240:color=black@0.5:t=fill`,
-      `drawtext=fontfile='${FONT}':text='${esc(cut.caption).slice(0, 80)}':fontcolor=0x${accent}:fontsize=52:x=(w-text_w)/2:y=1560:line_spacing=10:shadowcolor=black:shadowx=2:shadowy=2`,
+      `drawtext=${drawtextFont()}:text='${esc(cut.caption).slice(0, 80)}':fontcolor=0x${accent}:fontsize=52:x=(w-text_w)/2:y=1560:line_spacing=10:shadowcolor=black:shadowx=2:shadowy=2`,
     );
   }
   return run(ff, [

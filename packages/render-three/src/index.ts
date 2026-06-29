@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-import { mediaBin } from "../../render-ffmpeg/src/index";
+import { drawtextFont, mediaBin } from "../../render-ffmpeg/src/index";
 
 const CHROME_CANDIDATES = [
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -60,7 +60,7 @@ export interface ThreeRenderResult {
   ok: boolean;
   path: string;
   frames: number;
-  renderer: "three-webgl";
+  renderer: "three-webgl" | "ffmpeg-fallback";
   error?: string;
 }
 
@@ -83,9 +83,35 @@ const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.9,0.3,160,40),
 knot.rotation.x = t*Math.PI*2; scene.add(knot);
 scene.add(new THREE.AmbientLight(0xffffff,0.45));
 const key = new THREE.DirectionalLight(0xffffff,1.4); key.position.set(3,4,5); scene.add(key);
-const rim = new THREE.DirectionalLight(0xf2c14e,0.7); rim.position.set(-4,-2,-3); scene.add(rim);
+const rim = new THREE.DirectionalLight(0xe6b44c,0.7); rim.position.set(-4,-2,-3); scene.add(rim);
 r.render(scene,cam); document.title='ready';
 </script></body></html>`;
+}
+
+function fallbackThreePreview(
+  outPath: string,
+  opts: { width: number; height: number; fps: number; seconds: number; title?: string; background: string },
+  reason: string,
+): ThreeRenderResult {
+  const ff = mediaBin("ffmpeg");
+  const vf: string[] = [
+    `drawbox=x='(iw*0.5)+(sin(t*4)*iw*0.18)-iw*0.11':y='(ih*0.5)+(cos(t*3)*ih*0.15)-ih*0.11':w='iw*0.22':h='ih*0.22':color=0x12dce8@0.88:t=fill`,
+    `drawbox=x='(iw*0.5)-(sin(t*4)*iw*0.18)-iw*0.08':y='(ih*0.5)-(cos(t*3)*ih*0.15)-ih*0.08':w='iw*0.16':h='ih*0.16':color=0xe6b44c@0.78:t=fill`,
+    "format=yuv420p",
+  ];
+  if (opts.title) {
+    const text = opts.title.replace(/[\\:']/g, " ").trim().slice(0, 40);
+    vf.unshift(`drawtext=${drawtextFont()}:text='${text}':fontcolor=white:fontsize=${Math.round(opts.height * 0.11)}:x=(w-text_w)/2:y=h-${Math.round(opts.height * 0.2)}:shadowcolor=black:shadowx=3:shadowy=3`);
+  }
+  const enc = spawnSync(ff, [
+    "-y",
+    "-f", "lavfi", "-i", `color=c=0x${opts.background}:s=${opts.width}x${opts.height}:d=${opts.seconds}:r=${opts.fps}`,
+    "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
+    "-vf", vf.join(","), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-preset", "veryfast", "-crf", "22",
+    "-c:a", "aac", "-ar", "48000", "-ac", "2", "-shortest", outPath,
+  ], { encoding: "utf8" });
+  if (enc.status !== 0) return { ok: false, path: outPath, frames: 0, renderer: "ffmpeg-fallback", error: `${reason}; fallback failed: ${(enc.stderr || "").slice(-220)}` };
+  return { ok: true, path: outPath, frames: Math.max(1, Math.round(opts.fps * opts.seconds)), renderer: "ffmpeg-fallback", error: reason };
 }
 
 /** Render a three.js scene to a real MP4 via headless WebGL + ffmpeg. */
@@ -116,7 +142,8 @@ export function renderThreeScene(outPath: string, opts: ThreeRenderOptions = {})
     const framePng = join(work, `frame_${String(f).padStart(4, "0")}.png`);
     const r = spawnSync(chrome, [
       "--headless=new", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
-      "--allow-file-access-from-files", "--hide-scrollbars", "--disable-extensions", "--mute-audio",
+      "--disable-gpu", "--disable-dev-shm-usage", "--no-first-run", "--no-default-browser-check",
+      "--disable-background-networking", "--allow-file-access-from-files", "--hide-scrollbars", "--disable-extensions", "--mute-audio",
       `--user-data-dir=${profile}`, `--window-size=${W},${H}`,
       `--screenshot=${framePng}`, "--virtual-time-budget=2500",
       `${htmlUrl}?f=${f}&n=${n}&w=${W}&h=${H}`,
@@ -124,17 +151,16 @@ export function renderThreeScene(outPath: string, opts: ThreeRenderOptions = {})
     if (existsSync(framePng)) rendered++;
     else if (f === 0) {
       try { rmSync(work, { recursive: true, force: true }); } catch { /* best effort */ }
-      return { ok: false, path: outPath, frames: 0, renderer: "three-webgl", error: `headless render produced no frame: ${(r.stderr || "").slice(-300)}` };
+      return fallbackThreePreview(outPath, { width: W, height: H, fps, seconds, title: opts.title, background: bg }, `headless WebGL produced no frame: ${(r.stderr || "").slice(-220)}`);
     }
   }
 
   // stitch frames -> mp4 (+ silent audio + optional wordmark)
   const ff = mediaBin("ffmpeg");
-  const FONT = "C\\:/Windows/Fonts/arialbd.ttf";
   const vf: string[] = ["format=yuv420p"];
   if (opts.title) {
     const text = opts.title.replace(/[\\:']/g, " ").trim().slice(0, 40);
-    vf.unshift(`drawtext=fontfile='${FONT}':text='${text}':fontcolor=white:fontsize=${Math.round(H * 0.11)}:x=(w-text_w)/2:y=h-${Math.round(H * 0.2)}:shadowcolor=black:shadowx=3:shadowy=3`);
+    vf.unshift(`drawtext=${drawtextFont()}:text='${text}':fontcolor=white:fontsize=${Math.round(H * 0.11)}:x=(w-text_w)/2:y=h-${Math.round(H * 0.2)}:shadowcolor=black:shadowx=3:shadowy=3`);
   }
   const enc = spawnSync(ff, [
     "-y", "-framerate", String(fps), "-start_number", "0", "-i", join(work, "frame_%04d.png"),
@@ -144,6 +170,6 @@ export function renderThreeScene(outPath: string, opts: ThreeRenderOptions = {})
   ], { encoding: "utf8" });
 
   try { rmSync(work, { recursive: true, force: true }); } catch { /* best effort */ }
-  if (enc.status !== 0) return { ok: false, path: outPath, frames: rendered, renderer: "three-webgl", error: (enc.stderr || "").slice(-300) };
+  if (enc.status !== 0) return fallbackThreePreview(outPath, { width: W, height: H, fps, seconds, title: opts.title, background: bg }, `three frame encode failed: ${(enc.stderr || "").slice(-220)}`);
   return { ok: true, path: outPath, frames: rendered, renderer: "three-webgl" };
 }

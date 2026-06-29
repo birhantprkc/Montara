@@ -16,7 +16,7 @@ from .base import Candidate, SearchFilters
 
 _SEARCH_URL = "https://api.unsplash.com/search/photos"
 _UNSPLASH_LICENSE = "Unsplash License (use returned hotlinked image URLs)"
-_USER_AGENT = "MontaraBot/0.1 (contact: hello@warfront.live)"
+_USER_AGENT = os.environ.get("MONTARA_USER_AGENT", "MontaraBot/0.1")
 
 
 class UnsplashSource:

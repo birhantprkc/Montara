@@ -6,7 +6,8 @@ applies regardless of genre, language, or platform. Assistants, the CLI, the orc
 GUIs all consult it before calling a video done.
 
 Genre-specific rules live in their own skills and *extend* this one (e.g. documentary adds
-"maps & facts honest" — see [warfront-craft.md](warfront-craft.md)). The rules below are universal.
+"maps & facts honest" -- see [documentary-evidence-craft.md](documentary-evidence-craft.md)).
+The rules below are universal.
 
 ## The universal rules
 
