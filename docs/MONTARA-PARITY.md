@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 3.6 capture CLI.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 2.1 native Remotion smoke.
 
 This checklist tracks two things:
 
@@ -14,7 +14,7 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 272 passed, 0 failed.
-- `npm.cmd run validate` passed: 75 passed, 0 failed.
+- `npm.cmd run validate` passed: 76 passed, 0 failed.
 - `python -m pytest tests` passed: 363 passed, 8 skipped.
 
 ## Snapshot
@@ -34,7 +34,7 @@ Latest local gates before this sync:
 | Prompt gallery | ☑ | Expanded beyond OpenMontage gallery coverage; demo/cost docs remain a Stage 4 public-launch task. |
 | Playwright capture | ◐ | Tool/selector/skills, pytest coverage, and `montara capture` CLI exist; native browser runtime remains Playwright-gated. |
 | 9-engine registry | ☑ | Includes maturity labels: working, adapter, runtime-gated, planned. |
-| Native Remotion | ◐ | Adapter/composer surface; native validate pending. |
+| Native Remotion | ◐ | Native smoke MP4 validate-gated when composer deps are installed; default Timeline routing pending. |
 | HyperFrames | ◐ | Layer 2/3 skills and upstream guidance; Montara compose parity pending. |
 | Revideo / Motion Canvas | ☐ | Registered/runtime-gated; native package work pending. |
 | Three.js / Manim | ◐ | Adapters exist; native proof depends on installed runtimes. |
@@ -52,7 +52,7 @@ Latest local gates before this sync:
 | Engine | Status | Current truth |
 | --- | --- | --- |
 | FFmpeg | ☑ | Working local native renderer and fallback. |
-| Remotion | ◐ | Adapter/composition surface; native MP4 validate pending. |
+| Remotion | ◐ | Native smoke MP4 validate-gated; full Timeline default routing pending. |
 | Revideo | ☐ | Runtime-gated adapter target. |
 | Motion Canvas | ☐ | Runtime-gated adapter target. |
 | HyperFrames | ◐ | Skills and upstream workflow present; CLI compose integration pending. |

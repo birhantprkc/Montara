@@ -326,7 +326,7 @@ The render stack is mixed maturity. Promise only what the machine can prove.
 | Runtime | Agent stance |
 | --- | --- |
 | FFmpeg | Reliable fallback. Good for assembly, trims, captions, audio, mastering, and simple composites. |
-| Remotion | Adapter/composition surface exists. Native rendering must be validated before promising it as the final engine. |
+| Remotion | Native smoke render is validate-gated when `remotion-composer` deps are installed. Full Timeline default routing still needs Stage 2.2. |
 | Revideo | Use when the local Revideo toolchain is installed and a validate case passes. |
 | Three.js | Use for WebGL/3D only after headless browser/asset checks pass. |
 | Manim | Use for math/science animation when Manim is installed; verify the generated MP4. |
@@ -345,7 +345,8 @@ Use the user's delivery promise to choose the runtime:
 - If the piece is mostly trims, captions, audio, and simple overlays, FFmpeg is
   often the right choice.
 - If it needs React scene components, word-level caption burn, or existing
-  Remotion compositions, try Remotion only after native validation passes.
+  Remotion compositions, use the native Remotion path only when the local smoke
+  validation passes; otherwise keep the FFmpeg fallback honest.
 - If it is HTML/GSAP-native, kinetic typography, website-to-video, or registry
   block driven, consider HyperFrames and validate its CLI.
 - If it is math/science, Manim is the natural runtime.

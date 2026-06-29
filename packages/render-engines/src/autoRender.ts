@@ -10,8 +10,8 @@ import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/i
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { revideoAvailable } from "../../render-revideo/src/index";
 import { motionCanvasAvailable } from "../../render-motioncanvas/src/index";
+import { remotionNativeAvailable } from "../../render-remotion/src/index";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
 import { preferredEngine, RENDER_ENGINES, type EngineId, type RenderEngine } from "./index";
 
 /** Real, runtime availability of each engine (probes the actual toolchain, not just an env flag). */
@@ -23,7 +23,7 @@ export function engineReallyAvailable(id: EngineId): boolean {
     case "manim": return manimAvailable();
     case "revideo": return revideoAvailable();
     case "motion-canvas": return motionCanvasAvailable();
-    case "remotion": return existsSync(join(process.cwd(), "remotion-composer", "package.json"));
+    case "remotion": return remotionNativeAvailable();
     default: return false;
   }
 }

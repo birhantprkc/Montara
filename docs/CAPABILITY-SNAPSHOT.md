@@ -29,7 +29,7 @@ Snapshot date: 2026-06-29.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
-| `npm.cmd run validate` | 75 passed, 0 failed |
+| `npm.cmd run validate` | 76 passed, 0 failed |
 | `python -m pytest tests` | 363 passed, 8 skipped |
 
 ## Example Outputs
@@ -38,6 +38,7 @@ Snapshot date: 2026-06-29.
 | --- | --- | --- |
 | Core validate render | `out/validate-compose-core.mp4` | FFmpeg fallback from Timeline IR |
 | Core validate IR | `out/validate-compose-core.timeline.json` | Timeline IR |
+| Native Remotion smoke | `out/validate-remotion-native.mp4` | Remotion native spring/caption composition when composer deps are installed |
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
 
@@ -47,7 +48,7 @@ Generated outputs live under `out/` and are not committed.
 
 | Tech | Current status |
 | --- | --- |
-| Remotion | Adapter and composer tree present; native render validation pending. |
+| Remotion | Native smoke render validate-gated when `remotion-composer` deps are installed; full Timeline default routing pending. |
 | Revideo | Registered runtime-gated MIT fallback target; native package work pending. |
 | Motion Canvas | Registered runtime-gated kinetic typography target; native package work pending. |
 | HyperFrames | Layer 2/3 skills and upstream workflow present; Montara compose parity pending. |
@@ -72,7 +73,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Add native Remotion validate case.
-2. Add HyperFrames E2E validate case.
-3. Promote kinetic typography into `pipeline_defs/`.
-4. Wire Python `video_compose` and corpus tools through the CLI.
+1. Add HyperFrames E2E validate case.
+2. Promote kinetic typography into `pipeline_defs/`.
+3. Wire Python `video_compose` and corpus tools through the CLI.
+4. Finish Remotion default routing for Timeline scenes.

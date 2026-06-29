@@ -37,7 +37,7 @@ and quality gates that block broken delivery — **without** needing OpenMontage
 ```bash
 pnpm typecheck
 pnpm verify      # contract tests (~271+ assertions; see scripts/verify.ts)
-pnpm validate    # end-to-end flows (~75 assertions; real MP4 on disk)
+pnpm validate    # end-to-end flows (~76 assertions; real MP4 on disk)
 python -m pytest tests
 ```
 
@@ -62,7 +62,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **PROMPT_GALLERY** | ☑ | Expanded beyond OpenMontage gallery coverage |
 | **Playwright capture** | ◐ | Tool + selector + Layer 2 skills + pytest + `montara capture`; runtime-gated on `playwright` npm |
 | **9-engine registry** | ☑ | Honest `maturity` labels (working / adapter / runtime-gated / planned) |
-| **Remotion native** | ◐ | Composer tree present; default path often FFmpeg solids |
+| **Remotion native** | ◐ | Native smoke MP4 validate-gated when composer deps are installed; default Timeline routing pending |
 | **HyperFrames native** | ◐ | Layer 2/3 skills; Montara compose parity incomplete |
 | **Revideo / Motion Canvas native** | ☐ | Registered; packages not fully implemented |
 | **Three.js / Manim native** | ◐ | Adapters exist; often FFmpeg fallback proofs |
@@ -174,7 +174,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 |-------|------|------|------------|
 | **0** | Foundation & honesty | Runnable repo, gates, honest docs, CI | **100%** |
 | **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **~70%** |
-| **2** | Native composition | Remotion + HyperFrames as real defaults, not FFmpeg solids | **~25%** |
+| **2** | Native composition | Remotion + HyperFrames as real defaults, not FFmpeg solids | **~35%** |
 | **3** | Moat core | IR import, local LLM, CLI completeness, capture, craft gates | **~40%** |
 | **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~15%** |
 | **5** | Product surface | runtimes, web GUI, WARCUT, public launch | **~5%** |
@@ -281,7 +281,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | Engine | Status | Next task |
 |--------|--------|-----------|
 | FFmpeg | ☑ working | Keep as universal floor |
-| Remotion | ◐ adapter | **Stage 2.1** — native validate MP4 |
+| Remotion | ◐ native smoke | Stage 2.2 — default Timeline routing |
 | Revideo | ☐ runtime-gated | Implement `@montara/render-revideo` native entry |
 | Motion Canvas | ☐ runtime-gated | Implement `@montara/render-motioncanvas` native entry |
 | HyperFrames | ◐ skills | Wire `hyperframes_compose` through CLI + validate |
@@ -301,7 +301,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 
 | ID | Task | Status | Acceptance |
 |----|------|--------|------------|
-| 2.1 | **Native Remotion render** in validate | ☐ | Real spring/caption MP4, not FFmpeg solids |
+| 2.1 | **Native Remotion render** in validate | ☑ | Real spring/caption MP4, not FFmpeg solids |
 | 2.2 | Remotion as default when `REMOTION_ENABLED` + composer installed | ☐ | `recommendEngine` + `montara make` use it |
 | 2.3 | **HyperFrames compose** E2E through Python `hyperframes_compose` | ☐ | validate case: kinetic typography MP4 |
 | 2.4 | `make setup` equivalent: `montara doctor --fix` + HyperFrames cache-warm | ☐ | npx hyperframes doctor |
@@ -436,9 +436,9 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 0.1.3 | AGENT_GUIDE onboarding section | done |
 | ✅ | 1A.7 | pytest for `playwright_recorder` | done |
 | ✅ | 3.6 | `montara capture` CLI wrapping Playwright tool | done |
-| 🎯 1 | 2.1 | Native Remotion validate case | 1–2d |
-| 🎯 2 | 2.3 | HyperFrames E2E validate case | 1–2d |
-| 🎯 3 | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | 2h |
+| ✅ | 2.1 | Native Remotion validate case | done |
+| 🎯 1 | 2.3 | HyperFrames E2E validate case | 1–2d |
+| 🎯 2 | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | 2h |
 | 6 | 1A.4 | CLI wire `video_compose` + `corpus_builder` | 1d |
 | 7 | 4.1 | README demo gallery | 1d |
 

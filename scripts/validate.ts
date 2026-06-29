@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import type { ScenePlan } from "../packages/core/src/index";
 import { secondsToFrames, validateTimeline, pictureInPicture, collage } from "../packages/core/src/index";
-import { composeScenePlan, renderComposedTimeline } from "../packages/render-remotion/src/index";
+import { composeScenePlan, renderComposedTimeline, remotionNativeAvailable, renderNativeRemotionSmoke } from "../packages/render-remotion/src/index";
 import { probeDuration, compositeTimeline, mediaBin, masterAudio, generateThumbnails, cutShort, buildReel } from "../packages/render-ffmpeg/src/index";
 import { qaPlayback } from "../packages/hear/src/index";
 import { threeAvailable, renderThreeScene } from "../packages/render-three/src/index";
@@ -296,6 +296,18 @@ const enginePath = join(outDir, "validate-engine.mp4");
 try { rmSync(enginePath, { force: true }); } catch { /* none */ }
 const engResult = renderWithEngine("motion-canvas", result.timeline, enginePath, {});
 ok("generic non-ffmpeg dispatch is honest fallback, not claimed native", existsSync(enginePath) && probeDuration(enginePath) > 1 && engResult.renderer === "degraded-ffmpeg" && engResult.note.includes("fallback"));
+
+const nativeRemotionPath = join(outDir, "validate-remotion-native.mp4");
+try { rmSync(nativeRemotionPath, { force: true }); } catch { /* none */ }
+if (remotionNativeAvailable()) {
+  const nativeRemotion = renderNativeRemotionSmoke(nativeRemotionPath);
+  const nativeDuration = nativeRemotion.ok && existsSync(nativeRemotionPath) ? probeDuration(nativeRemotionPath) : 0;
+  ok("native Remotion renders a spring/caption MP4",
+    nativeRemotion.ok && nativeDuration > 2.5,
+    `dur=${nativeDuration.toFixed(2)}s err=${nativeRemotion.error ?? ""}`);
+} else {
+  ok("native Remotion reports unavailable honestly when composer deps are absent", remotionNativeAvailable() === false);
+}
 
 console.log("\n== capture CLI (Stage 3.6) ==");
 const captureSetup = spawnSync(npmBin, ["run", "montara", "--", "capture", "setup", "--provider", "playwright"], {
