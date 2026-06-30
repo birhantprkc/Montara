@@ -334,6 +334,22 @@ function runPythonToolInfo(toolName: string, discoverModules: string[] = ["tools
   return parsePythonToolJson(proc.stdout || "", proc.stderr || "");
 }
 
+function runPythonSnippet(code: string, args: string[] = [], inputJson?: string, timeoutMs = 120_000): PythonToolResult {
+  const py = findPython();
+  if (!py) return { success: false, data: {}, artifacts: [], error: "Python 3 not found on PATH" };
+  const proc = spawnSync(py, ["-c", code, ...args], {
+    cwd: process.cwd(),
+    input: inputJson,
+    encoding: "utf8",
+    env: pythonEnv(),
+    timeout: timeoutMs,
+    maxBuffer: 1 << 22,
+  });
+  if (proc.error) return { success: false, data: {}, artifacts: [], error: proc.error.message };
+  if (proc.status !== 0) return { success: false, data: {}, artifacts: [], error: (proc.stderr || `python exited ${proc.status}`).trim().slice(-1000) };
+  return parsePythonToolJson(proc.stdout || "", proc.stderr || "");
+}
+
 function printPythonToolResult(result: PythonToolResult, json: boolean): void {
   if (json) {
     console.log(JSON.stringify(result, null, 2));
@@ -875,6 +891,174 @@ function runReelCommand(rest: string[]): number {
   return res.ok ? 0 : 1;
 }
 
+const BUDGET_SNIPPET = [
+  "import json, sys",
+  "from pathlib import Path",
+  "from tools.cost_tracker import CostTracker, ApprovalRequiredError, BudgetExceededError",
+  "from lib.config_model import BudgetMode",
+  "op = sys.argv[1]",
+  "p = json.loads(sys.stdin.read() or '{}')",
+  "log = Path(p['log'])",
+  "mode = BudgetMode(p.get('mode', 'warn'))",
+  "t = CostTracker(budget_total_usd=float(p.get('total', 10.0)), mode=mode, cost_log_path=log)",
+  "note = None",
+  "entry_id = None",
+  "try:",
+  "    if op == 'estimate':",
+  "        entry_id = t.estimate(p['tool'], p['operation'], float(p['usd']))",
+  "    elif op == 'reserve':",
+  "        if p.get('approve'):",
+  "            ent = t._find(p['entry_id'])",
+  "            t.approve_tool(ent['tool'])",
+  "        t.reserve(p['entry_id'])",
+  "    elif op == 'reconcile':",
+  "        t.reconcile(p['entry_id'], float(p['actual']), success=bool(p.get('success', True)))",
+  "    elif op == 'refund':",
+  "        t.refund(p['entry_id'])",
+  "except (ApprovalRequiredError, BudgetExceededError) as e:",
+  "    note = f'{type(e).__name__}: {e}'",
+  "snap = t.cost_snapshot()",
+  "out = {",
+  "    'success': note is None,",
+  "    'data': {",
+  "        'budget_total_usd': t.budget_total_usd,",
+  "        'usable_budget_usd': round(t.usable_budget_usd, 4),",
+  "        'snapshot': snap,",
+  "        'entries': t.entries,",
+  "        'entry_id': entry_id,",
+  "        'note': note,",
+  "    },",
+  "    'artifacts': [str(log)],",
+  "    'error': note,",
+  "}",
+  "print(json.dumps(out, default=str))",
+].join("\n");
+
+function runBudgetCommand(rest: string[]): number {
+  const sub = rest[0] && !rest[0].startsWith("--") ? rest[0] : "show";
+  const args = rest;
+  const json = args.includes("--json");
+  const log = optionValue(args, "--log") ?? join(process.cwd(), "out", "cost_log.json");
+  const total = numberOption(args, "--total", 10);
+  const mode = optionValue(args, "--mode") ?? "warn";
+  const positional = positionalArgs(args).slice(1); // drop the subcommand
+
+  const payload: Record<string, unknown> = { log, total, mode };
+  if (sub === "estimate") {
+    const [tool, operation, usd] = positional;
+    if (!tool || !operation || usd == null) {
+      console.error("usage: montara budget estimate <tool> <operation> <usd> [--log path] [--total N]");
+      return 1;
+    }
+    payload.tool = tool; payload.operation = operation; payload.usd = Number(usd);
+  } else if (sub === "reserve") {
+    const entryId = positional[0];
+    if (!entryId) { console.error("usage: montara budget reserve <entry-id> [--approve] [--mode observe|warn|cap]"); return 1; }
+    payload.entry_id = entryId;
+    payload.approve = args.includes("--approve");
+  } else if (sub === "reconcile") {
+    const [entryId, actual] = positional;
+    if (!entryId || actual == null) { console.error("usage: montara budget reconcile <entry-id> <actual-usd> [--fail]"); return 1; }
+    payload.entry_id = entryId; payload.actual = Number(actual); payload.success = !args.includes("--fail");
+  } else if (sub === "refund") {
+    const entryId = positional[0];
+    if (!entryId) { console.error("usage: montara budget refund <entry-id>"); return 1; }
+    payload.entry_id = entryId;
+  } else if (sub !== "show") {
+    console.error("usage: montara budget [show|estimate|reserve|reconcile|refund] ...");
+    return 1;
+  }
+
+  const result = runPythonSnippet(BUDGET_SNIPPET, [sub], JSON.stringify(payload));
+  if (json) { console.log(JSON.stringify(result, null, 2)); return result.success ? 0 : 1; }
+  if (!result.data || !result.data.snapshot) {
+    console.error(result.error || "budget command failed");
+    return 1;
+  }
+  const snap = result.data.snapshot as Record<string, number>;
+  console.log(`budget: $${Number(result.data.budget_total_usd).toFixed(2)} total | spent $${snap.total_spent_usd?.toFixed(2)} | reserved $${snap.total_reserved_usd?.toFixed(2)} | remaining $${snap.budget_remaining_usd?.toFixed(2)} | usable $${Number(result.data.usable_budget_usd).toFixed(2)}`);
+  if (result.data.entry_id) console.log(`entry: ${String(result.data.entry_id)}`);
+  const entries = (result.data.entries as Array<Record<string, unknown>>) ?? [];
+  for (const e of entries.slice(-12)) {
+    console.log(`  ${String(e.id)} ${String(e.status).padEnd(10)} ${String(e.tool).padEnd(16)} est $${Number(e.estimated_usd).toFixed(2)} resv $${Number(e.reserved_usd).toFixed(2)} act $${Number(e.actual_usd).toFixed(2)}`);
+  }
+  if (result.data.note) { console.error(`blocked: ${String(result.data.note)} (use --approve, or --mode observe to override)`); return 1; }
+  console.log(`log: ${log}`);
+  return 0;
+}
+
+const RESUME_SNIPPET = [
+  "import json, sys",
+  "from pathlib import Path",
+  "from lib.checkpoint import get_latest_checkpoint, get_completed_stages, get_next_stage, get_pipeline_stages",
+  "p = json.loads(sys.stdin.read() or '{}')",
+  "pipeline_dir = Path(p['pipeline_dir'])",
+  "project_id = p['project_id']",
+  "ptype = p.get('pipeline_type')",
+  "latest = get_latest_checkpoint(pipeline_dir, project_id)",
+  "if ptype is None and latest:",
+  "    ptype = latest.get('pipeline_type') if latest.get('pipeline_type') not in (None, 'unknown') else None",
+  "completed = get_completed_stages(pipeline_dir, project_id, ptype)",
+  "nxt = get_next_stage(pipeline_dir, project_id, ptype)",
+  "out = {",
+  "    'success': latest is not None,",
+  "    'data': {",
+  "        'project_id': project_id,",
+  "        'pipeline_type': ptype,",
+  "        'stages': get_pipeline_stages(ptype),",
+  "        'completed': completed,",
+  "        'next_stage': nxt,",
+  "        'latest_stage': latest.get('stage') if latest else None,",
+  "        'latest_status': latest.get('status') if latest else None,",
+  "        'done': nxt is None,",
+  "    },",
+  "    'artifacts': [],",
+  "    'error': None if latest else f'no checkpoints found for project {project_id!r} under {pipeline_dir}',",
+  "}",
+  "print(json.dumps(out, default=str))",
+].join("\n");
+
+function runResumeCommand(rest: string[]): number {
+  const args = rest;
+  const json = args.includes("--json");
+  const positional = positionalArgs(args);
+  const target = positional[0];
+  if (!target) {
+    console.error("usage: montara resume <project-dir> [--pipeline <type>]   # project-dir holds checkpoint_*.json");
+    console.error("       montara resume <pipeline-dir> <project-id> [--pipeline <type>]");
+    return 1;
+  }
+  let pipelineDir: string;
+  let projectId: string;
+  if (positional[1] && !positional[1].startsWith("--")) {
+    pipelineDir = target;
+    projectId = positional[1];
+  } else {
+    // treat target as the project directory itself: <pipeline-dir>/<project-id>
+    const normalized = target.replace(/[\\/]+$/, "");
+    pipelineDir = dirname(normalized) || ".";
+    projectId = normalized.split(/[\\/]/).pop() || normalized;
+  }
+  const payload: Record<string, unknown> = { pipeline_dir: pipelineDir, project_id: projectId };
+  const ptype = optionValue(args, "--pipeline");
+  if (ptype) payload.pipeline_type = ptype;
+
+  const result = runPythonSnippet(RESUME_SNIPPET, [], JSON.stringify(payload));
+  if (json) { console.log(JSON.stringify(result, null, 2)); return result.success ? 0 : 1; }
+  if (!result.success) { console.error(result.error || "resume failed"); return 1; }
+  const d = result.data;
+  console.log(`project: ${String(d.project_id)} (${String(d.pipeline_type ?? "unknown")})`);
+  console.log(`latest:  ${String(d.latest_stage)} [${String(d.latest_status)}]`);
+  console.log(`completed: ${(d.completed as string[] | undefined)?.join(", ") || "none"}`);
+  if (d.done) {
+    console.log("next: all stages complete — nothing to resume");
+  } else {
+    console.log(`next: resume at '${String(d.next_stage)}'`);
+    console.log(`  e.g. montara make --pipeline ${String(d.pipeline_type ?? "animated-explainer")} "<idea>"  (then continue from ${String(d.next_stage)})`);
+  }
+  return 0;
+}
+
 function printHelp(): void {
   console.log(`montara <command>
 
@@ -915,6 +1099,9 @@ Commands:
                                   run Python video_compose; pass --assets for high-level render artifacts
   corpus <sources|build|search>    stock-footage corpus discovery, population, and retrieval
   reel <input.mp4> [out]           understand + smart-edit a source clip; writes MP4 + Timeline IR + edit decisions
+  budget [show|estimate|reserve|reconcile|refund]
+                                  preflight cost governance over cost_log.json (wraps tools/cost_tracker.py)
+  resume <project-dir>             report completed stages + the next stage to run from checkpoints
   agent                           regenerate pipeline manifests + schemas + assistant configs
 
 Options (plan/make):
@@ -936,6 +1123,8 @@ export function main(argv = process.argv.slice(2)): number {
     if (command === "capture") return runCaptureCommand(rest);
     if (command === "compose") return runComposeCommand(rest);
     if (command === "corpus") return runCorpusCommand(rest);
+    if (command === "budget") return runBudgetCommand(rest);
+    if (command === "resume") return runResumeCommand(rest);
 
     if (command === "voiceid") {
       const sub = rest[0];

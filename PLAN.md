@@ -53,7 +53,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **FFmpeg render** (`@montara/render-ffmpeg`) | ☑ | Universal native renderer + fallback floor |
 | **Python engine** (`tools/`, `lib/`) | ☑ | 116 tools (115 parity + `playwright_recorder`), 18 lib modules at repo root |
 | **Engine bridge** (`engine_bridge.py`, `@montara/engine`) | ☑ | Stdlib JSON bridge; AST verify; composition ↔ IR mapping |
-| **CLI** (`packages/cli`) | ◐ | doctor, make, plan, render, export, capture, compose, corpus, reel, hear, understand, engines — not every Python tool wired |
+| **CLI** (`packages/cli`) | ◐ | doctor, make, plan, render, export, import, capture, compose, corpus, reel, budget, resume, hear, understand, engines — not every Python tool wired |
 | **Editor export** (EDL, OTIO, FCPXML) | ☑ | `@montara/bridge`; verify tests green |
 | **Editor import** (round-trip) | ☑ | `montara import` EDL/OTIO/FCPXML → Timeline IR; verify round-trip green |
 | **CI** | ☑ | typecheck + verify + validate + pytest (+ optional native-render smoke) |
@@ -272,9 +272,9 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | **F** Post/enhancement | ◐ | Model enhancers runtime-gated |
 | **G** Analysis/understanding | ◐ | Reference analysis ☑ in verify; CLIP vision ☐ |
 | **H** Intelligence (research, corpus, scoring) | ◐ | TS ports exist; Python corpus has CLI build/search/status surface |
-| **I** Governance (pre-compose, self-review, budget) | ◐ | quality package; budget CLI ☐ |
+| **I** Governance (pre-compose, self-review, budget) | ◐ | quality package; `montara budget` CLI ☑ |
 | **J** Styles (3) + output profiles (6) | ☑ | verify green |
-| **K** Agent layer (skills, schemas, checkpoints) | ◐ | skills ☑; checkpoint resume CLI ☐ |
+| **K** Agent layer (skills, schemas, checkpoints) | ◐ | skills ☑; `montara resume` checkpoint CLI ☑ |
 
 ### 1D — Composition engines (honest registry)
 
@@ -321,12 +321,12 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 3.1 | Auto-export EDL+OTIO+FCPXML on every `montara render` | ◐ | Flag default on |
 | 3.2 | **Editor import** `montara import <fcpxml\|otio\|edl>` → Timeline IR | ☑ | Round-trip test green (verify) |
 | 3.3 | **Local LLM** drives `montara make` (Ollama/LM Studio) | ☐ | Zero-cloud idea→MP4 |
-| 3.4 | `montara budget` (estimate/reserve/reconcile) | ☐ | Wraps `tools/cost_tracker.py` |
+| 3.4 | `montara budget` (estimate/reserve/reconcile) | ☑ | Wraps `tools/cost_tracker.py`; pytest contract green |
 | 3.5 | `montara analyze <url\|file>` reference-video CLI | ◐ | Partial via understand package |
 | 3.6 | `montara capture` (Playwright + desktop selector) | ☑ | Wraps screen_capture_selector + playwright_recorder |
 | 3.7 | Documentary evidence craft **gates** in quality package | ◐ | Skill ☑; automated LUFS/map/claim checks |
 | 3.8 | Reel factory with transcript-verified Shorts cuts | ◐ | verify tests exist; CLI command |
-| 3.9 | `montara resume <project>` from checkpoint JSON | ☐ | `lib/checkpoint.py` wired |
+| 3.9 | `montara resume <project>` from checkpoint JSON | ☑ | `lib/checkpoint.py` wired; reports completed + next stage |
 | 3.10 | Project workspace convention enforced | ◐ | AGENT_GUIDE documents; CLI creates dirs |
 | 3.11 | SpeechBrain optional backend in `@montara/hear` | ☐ | Behind optional dep |
 | 3.12 | Real CLIP/BLIP in `@montara/understand` | ☐ | Replace signalstats default |

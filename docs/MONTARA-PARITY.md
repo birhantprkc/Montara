@@ -25,7 +25,7 @@ Latest local gates before this sync:
 | FFmpeg renderer | ☑ | Universal native MP4 path and fallback. |
 | Python tool engine | ☑ | Root-level `tools/` + `lib/`; engine bridge verifies dependency-free. |
 | Engine bridge | ☑ | JSON bridge and composition <-> IR mapping. |
-| CLI | ◐ | Core commands plus `montara compose`, `montara corpus`, `montara import`; budget/resume still pending. |
+| CLI | ◐ | Core commands plus `montara compose`, `montara corpus`, `montara import`, `montara budget`, `montara resume`; not every Python tool wired. |
 | Editor export | ☑ | EDL, OTIO, FCPXML export verified. |
 | Editor import | ☑ | `montara import` EDL/OTIO/FCPXML → Timeline IR; verify round-trip green. |
 | CI | ☑ | typecheck + verify + validate + pytest. |
