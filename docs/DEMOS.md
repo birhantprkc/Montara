@@ -53,3 +53,5 @@ If a native runtime is missing, the generator records the fallback renderer in
 Use [PROMPT_GALLERY.md](../PROMPT_GALLERY.md) for broader prompt coverage:
 talking-head overlays, documentary evidence cuts, kinetic typography, browser
 demos behind login, editor handoff, style switches, and provider-aware prompts.
+For public packaging, titles, launch videos, and community checklists, use
+[docs/LAUNCH-PLAN.md](./LAUNCH-PLAN.md).

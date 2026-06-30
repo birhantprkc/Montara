@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-30, after Stage 4.7 provider-audit skill.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-30, after Stage 4.8 launch plan.
 
 This checklist tracks two things:
 
@@ -13,7 +13,7 @@ Legend: `☑` done and gated, `◐` partial/runtime-gated, `☐` not done.
 Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
-- `npm.cmd run verify` passed: 294 passed, 0 failed.
+- `npm.cmd run verify` passed: 295 passed, 0 failed.
 - `npm.cmd run validate` passed: 82 passed, 0 failed.
 - `python -m pytest tests` passed: 375 passed, 9 skipped.
 
@@ -29,9 +29,10 @@ Latest local gates before this sync:
 | Editor export | ☑ | EDL, OTIO, FCPXML export verified. |
 | Editor import | ☑ | `montara import` EDL/OTIO/FCPXML → Timeline IR; verify round-trip green. |
 | CI | ☑ | typecheck + verify + validate + pytest. |
-| Docs honesty | ☑ | README/AGENT_GUIDE/ARCHITECTURE/PROVIDER-AUDIT/SKILL-ROADMAP/CAPABILITY-SNAPSHOT synced. Native render validation and provider-audit skills added. |
+| Docs honesty | ☑ | README/AGENT_GUIDE/ARCHITECTURE/PROVIDER-AUDIT/SKILL-ROADMAP/CAPABILITY-SNAPSHOT synced. Native render validation, provider-audit, and launch-plan guidance added. |
 | Agent contract | ☑ | AGENT_GUIDE now includes onboarding, runtime honesty, tool protocols, checkpoints, and commit rules. |
 | Prompt gallery | ☑ | Expanded beyond OpenMontage coverage; README + docs/DEMOS.md map local demos to commands/costs/assets. |
+| Public launch plan | ☑ | `docs/LAUNCH-PLAN.md` maps YouTube/community proof videos to commands, artifacts, costs, caveats, and provider-audit rules. |
 | Playwright capture | ◐ | Tool/selector/skills, pytest coverage, and `montara capture` CLI exist; native browser runtime remains Playwright-gated. |
 | 9-engine registry | ☑ | Includes maturity labels: working, adapter, runtime-gated, planned. |
 | Native Remotion | ◐ | Native smoke MP4 validate-gated when composer deps are installed; default Timeline routing pending. |

@@ -29,7 +29,7 @@ Snapshot date: 2026-06-30.
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 294 passed, 0 failed |
+| `npm.cmd run verify` | 295 passed, 0 failed |
 | `npm.cmd run validate` | 82 passed, 0 failed |
 | `python -m pytest tests` | 375 passed, 9 skipped |
 
@@ -99,7 +99,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Add native render validation skill guidance.
-2. Finish Remotion default routing for Timeline scenes.
-3. Add documentary stock-footage validate case using the new corpus CLI surface.
-4. Add native package work for Revideo / Motion Canvas beyond registered adapters.
+1. Finish Remotion default routing for Timeline scenes.
+2. Add documentary stock-footage validate case using the new corpus CLI surface.
+3. Add native package work for Revideo / Motion Canvas beyond registered adapters.
+4. Add compare-report automation for `montara status` against the PLAN parity categories.

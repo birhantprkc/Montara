@@ -1427,6 +1427,14 @@ ok("findSkills surfaces provider audit for live BYOK checks", (() => {
   const hits = findSkills("provider audit live byok redacted fixture");
   return hits.some((s) => s.id === "core/provider-audit.md");
 })());
+ok("public launch plan ties community claims to reproducible proof artifacts", (() => {
+  const doc = readFileSync(join(process.cwd(), "docs", "LAUNCH-PLAN.md"), "utf8");
+  return doc.includes("out/validate-compose-core.mp4") &&
+    doc.includes("out/validate-smart-reel.mp4") &&
+    doc.includes("runtime-gated") &&
+    doc.includes("docs/PROVIDER-AUDIT.md") &&
+    doc.includes("Create five short videos");
+})());
 
 const reelPlan = planReelTreatment({
   understanding: { durationSec: 12, sceneCount: 1, tags: ["bright", "muted", "slow-cut"] },
