@@ -75,7 +75,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **Web GUI** | ☐ | `packages/web` scaffold only |
 | **WARCUT desktop** | ☐ | Not started |
 | **`runtimes` manager** | ☐ | No Pinokio-style ComfyUI/A1111 installer package |
-| **Public demo gallery** | ☐ | Local `out/` + `assets/` proofs; no OpenMontage-scale README demos |
+| **Public demo gallery** | ◐ | README now has local proof gallery; docs/assets gallery remains |
 
 ### Competitive score vs OpenMontage (today)
 
@@ -87,7 +87,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | CLI | none | `montara` commands | **Montara** |
 | Playwright auth capture | none | `playwright_recorder` | **Montara** |
 | Documentary evidence craft | brand-specific | generalized skill | **Montara** |
-| README / demos / community | strong | thin | **OpenMontage** |
+| README / demos / community | strong | runnable local README gallery; public assets gallery still pending | **Tie** |
 | AGENT_GUIDE depth | ~481 lines | ~484 lines + Montara-specific protocols | **Montara** |
 | HyperFrames / Remotion default path | battle-tested | adapter + fallback | **OpenMontage** |
 | `make setup` one-command | yes | `montara doctor` partial | **OpenMontage** |
@@ -176,7 +176,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 | **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **~85%** |
 | **2** | Native composition | Remotion + HyperFrames as real defaults, not FFmpeg solids | **~45%** |
 | **3** | Moat core | IR import, local LLM, CLI completeness, capture, craft gates | **~40%** |
-| **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~15%** |
+| **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~25%** |
 | **5** | Product surface | runtimes, web GUI, WARCUT, public launch | **~5%** |
 
 ---
@@ -339,7 +339,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 
 | ID | Task | Status | Acceptance |
 |----|------|--------|------------|
-| 4.1 | README at OpenMontage depth (demos, costs, embedded videos) | ☐ | Match or exceed upstream README |
+| 4.1 | README at OpenMontage depth (demos, costs, embedded videos) | ☑ | Local demo gallery, commands, outputs, costs, runtime truth |
 | 4.2 | Public demo gallery (`assets/` + docs/DEMOS.md) | ☐ | Each demo: prompt, pipeline, tools, cost |
 | 4.3 | AGENT_GUIDE parity + onboarding | ☑ | 0.1.3 + 0.1.4 |
 | 4.4 | PROMPT_GALLERY full coverage | ☑ | 0.1.8 |
@@ -440,7 +440,8 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 2.3 | HyperFrames E2E validate case | done |
 | ✅ | 1B.14 | Promote kinetic-typography to `pipeline_defs/` | done |
 | ✅ | 1A.4 | CLI wire `video_compose` + `corpus_builder` | done |
-| 🎯 1 | 4.1 | README demo gallery | 1d |
+| ✅ | 4.1 | README demo gallery | done |
+| 🎯 1 | 4.2 | Public demo gallery (`assets/` + docs/DEMOS.md) | 1d |
 
 ---
 

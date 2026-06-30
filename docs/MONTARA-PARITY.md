@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 1A.4 compose/corpus CLI wiring.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 4.1 README demo gallery.
 
 This checklist tracks two things:
 
@@ -31,7 +31,7 @@ Latest local gates before this sync:
 | CI | ☑ | typecheck + verify + validate + pytest. |
 | Docs honesty | ☑ | README/AGENT_GUIDE/ARCHITECTURE/PROVIDER-AUDIT/SKILL-ROADMAP/CAPABILITY-SNAPSHOT synced. |
 | Agent contract | ☑ | AGENT_GUIDE now includes onboarding, runtime honesty, tool protocols, checkpoints, and commit rules. |
-| Prompt gallery | ☑ | Expanded beyond OpenMontage gallery coverage; demo/cost docs remain a Stage 4 public-launch task. |
+| Prompt gallery | ☑ | Expanded beyond OpenMontage coverage; README now maps local demos to commands/costs, public assets gallery remains. |
 | Playwright capture | ◐ | Tool/selector/skills, pytest coverage, and `montara capture` CLI exist; native browser runtime remains Playwright-gated. |
 | 9-engine registry | ☑ | Includes maturity labels: working, adapter, runtime-gated, planned. |
 | Native Remotion | ◐ | Native smoke MP4 validate-gated when composer deps are installed; default Timeline routing pending. |
@@ -113,8 +113,9 @@ Latest local gates before this sync:
 | M13 Voice/hear intelligence | ◐ |
 | M14 Dual orchestration | ◐ |
 | M15 Strong CI | ☑ |
+| M16 README demo gallery | ☑ |
 
-Moat completion: 4/15 done, 7 partial, 4 not done.
+Moat completion: 5/16 done, 7 partial, 4 not done.
 
 ## Current Stage Exit Criteria
 

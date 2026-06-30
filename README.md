@@ -42,11 +42,39 @@ montara doctor
 montara plan "Make a 45-second explainer about why the sky is blue"
 montara make "Make a 45-second explainer about why the sky is blue"
 montara render out/timeline.json
-montara export out/timeline.json --to otio
+montara export otio out/timeline.json out/edit.otio
 montara capture --url https://example.com out/browser-capture.mp4
 montara compose out/edit-decisions.json out/final.mp4 --assets out/asset-manifest.json
 montara corpus sources
 ```
+
+If the CLI is not linked globally, use `npm.cmd run montara -- <command>` on
+Windows or `npm run montara -- <command>` on macOS/Linux.
+
+## Demo Gallery
+
+Run this once to generate the zero-key local proof set:
+
+```bash
+npm.cmd run validate
+```
+
+The validate harness writes real local artifacts under `out/`. These are the
+current reproducible demos to inspect before trusting a workflow:
+
+| Demo | Command | Output | Pipeline / runtime | Cost |
+| --- | --- | --- | --- | --- |
+| Timeline IR explainer | `npm.cmd run validate` | `out/validate-compose-core.mp4` + `out/validate-compose-core.timeline.json` | ScenePlan -> Timeline IR -> FFmpeg MP4 | `$0` |
+| Native Remotion smoke | `npm.cmd run validate` | `out/validate-remotion-native.mp4` when deps are installed | Remotion native spring/caption proof, otherwise honest skip | `$0` |
+| Python compose CLI | `npm.cmd run validate` | `out/validate-cli-video-compose.mp4` + `.render-report.json` | `montara compose` -> Python `video_compose` -> FFmpeg | `$0` |
+| Smart reel proof | `npm.cmd run validate` | `out/validate-smart-reel.mp4` | Source-aware reel planner + caption/end-card treatment | `$0` |
+| Editor handoff | `npm.cmd run montara -- export otio out/validate-compose-core.timeline.json out/validate-compose-core.otio` | OTIO/EDL/FCPXML files on demand | One Timeline IR -> editor bridge | `$0` |
+| Corpus/source discovery | `npm.cmd run montara -- corpus sources` | source-provider menu in stdout | Python `corpus_builder` discovery, no download required | `$0` |
+| Auth browser capture | `npm.cmd run montara -- capture login --url https://example.com` then `capture --url ...` | `out/browser-capture.mp4` | Playwright recording with user-owned storageState | `$0`, runtime-gated |
+
+For richer prompt coverage, see [PROMPT_GALLERY.md](./PROMPT_GALLERY.md). It
+covers talking-head overlays, documentary evidence cuts, kinetic typography,
+browser demos behind login, editor handoff, and style-switch prompts.
 
 For repository work:
 
@@ -57,14 +85,14 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 2.3 sync:
+Latest local gate snapshot from the Stage 4.1 README gallery sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 272 passed, 0 failed |
 | `npm.cmd run validate` | 79 passed, 0 failed |
-| `python -m pytest tests` | 365 passed, 8 skipped |
+| `python -m pytest tests` | 367 passed, 8 skipped |
 
 ## Agent Entry Points
 

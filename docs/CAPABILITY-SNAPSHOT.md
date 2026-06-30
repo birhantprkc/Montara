@@ -46,6 +46,8 @@ Snapshot date: 2026-06-29.
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
 
 Generated outputs live under `out/` and are not committed.
+The README demo gallery now maps these artifacts to commands, pipelines, runtimes,
+and cost expectations.
 
 ## Tech Pack Status
 
@@ -76,7 +78,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Add README demo gallery with real local artifacts and command recipes.
+1. Add public `docs/DEMOS.md` + checked-in lightweight asset thumbnails for the README gallery.
 2. Finish Remotion default routing for Timeline scenes.
 3. Add documentary stock-footage validate case using the new corpus CLI surface.
 4. Add native package work for Revideo / Motion Canvas beyond registered adapters.
