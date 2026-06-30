@@ -1419,6 +1419,10 @@ ok("findSkills surfaces the craft doc for a loudness query", (() => {
   const hits = findSkills("master loudness lufs");
   return hits.some((s) => s.id.includes("craft"));
 })());
+ok("findSkills surfaces native render validation for runtime QA", (() => {
+  const hits = findSkills("native render validation remotion three blender");
+  return hits.some((s) => s.id === "core/native-render-validation.md");
+})());
 
 const reelPlan = planReelTreatment({
   understanding: { durationSec: 12, sceneCount: 1, tags: ["bright", "muted", "slow-cut"] },

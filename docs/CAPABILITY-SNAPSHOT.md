@@ -29,7 +29,7 @@ Snapshot date: 2026-06-30.
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 292 passed, 0 failed |
+| `npm.cmd run verify` | 293 passed, 0 failed |
 | `npm.cmd run validate` | 82 passed, 0 failed |
 | `python -m pytest tests` | 375 passed, 9 skipped |
 
@@ -100,6 +100,6 @@ Best current path:
 ## Next Best Engineering Steps
 
 1. Add native render validation skill guidance.
-2. Finish Remotion default routing for Timeline scenes.
-3. Add documentary stock-footage validate case using the new corpus CLI surface.
-4. Add native package work for Revideo / Motion Canvas beyond registered adapters.
+2. Add provider-audit skill guidance for live BYOK docs checks.
+3. Finish Remotion default routing for Timeline scenes.
+4. Add documentary stock-footage validate case using the new corpus CLI surface.

@@ -86,12 +86,12 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 4.5B.2 provider fixture + smoke-harness sync:
+Latest local gate snapshot from the Stage 4.6 native render validation skill sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 292 passed, 0 failed |
+| `npm.cmd run verify` | 293 passed, 0 failed |
 | `npm.cmd run validate` | 82 passed, 0 failed |
 | `python -m pytest tests` | 375 passed, 9 skipped |
 

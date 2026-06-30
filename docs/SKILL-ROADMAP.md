@@ -30,8 +30,9 @@ load them before doing work.
    storageState, MP4 transcode, and Timeline IR ingestion.
 2. `skills/core/desktop-screen-capture.md`: FFmpeg/Cap routing for software
    trailers and native desktop app demos.
-3. `skills/core/native-render-validation.md`: how agents validate Remotion,
-   Revideo, Three.js, Manim, Blender, Motion Canvas, Spline, and Playwright.
+3. `skills/core/native-render-validation.md`: added; how agents validate
+   Remotion, Revideo, Three.js, Manim, Blender, Motion Canvas, Spline, and
+   Playwright.
 4. `skills/core/provider-audit.md`: how to check official docs before live BYOK
    calls.
 5. `skills/creative/topic-aware-overlays.md`: how reel/talking-head edits choose
@@ -53,7 +54,7 @@ Examples:
 
 ## Gaps Worth Building
 
-- Native Remotion render validation skill and package-level smoke.
+- Provider-audit skill guidance for live BYOK docs checks.
 - Spline capture/export adapter and validation skill.
 - Real local vision model skill path for CLIP/BLIP/video-language analysis.
 - Speaker/voice intelligence skill path for pyannote, SpeechBrain, Resemblyzer,
