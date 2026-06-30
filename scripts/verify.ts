@@ -40,7 +40,7 @@ import {
   type ScenePlan,
 } from "../packages/core/src/index";
 import { directScene, directScript, resolveEmotion, planReelTreatment, createReelArtifacts } from "../packages/quality/src/index";
-import { exportTimeline, timelineToEDL, timelineToOTIO, timelineToFCPXML, framesToTimecode } from "../packages/bridge/src/index";
+import { exportTimeline, timelineToEDL, timelineToOTIO, timelineToFCPXML, framesToTimecode, importTimeline, edlToTimeline, otioToTimeline, fcpxmlToTimeline, detectEditorFormat, videoClips } from "../packages/bridge/src/index";
 import { brainCatalogue, ollamaInstalled } from "../packages/llm/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
 import { listPipelines, planVideo } from "../packages/ai/src/index";
@@ -1302,6 +1302,42 @@ ok("exportTimeline dispatches all three formats with sensible extensions", (() =
     exportTimeline(bridgeTl, "fcpxml").ext === "fcpxml" &&
     exportTimeline(bridgeTl, "otio").ext === "otio" &&
     exportTimeline(bridgeTl, "otio").content.includes("OTIO_SCHEMA");
+})());
+
+// ---- Pro-editor IMPORT (M3 / 3.2): round-trip a cut BACK into valid Timeline IR ----
+const sourceVideoClips = videoClips(bridgeTl).length;
+ok("detectEditorFormat sniffs edl/otio/fcpxml from contents",
+  detectEditorFormat(edl) === "edl" && detectEditorFormat(otioStr) === "otio" && detectEditorFormat(fcp) === "fcpxml");
+
+const fcpImport = fcpxmlToTimeline(fcp);
+ok("FCPXML imports back into a VALID Timeline IR preserving comp dims, fps and media clips", (() => {
+  return validateTimeline(fcpImport).length === 0 &&
+    fcpImport.composition.width === 1920 && fcpImport.composition.height === 1080 && fcpImport.composition.fps === 30 &&
+    videoClips(fcpImport).length === sourceVideoClips &&
+    videoClips(fcpImport).some((c) => (c as { source: { path: string } }).source.path === "C:/clips/base.mp4");
+})());
+
+const otioImport = otioToTimeline(otioStr);
+ok("OTIO imports back into a VALID Timeline IR preserving fps, clip count and media paths", (() => {
+  return validateTimeline(otioImport).length === 0 &&
+    otioImport.composition.fps === 30 &&
+    videoClips(otioImport).length === sourceVideoClips &&
+    videoClips(otioImport).some((c) => (c as { source: { path: string } }).source.path === "C:/clips/base.mp4");
+})());
+
+const edlImport = edlToTimeline(edl);
+ok("EDL imports back into a VALID Timeline IR with one clip per cut event and SMPTE-derived timing", (() => {
+  const clips = videoClips(edlImport);
+  const first = clips[0] as { startSec: number; durationSec: number } | undefined;
+  return validateTimeline(edlImport).length === 0 &&
+    clips.length === sourceVideoClips &&
+    Boolean(first) && Math.abs((first!.startSec + first!.durationSec) - 6) < 0.05;
+})());
+
+ok("importTimeline dispatches all three formats to valid IR", (() => {
+  return validateTimeline(importTimeline(edl, "edl")).length === 0 &&
+    validateTimeline(importTimeline(otioStr, "otio")).length === 0 &&
+    validateTimeline(importTimeline(fcp, "fcpxml")).length === 0;
 })());
 
 // ---- Local-LLM brain (Ollama / LM Studio / llama.cpp) ----

@@ -10,6 +10,7 @@ export * from "./timecode";
 export { timelineToEDL } from "./edl";
 export { timelineToFCPXML } from "./fcpxml";
 export { timelineToOTIO } from "./otio";
+export { importTimeline, edlToTimeline, otioToTimeline, fcpxmlToTimeline, detectEditorFormat, type ImportOptions } from "./import";
 
 import { timelineToEDL } from "./edl";
 import { timelineToFCPXML } from "./fcpxml";

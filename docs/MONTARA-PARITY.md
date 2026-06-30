@@ -25,9 +25,9 @@ Latest local gates before this sync:
 | FFmpeg renderer | ☑ | Universal native MP4 path and fallback. |
 | Python tool engine | ☑ | Root-level `tools/` + `lib/`; engine bridge verifies dependency-free. |
 | Engine bridge | ☑ | JSON bridge and composition <-> IR mapping. |
-| CLI | ◐ | Core commands plus `montara compose` and `montara corpus`; budget/resume/editor import still pending. |
+| CLI | ◐ | Core commands plus `montara compose`, `montara corpus`, `montara import`; budget/resume still pending. |
 | Editor export | ☑ | EDL, OTIO, FCPXML export verified. |
-| Editor import | ☐ | Round-trip import remains Stage 3. |
+| Editor import | ☑ | `montara import` EDL/OTIO/FCPXML → Timeline IR; verify round-trip green. |
 | CI | ☑ | typecheck + verify + validate + pytest. |
 | Docs honesty | ☑ | README/AGENT_GUIDE/ARCHITECTURE/PROVIDER-AUDIT/SKILL-ROADMAP/CAPABILITY-SNAPSHOT synced. |
 | Agent contract | ☑ | AGENT_GUIDE now includes onboarding, runtime honesty, tool protocols, checkpoints, and commit rules. |
@@ -100,7 +100,7 @@ Latest local gates before this sync:
 | --- | --- | --- |
 | M1 Editable Timeline IR | ☑ |
 | M2 Pro-editor export | ☑ |
-| M3 Pro-editor import | ☐ |
+| M3 Pro-editor import | ☑ |
 | M4 First-class `montara` CLI | ◐ |
 | M5 Local LLM orchestrator | ◐ |
 | M6 Runtimes manager | ☐ |

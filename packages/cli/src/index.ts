@@ -19,7 +19,7 @@ import { engineReady, engineVerify, engineComposition, engineCompositionNames, e
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
 import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
-import { exportTimeline, type EditorFormat } from "../../bridge/src/index";
+import { exportTimeline, importTimeline, detectEditorFormat, type EditorFormat } from "../../bridge/src/index";
 import { brainCatalogue, ollamaInstalled, ollamaModelsSync, ollamaCompleteSync } from "../../llm/src/index";
 import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback, transcribeAvailable, localTranscribe, analyzeMusic, planSceneMappedMusic, speakerIntelligenceStatus, findDialogueByVoice } from "../../hear/src/index";
 
@@ -904,6 +904,10 @@ Commands:
   plan  [opts] <idea>             write a structured scene plan to ./out
   make  [opts] <idea>             plan + gate + compose + render + self-review to ./out
   render <ir.json>                render a ScenePlan or Timeline IR JSON to MP4
+  export <edl|fcpxml|otio> <ir.json> [out]
+                                  export the Timeline IR to a pro-editor interchange file
+  import <file.edl|.otio|.fcpxml> [out]
+                                  round-trip a pro-editor cut back into Timeline IR (auto-detects format)
   review <mp4>                    post-render self-review report for an MP4
   analyze <mp4>                   scene/understanding analysis + concept variants for a video
   capture [--url URL] [out.mp4]    record/recommend screen capture; Playwright auth via capture login
@@ -1092,6 +1096,40 @@ export function main(argv = process.argv.slice(2)): number {
       mkdirSync(dirname(out), { recursive: true });
       writeFileSync(out, content);
       console.log(`exported ${format.toUpperCase()} -> ${out}`);
+      return 0;
+    }
+
+    if (command === "import") {
+      const args = rest;
+      const positional = positionalArgs(args);
+      const file = positional[0];
+      if (!file || !existsSync(file)) {
+        console.error("usage: montara import <file.edl|.otio|.fcpxml> [out.timeline.json] [--format edl|otio|fcpxml] [--fps 30] [--width 1920] [--height 1080]");
+        return 1;
+      }
+      const content = readFileSync(file, "utf8");
+      const explicit = optionValue(args, "--format") as EditorFormat | undefined;
+      const byExt = /\.edl$/i.test(file) ? "edl" : /\.otio$/i.test(file) ? "otio" : /\.fcpxml$/i.test(file) ? "fcpxml" : undefined;
+      const format = explicit ?? detectEditorFormat(content) ?? byExt;
+      if (!format) {
+        console.error("could not detect editor format; pass --format edl|otio|fcpxml");
+        return 1;
+      }
+      const timeline = importTimeline(content, format, {
+        fps: maybeNumberOption(args, "--fps"),
+        width: maybeNumberOption(args, "--width"),
+        height: maybeNumberOption(args, "--height"),
+      });
+      const issues = validateTimeline(timeline);
+      if (issues.length) { console.error(`imported IR invalid:\n  ${issues.join("\n  ")}`); return 1; }
+      const out = (positional[1] && !positional[1].startsWith("--"))
+        ? positional[1]
+        : join(process.cwd(), "out", `${slug(file.replace(/\.[a-z0-9]+$/i, ""))}.timeline.json`);
+      mkdirSync(dirname(out), { recursive: true });
+      writeFileSync(out, `${JSON.stringify(timeline, null, 2)}\n`);
+      const videoCount = timeline.tracks.filter((t) => t.type === "video").reduce((n, t) => n + t.clips.length, 0);
+      console.log(`imported ${format.toUpperCase()} -> Timeline IR (${timeline.composition.width}x${timeline.composition.height} ${timeline.composition.fps}fps, ${timeline.composition.durationSec}s, ${videoCount} video clip(s), valid)`);
+      console.log(out);
       return 0;
     }
 

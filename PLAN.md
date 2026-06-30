@@ -55,7 +55,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **Engine bridge** (`engine_bridge.py`, `@montara/engine`) | ☑ | Stdlib JSON bridge; AST verify; composition ↔ IR mapping |
 | **CLI** (`packages/cli`) | ◐ | doctor, make, plan, render, export, capture, compose, corpus, reel, hear, understand, engines — not every Python tool wired |
 | **Editor export** (EDL, OTIO, FCPXML) | ☑ | `@montara/bridge`; verify tests green |
-| **Editor import** (round-trip) | ☐ | Export only today |
+| **Editor import** (round-trip) | ☑ | `montara import` EDL/OTIO/FCPXML → Timeline IR; verify round-trip green |
 | **CI** | ☑ | typecheck + verify + validate + pytest (+ optional native-render smoke) |
 | **Docs honesty** | ☑ | README, AGENT_GUIDE, ARCHITECTURE, PROVIDER-AUDIT, SKILL-ROADMAP, MONTARA-PARITY synced |
 | **Agent contract** | ☑ | AGENT_GUIDE includes onboarding, runtime honesty, pipeline/stage/tool/checkpoint protocols |
@@ -132,7 +132,7 @@ Complete these to **win everywhere**, not just tie:
 |---|-----------------|--------|---------------------|
 | M1 | **Editable Timeline IR** as canonical format | ☑ design + core | No |
 | M2 | **Pro-editor export** (EDL, OTIO, FCPXML) on every render | ☑ | No |
-| M3 | **Pro-editor import** (round-trip edit in Premiere/DaVinci/FCP) | ☐ | No |
+| M3 | **Pro-editor import** (round-trip edit in Premiere/DaVinci/FCP) | ☑ | No |
 | M4 | **`montara` CLI** as first-class entry (not agent-only) | ◐ | No |
 | M5 | **Local LLM orchestrator** (`montara make` via Ollama/LM Studio) | ◐ | No (planned upstream) |
 | M6 | **`runtimes` manager** (one-click ComfyUI/A1111/Piper/Whisper) | ☐ | Partial (`make setup`) |
@@ -146,7 +146,7 @@ Complete these to **win everywhere**, not just tie:
 | M14 | **Dual orchestration** (assistant + Montara orchestrator, same skills) | ◐ | Agent-only |
 | M15 | **Stronger CI** (verify + validate + typecheck + pytest) | ☑ | Weaker CI |
 
-**Moat completion bar:** M1–M2 ☑, M9 ☑, M12 ☑, M15 ☑ — **4/15 done**. Remaining moat work is Stages 3–5 below.
+**Moat completion bar:** M1–M3 ☑, M9 ☑, M12 ☑, M15 ☑ — **5/15 done**. Remaining moat work is Stages 3–5 below.
 
 ---
 
@@ -319,7 +319,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | ID | Task | Status | Acceptance |
 |----|------|--------|------------|
 | 3.1 | Auto-export EDL+OTIO+FCPXML on every `montara render` | ◐ | Flag default on |
-| 3.2 | **Editor import** `montara import <fcpxml\|otio\|edl>` → Timeline IR | ☐ | Round-trip test |
+| 3.2 | **Editor import** `montara import <fcpxml\|otio\|edl>` → Timeline IR | ☑ | Round-trip test green (verify) |
 | 3.3 | **Local LLM** drives `montara make` (Ollama/LM Studio) | ☐ | Zero-cloud idea→MP4 |
 | 3.4 | `montara budget` (estimate/reserve/reconcile) | ☐ | Wraps `tools/cost_tracker.py` |
 | 3.5 | `montara analyze <url\|file>` reference-video CLI | ◐ | Partial via understand package |
