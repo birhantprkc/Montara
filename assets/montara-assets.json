@@ -1,0 +1,59 @@
+{
+  "generatedAt": "2026-06-28T10:28:23.008Z",
+  "items": [
+    {
+      "id": "logo",
+      "path": "assets/logo.png",
+      "kind": "image",
+      "note": "Montara-owned generated logo card."
+    },
+    {
+      "id": "social-preview",
+      "path": "assets/social_preview.png",
+      "kind": "image",
+      "note": "Montara social preview generated locally."
+    },
+    {
+      "id": "montara-showcase",
+      "path": "assets/montara-showcase.mp4",
+      "kind": "video",
+      "engine": "ffmpeg",
+      "renderer": "native",
+      "durationSec": 6.02,
+      "note": "Compact capability reel generated from a Montara scene plan."
+    },
+    {
+      "id": "showcase-poster",
+      "path": "assets/showcase.jpg",
+      "kind": "image",
+      "note": "Poster frame extracted from the Montara showcase clip."
+    },
+    {
+      "id": "threejs-proof",
+      "path": "assets/montara-threejs-proof.mp4",
+      "kind": "video",
+      "engine": "three",
+      "renderer": "degraded-ffmpeg",
+      "durationSec": 4.22,
+      "note": "Three.js adapter proof; native package can replace the fallback later."
+    },
+    {
+      "id": "manim-proof",
+      "path": "assets/montara-manim-proof.mp4",
+      "kind": "video",
+      "engine": "manim",
+      "renderer": "degraded-ffmpeg",
+      "durationSec": 4.22,
+      "note": "Manim adapter proof; native Manim can render this slot when MANIM_BIN is configured."
+    },
+    {
+      "id": "blender-proof",
+      "path": "assets/montara-blender-proof.mp4",
+      "kind": "video",
+      "engine": "blender",
+      "renderer": "native",
+      "durationSec": 2,
+      "note": "Native Blender render with 48 frames."
+    }
+  ]
+}

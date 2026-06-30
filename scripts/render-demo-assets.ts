@@ -24,6 +24,15 @@ interface ManifestItem {
 
 const manifest: ManifestItem[] = [];
 
+function publicAssetPath(absPath: string): string {
+  const normalizedRoot = root.replace(/\\/g, "/");
+  const normalizedPath = absPath.replace(/\\/g, "/");
+  if (normalizedPath.startsWith(`${normalizedRoot}/`)) {
+    return normalizedPath.slice(normalizedRoot.length + 1);
+  }
+  return normalizedPath;
+}
+
 function run(bin: string, args: string[]): void {
   const r = spawnSync(bin, args, { encoding: "utf8" });
   if (r.status !== 0) {
@@ -118,6 +127,7 @@ if (blenderAvailable()) {
 }
 
 const manifestPath = join(assetsDir, "montara-assets.json");
-writeFileSync(manifestPath, `${JSON.stringify({ generatedAt: new Date().toISOString(), items: manifest }, null, 2)}\n`);
+const publicManifest = manifest.map((item) => ({ ...item, path: publicAssetPath(item.path) }));
+writeFileSync(manifestPath, `${JSON.stringify({ generatedAt: new Date().toISOString(), items: publicManifest }, null, 2)}\n`);
 console.log(`wrote ${manifest.length} Montara assets`);
-for (const item of manifest) console.log(`${item.id}: ${item.path}`);
+for (const item of publicManifest) console.log(`${item.id}: ${item.path}`);

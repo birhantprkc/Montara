@@ -53,3 +53,5 @@ their provenance files and references intact when present.
 
 Generated outputs, private recordings, Playwright auth state, corpora, model
 weights, and user media are ignored by default and should not be committed.
+The curated `assets/` demo gallery is the exception: those files are
+Montara-owned generated proof assets with metadata in `assets/montara-assets.json`.

@@ -72,7 +72,8 @@ current reproducible demos to inspect before trusting a workflow:
 | Corpus/source discovery | `npm.cmd run montara -- corpus sources` | source-provider menu in stdout | Python `corpus_builder` discovery, no download required | `$0` |
 | Auth browser capture | `npm.cmd run montara -- capture login --url https://example.com` then `capture --url ...` | `out/browser-capture.mp4` | Playwright recording with user-owned storageState | `$0`, runtime-gated |
 
-For richer prompt coverage, see [PROMPT_GALLERY.md](./PROMPT_GALLERY.md). It
+For the public proof ledger, see [docs/DEMOS.md](./docs/DEMOS.md). For richer
+prompt coverage, see [PROMPT_GALLERY.md](./PROMPT_GALLERY.md). The gallery
 covers talking-head overlays, documentary evidence cuts, kinetic typography,
 browser demos behind login, editor handoff, and style-switch prompts.
 
@@ -85,7 +86,7 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 4.1 README gallery sync:
+Latest local gate snapshot from the Stage 4.2 public demo gallery sync:
 
 | Gate | Result |
 | --- | --- |
@@ -98,6 +99,7 @@ Latest local gate snapshot from the Stage 4.1 README gallery sync:
 
 - [AGENT_GUIDE.md](./AGENT_GUIDE.md) is the assistant-agnostic operating contract.
 - [skills/INDEX.md](./skills/INDEX.md) is the skill map.
+- [docs/DEMOS.md](./docs/DEMOS.md) is the checked-in demo gallery and artifact ledger.
 - [PROMPT_GALLERY.md](./PROMPT_GALLERY.md) contains prompts that exercise the real system without overclaiming runtimes.
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) explains what is solid, adapter-backed, or planned.
 
