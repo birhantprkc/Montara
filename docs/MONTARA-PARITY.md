@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-30, after Stage 4.5A provider executor fixtures.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-30, after Stage 4.5B.1 Python provider request-shape audit.
 
 This checklist tracks two things:
 
@@ -13,9 +13,9 @@ Legend: `☑` done and gated, `◐` partial/runtime-gated, `☐` not done.
 Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
-- `npm.cmd run verify` passed: 278 passed, 0 failed.
+- `npm.cmd run verify` passed: 284 passed, 0 failed.
 - `npm.cmd run validate` passed: 81 passed, 0 failed.
-- `python -m pytest tests` passed: 367 passed, 9 skipped.
+- `python -m pytest tests` passed: 375 passed, 9 skipped.
 
 ## Snapshot
 
@@ -42,7 +42,7 @@ Latest local gates before this sync:
 | Spline | ☐ | Planned registry entry only. |
 | Local LLM orchestrator | ◐ | Backend catalogue/probes; full local brain not shipped. |
 | CLIP/BLIP vision default | ☐ | Current default is FFmpeg/frame/audio signal analysis. |
-| Cloud live executors | ◐ | TS executor + redaction + first-wave sanitized fixtures; remaining providers and Python tools pending. |
+| Cloud live executors | ◐ | TS executor + redaction + first-wave sanitized fixtures; Python OpenAI/BFL image request builders; remaining providers pending. |
 | Legal/notice | ☑ | Root AGPL-3.0 LICENSE, NOTICE, and docs/ATTRIBUTION.md are present. |
 | Web GUI / WARCUT | ☐ | Long-term product surface. |
 | Runtimes manager | ☐ | No Pinokio-style ComfyUI/A1111 manager yet. |
@@ -85,14 +85,14 @@ Latest local gates before this sync:
 | Category | Status | Notes |
 | --- | --- | --- |
 | C Video providers | ◐ | 14 registered; Runway/Veo TS request shapes fixture-gated; remaining live audits pending. |
-| D Image providers | ◐ | 10 registered; OpenAI/BFL/Google TS request shapes and BFL-style executor fixture gated. |
+| D Image providers | ◐ | 10 registered; OpenAI/BFL/Google TS request shapes, Python OpenAI/BFL image request builders, and BFL-style executor fixture gated. |
 | E Audio/TTS/music | ◐ | Local/offline fallbacks and analysis exist; premium providers BYOK/runtime-gated. |
 | F Post/enhancement | ◐ | Core FFmpeg operations work; model enhancers runtime-gated. |
 | G Analysis/understanding | ◐ | Reference analysis and signalstats work; full CLIP/BLIP default pending. |
 | H Intelligence | ◐ | Research/corpus/scoring ports exist; Python corpus has CLI source/build/search/status surface. |
-| I Governance | ◐ | Quality gates exist; budget CLI pending. |
+| I Governance | ◐ | Quality gates exist; budget CLI wraps CostTracker and is pytest/CLI-smoke covered. |
 | J Styles/output profiles | ☑ | 3 styles and 6 output profiles verified. |
-| K Agent layer | ◐ | Skills/configs/schemas/checkpoints exist; resume CLI/onboarding depth pending. |
+| K Agent layer | ◐ | Skills/configs/schemas/checkpoints exist; resume CLI reports checkpoint state; broader onboarding depth pending. |
 
 ## Montara Moat
 

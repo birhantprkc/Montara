@@ -35,7 +35,7 @@ Then inspect:
 | Native HyperFrames smoke | "Render strict kinetic typography through HyperFrames when `npx hyperframes` resolves." | kinetic typography | Python `hyperframes_compose`, HyperFrames lint/validate/render | `$0` | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` |
 | Python compose CLI | "Render direct edit decisions through the public CLI." | compose stage | `montara compose` -> Python `video_compose` -> FFmpeg | `$0` | `out/validate-cli-video-compose.mp4` |
 | Smart reel | "Create a vertical source-aware reel with hook/caption/end-card treatment." | reel | content-aware reel planner + FFmpeg reel renderer | `$0` | `out/validate-smart-reel.mp4` |
-| Editor handoff | "Export the same Timeline IR to a pro-editor format." | handoff | `montara export otio|edl|fcpxml` | `$0` | generated on demand |
+| Editor handoff | "Export the same Timeline IR to a pro-editor format." | handoff | `montara export <timeline.json> --to otio|edl|fcpxml` | `$0` | generated on demand |
 | Corpus discovery | "Show available stock/corpus sources without downloading media." | documentary preflight | `montara corpus sources` -> Python `corpus_builder.get_info()` | `$0` | stdout JSON/table |
 
 ## Regenerate Checked-In Demo Assets

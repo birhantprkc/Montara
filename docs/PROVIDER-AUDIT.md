@@ -24,7 +24,7 @@ Last checked: 2026-06-30.
   defaults TypeScript request specs to `gpt-image-2`.
 - OpenAI TTS now defaults request specs to `gpt-4o-mini-tts`.
 - Black Forest Labs FLUX moved from the older FLUX 1.1 endpoint to
-  `flux-2-pro`, with `x-key` auth and `polling_url` in the request spec.
+  `flux-2-pro-preview`, with `x-key` auth and `polling_url` in the request spec.
 - Google image generation moved to a Gemini image model request shape with
   `responseModalities: ["IMAGE"]`.
 - Google Veo moved to the Veo 3.1 long-running model path with typed
@@ -39,10 +39,11 @@ Last checked: 2026-06-30.
 
 - The TS executor is fixture-tested, not live-key tested. Before spending user
   money, run a real BYOK smoke and save a sanitized fixture.
-- Python provider tools need a separate live-shape audit; `tools/graphics/openai_image.py`
-  now defaults to GPT Image 2 but still needs a live SDK smoke, and
-  `tools/graphics/flux_image.py` still uses the fal.ai path rather than the
-  direct BFL registry path.
+- Python image providers now expose testable request builders:
+  `tools/graphics/openai_image.py` defaults to GPT Image 2, and
+  `tools/graphics/flux_image.py` prefers direct BFL FLUX.2 while retaining
+  fal.ai as a compatibility fallback. They still need real-key smoke runs before
+  production spend.
 - Recraft, xAI, MiniMax, Kling, HeyGen, Suno, ElevenLabs Music/SFX, and
   Runway image-to-video need sanitized request/response fixtures before they can
   be called "production-perfect."

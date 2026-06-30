@@ -42,7 +42,7 @@ montara doctor
 montara plan "Make a 45-second explainer about why the sky is blue"
 montara make "Make a 45-second explainer about why the sky is blue"
 montara render out/timeline.json
-montara export otio out/timeline.json out/edit.otio
+montara export out/timeline.json --to otio out/edit.otio
 montara capture --url https://example.com out/browser-capture.mp4
 montara compose out/edit-decisions.json out/final.mp4 --assets out/asset-manifest.json
 montara corpus sources
@@ -68,7 +68,7 @@ current reproducible demos to inspect before trusting a workflow:
 | Native Remotion smoke | `npm.cmd run validate` | `out/validate-remotion-native.mp4` when deps are installed | Remotion native spring/caption proof, otherwise honest skip | `$0` |
 | Python compose CLI | `npm.cmd run validate` | `out/validate-cli-video-compose.mp4` + `.render-report.json` | `montara compose` -> Python `video_compose` -> FFmpeg | `$0` |
 | Smart reel proof | `npm.cmd run validate` | `out/validate-smart-reel.mp4` | Source-aware reel planner + caption/end-card treatment | `$0` |
-| Editor handoff | `npm.cmd run montara -- export otio out/validate-compose-core.timeline.json out/validate-compose-core.otio` | OTIO/EDL/FCPXML files on demand | One Timeline IR -> editor bridge | `$0` |
+| Editor handoff | `npm.cmd run montara -- export out/validate-compose-core.timeline.json --to otio out/validate-compose-core.otio` | OTIO/EDL/FCPXML files on demand | One Timeline IR -> editor bridge | `$0` |
 | Corpus/source discovery | `npm.cmd run montara -- corpus sources` | source-provider menu in stdout | Python `corpus_builder` discovery, no download required | `$0` |
 | Auth browser capture | `npm.cmd run montara -- capture login --url https://example.com` then `capture --url ...` | `out/browser-capture.mp4` | Playwright recording with user-owned storageState | `$0`, runtime-gated |
 
@@ -86,14 +86,14 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 4.5A provider executor sync:
+Latest local gate snapshot from the Stage 4.5B.1 Python provider request-shape audit:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 278 passed, 0 failed |
+| `npm.cmd run verify` | 284 passed, 0 failed |
 | `npm.cmd run validate` | 81 passed, 0 failed |
-| `python -m pytest tests` | 367 passed, 9 skipped |
+| `python -m pytest tests` | 375 passed, 9 skipped |
 
 ## Agent Entry Points
 

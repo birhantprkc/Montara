@@ -77,7 +77,7 @@ class OpenAIImage(BaseTool):
             "quality": {
                 "type": "string",
                 "enum": ["low", "medium", "high", "auto", "standard", "hd"],
-                "default": "high",
+                "default": "auto",
             },
             "output_format": {
                 "type": "string",
@@ -104,14 +104,42 @@ class OpenAIImage(BaseTool):
 
     def estimate_cost(self, inputs: dict[str, Any]) -> float:
         model = inputs.get("model", _DEFAULT_MODEL)
-        quality = inputs.get("quality", "high")
+        quality = inputs.get("quality", "auto")
         n = inputs.get("n", 1)
         if model in _GPT_IMAGE_MODELS:
-            cost_map = {"low": 0.011, "medium": 0.042, "high": 0.167, "auto": 0.042}
+            cost_map = {"low": 0.006, "medium": 0.053, "high": 0.211, "auto": 0.053}
             return cost_map.get(quality, 0.042) * n
         # dall-e-3 fallback pricing
         quality_map = {"standard": 0.04, "hd": 0.08}
         return quality_map.get(quality, 0.04) * n
+
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        model = inputs.get("model", _DEFAULT_MODEL)
+        prompt = inputs["prompt"]
+        size = inputs.get("size", "1024x1024")
+        body: dict[str, Any] = {
+            "model": model,
+            "prompt": prompt,
+            "size": size,
+            "n": inputs.get("n", 1),
+        }
+        if model in _GPT_IMAGE_MODELS:
+            body["quality"] = inputs.get("quality", "auto")
+            body["output_format"] = inputs.get("output_format", "png")
+        else:
+            quality = inputs.get("quality", "standard")
+            body["quality"] = "standard" if quality in ("low", "medium", "high", "auto") else quality
+            body["n"] = 1
+            body["response_format"] = "b64_json"
+        return {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/images/generations",
+            "headers": {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            "json": body,
+        }
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         if not os.environ.get("OPENAI_API_KEY"):
@@ -124,36 +152,10 @@ class OpenAIImage(BaseTool):
 
         start = time.time()
         client = OpenAI()
-        model = inputs.get("model", _DEFAULT_MODEL)
-        prompt = inputs["prompt"]
-        size = inputs.get("size", "1024x1024")
-        n = inputs.get("n", 1)
 
         try:
-            if model in _GPT_IMAGE_MODELS:
-                quality = inputs.get("quality", "high")
-                output_format = inputs.get("output_format", "png")
-                response = client.images.generate(
-                    model=model,
-                    prompt=prompt,
-                    size=size,
-                    quality=quality,
-                    output_format=output_format,
-                    n=n,
-                )
-            else:
-                # dall-e-3 path
-                quality = inputs.get("quality", "standard")
-                if quality in ("low", "medium", "high", "auto"):
-                    quality = "standard"  # map to dall-e-3 quality options
-                response = client.images.generate(
-                    model=model,
-                    prompt=prompt,
-                    size=size,
-                    quality=quality,
-                    n=1,  # dall-e-3 only supports n=1
-                    response_format="b64_json",
-                )
+            body = self.build_request(inputs, api_key=os.environ["OPENAI_API_KEY"])["json"]
+            response = client.images.generate(**body)
 
             image_data = base64.b64decode(response.data[0].b64_json)
             ext = inputs.get("output_format", "png")
@@ -168,12 +170,12 @@ class OpenAIImage(BaseTool):
             success=True,
             data={
                 "provider": "openai",
-                "model": model,
-                "prompt": prompt,
+                "model": body["model"],
+                "prompt": inputs["prompt"],
                 "output": str(output_path),
             },
             artifacts=[str(output_path)],
             cost_usd=self.estimate_cost(inputs),
             duration_seconds=round(time.time() - start, 2),
-            model=model,
+            model=str(body["model"]),
         )

@@ -11,8 +11,10 @@ than the schema promised — a Decision-Communication / cost-accuracy violation.
 import pytest
 
 import tools.video.higgsfield_video as higgsfield_video
+import tools.graphics.flux_image as flux_image
 import tools.graphics.openai_image as openai_image
 import tools.video.runway_video as runway_video
+from tools.graphics.flux_image import FluxImage
 from tools.graphics.openai_image import OpenAIImage
 from tools.video.higgsfield_video import HiggsFieldVideo
 from tools.video.runway_video import RunwayVideo
@@ -52,3 +54,51 @@ def test_openai_image_default_model_matches_schema():
 
     assert openai_image._DEFAULT_MODEL == schema_default == "gpt-image-2"
     assert tool.estimate_cost({}) == tool.estimate_cost({"model": schema_default})
+
+
+def test_openai_image_build_request_uses_gpt_image_2_shape():
+    req = OpenAIImage().build_request({"prompt": "a clean product frame"}, api_key="OPENAI_TEST")
+
+    assert req["method"] == "POST"
+    assert req["url"] == "https://api.openai.com/v1/images/generations"
+    assert req["headers"]["Authorization"] == "Bearer OPENAI_TEST"
+    assert req["json"]["model"] == "gpt-image-2"
+    assert req["json"]["quality"] == "auto"
+    assert req["json"]["output_format"] == "png"
+    assert "response_format" not in req["json"]
+
+
+def test_flux_image_default_model_matches_schema():
+    tool = FluxImage()
+    schema_default = tool.input_schema["properties"]["model"]["default"]
+
+    assert flux_image._DEFAULT_MODEL == schema_default == "flux-2-pro-preview"
+    assert tool.estimate_cost({}) == tool.estimate_cost({"model": schema_default})
+
+
+def test_flux_image_build_bfl_request_uses_direct_bfl_shape():
+    req = FluxImage().build_bfl_request(
+        {"prompt": "cinematic mountain dawn", "width": 512, "height": 768, "seed": 123},
+        api_key="BFL_TEST",
+    )
+
+    assert req["method"] == "POST"
+    assert req["url"] == "https://api.bfl.ai/v1/flux-2-pro-preview"
+    assert req["headers"]["x-key"] == "BFL_TEST"
+    assert req["json"] == {
+        "prompt": "cinematic mountain dawn",
+        "width": 512,
+        "height": 768,
+        "seed": 123,
+    }
+
+
+def test_flux_image_fal_fallback_maps_flux2_default_to_legacy_fal_model():
+    req = FluxImage().build_fal_request(
+        {"prompt": "cinematic mountain dawn", "model": "flux-2-pro-preview"},
+        api_key="FAL_TEST",
+    )
+
+    assert req["url"] == "https://fal.run/fal-ai/flux-pro/v1.1"
+    assert req["headers"]["Authorization"] == "Key FAL_TEST"
+    assert req["json"]["image_size"] == {"width": 1024, "height": 1024}

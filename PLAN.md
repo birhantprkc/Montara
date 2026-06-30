@@ -36,7 +36,7 @@ and quality gates that block broken delivery — **without** needing OpenMontage
 
 ```bash
 pnpm typecheck
-pnpm verify      # contract tests (~271+ assertions; see scripts/verify.ts)
+pnpm verify      # contract tests (~284+ assertions; see scripts/verify.ts)
 pnpm validate    # end-to-end flows (~77 assertions; real MP4 on disk)
 python -m pytest tests
 ```
@@ -70,7 +70,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **Spline** | ☐ | Planned registry entry only |
 | **Local LLM orchestrator** | ◐ | `@montara/llm` catalogue + Ollama probe; not full `montara make` brain |
 | **CLIP/BLIP vision default** | ☐ | FFmpeg/signalstats today; Python `clip_embedder` not default in TS path |
-| **Cloud live executors** | ◐ | TS executor + first-wave sanitized fixtures; remaining provider audits pending |
+| **Cloud live executors** | ◐ | TS executor + first-wave sanitized fixtures; Python OpenAI/BFL request builders; remaining provider audits pending |
 | **LICENSE / NOTICE** | ☑ | Root AGPL-3.0 LICENSE + NOTICE + docs/ATTRIBUTION.md |
 | **Web GUI** | ☐ | `packages/web` scaffold only |
 | **WARCUT desktop** | ☐ | Not started |
@@ -267,7 +267,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | Category | Status | Remaining work |
 |----------|--------|----------------|
 | **C** Video providers (14 cloud + local + stock) | ◐ | Live executor audit per PROVIDER-AUDIT |
-| **D** Image providers (10) | ◐ | TS + Python; OpenAI/Google defaults updated |
+| **D** Image providers (10) | ◐ | TS + Python; OpenAI/BFL/Google request shapes fixture/request-builder gated |
 | **E** Audio/TTS/music | ◐ | Piper local path; mixer/enhance via FFmpeg |
 | **F** Post/enhancement | ◐ | Model enhancers runtime-gated |
 | **G** Analysis/understanding | ◐ | Reference analysis ☑ in verify; CLIP vision ☐ |
@@ -343,7 +343,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 4.2 | Public demo gallery (`assets/` + docs/DEMOS.md) | ☑ | Each demo records prompt, pipeline, tools, runtime, cost, artifact |
 | 4.3 | AGENT_GUIDE parity + onboarding | ☑ | 0.1.3 + 0.1.4 |
 | 4.4 | PROMPT_GALLERY full coverage | ☑ | 0.1.8 |
-| 4.5 | Live BYOK provider executors + sanitized fixture tests | ◐ | TS executor + OpenAI/BFL/Google/Runway fixtures; remaining providers and Python tools pending |
+| 4.5 | Live BYOK provider executors + sanitized fixture tests | ◐ | TS executor + OpenAI/BFL/Google/Runway fixtures; Python OpenAI/BFL image request builders; remaining providers pending |
 | 4.6 | `skills/core/native-render-validation.md` | ☐ | Per SKILL-ROADMAP |
 | 4.7 | `skills/core/provider-audit.md` | ☐ | Per SKILL-ROADMAP |
 | 4.8 | YouTube/community launch plan | ☐ | Optional; not blocking technical win |
@@ -443,7 +443,8 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 4.1 | README demo gallery | done |
 | ✅ | 4.2 | Public demo gallery (`assets/` + docs/DEMOS.md) | done |
 | ✅ | 4.5A | TS provider executor + first-wave sanitized fixtures | done |
-| 🎯 1 | 4.5B | Remaining provider fixtures + Python live-shape audit | 2d |
+| ✅ | 4.5B.1 | Python OpenAI/BFL image request-shape audit | done |
+| 🎯 1 | 4.5B.2 | Remaining provider fixtures + live-key smoke harness | 2d |
 
 ---
 

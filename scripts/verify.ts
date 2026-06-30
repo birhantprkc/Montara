@@ -566,7 +566,7 @@ const iInput = { prompt: "a narrow strait seen from orbit", outPath: join(proces
 const dalleReq = buildImageRequest(getImageProvider("dalle3")!, iInput, { OPENAI_API_KEY: "ok" });
 ok("OpenAI image request is a Bearer POST with GPT Image 2 model + prompt", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer ok" && Boolean(dalleReq.body?.includes("gpt-image-2")));
 const fluxReq = buildImageRequest(getImageProvider("flux")!, iInput, { BFL_API_KEY: "bk-secret" });
-ok("BFL FLUX.2 request uses x-key auth and async polling_url", fluxReq.method === "POST" && fluxReq.url.endsWith("/flux-2-pro") && fluxReq.headers["x-key"] === "bk-secret" && fluxReq.poll?.field === "polling_url");
+ok("BFL FLUX.2 request uses x-key auth and async polling_url", fluxReq.method === "POST" && fluxReq.url.endsWith("/flux-2-pro-preview") && fluxReq.headers["x-key"] === "bk-secret" && fluxReq.poll?.field === "polling_url");
 const imagenReq = buildImageRequest(getImageProvider("imagen")!, iInput, { GEMINI_API_KEY: "gk" });
 ok("Google image request uses Gemini image model + key query + image modality", imagenReq.url.includes("gemini-3.1-flash-image") && imagenReq.url.includes("key=gk") && !("Authorization" in imagenReq.headers) && Boolean(imagenReq.body?.includes("responseModalities")));
 const unsplashReq = buildImageRequest(getImageProvider("unsplash")!, iInput, { UNSPLASH_ACCESS_KEY: "uk" });
@@ -1315,6 +1315,30 @@ ok("FCPXML imports back into a VALID Timeline IR preserving comp dims, fps and m
     fcpImport.composition.width === 1920 && fcpImport.composition.height === 1080 && fcpImport.composition.fps === 30 &&
     videoClips(fcpImport).length === sourceVideoClips &&
     videoClips(fcpImport).some((c) => (c as { source: { path: string } }).source.path === "C:/clips/base.mp4");
+})());
+
+const shuffledFcp = `<?xml version="1.0" encoding="UTF-8"?>
+<fcpxml version="1.10">
+  <resources>
+    <format width="1920" id="fmt1" height="1080" frameDuration="1/30s"/>
+    <asset src="file://C:/clips/shuffled.mp4" duration="180/30s" id="asset1"/>
+  </resources>
+  <library><event name="Montara"><project name="t"><sequence format="fmt1" duration="90/30s"><spine>
+    <asset-clip duration="90/30s" start="30/30s" offset="15/30s" ref="asset1"/>
+    <gap duration="30/30s" offset="120/30s"><title name="Order-insensitive title"/></gap>
+  </spine></sequence></project></event></library>
+</fcpxml>`;
+const shuffledFcpImport = fcpxmlToTimeline(shuffledFcp);
+ok("FCPXML import is order-insensitive for format, asset, asset-clip and gap attributes", (() => {
+  const clips = videoClips(shuffledFcpImport);
+  const first = clips[0] as { startSec: number; durationSec: number; sourceInSec?: number; source: { path: string } } | undefined;
+  const textClips = shuffledFcpImport.tracks.flatMap((t) => t.type === "text" ? t.clips : []) as Array<{ text: string; startSec: number; durationSec: number }>;
+  return validateTimeline(shuffledFcpImport).length === 0 &&
+    shuffledFcpImport.composition.fps === 30 &&
+    Boolean(first) && first!.source.path === "C:/clips/shuffled.mp4" &&
+    Math.abs(first!.startSec - 0.5) < 0.01 && Math.abs(first!.durationSec - 3) < 0.01 &&
+    Math.abs((first!.sourceInSec ?? 0) - 1) < 0.01 &&
+    textClips.some((c) => c.text === "Order-insensitive title" && Math.abs(c.startSec - 4) < 0.01);
 })());
 
 const otioImport = otioToTimeline(otioStr);

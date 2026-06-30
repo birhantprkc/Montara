@@ -43,6 +43,13 @@ function rationalToSeconds(raw: string | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function xmlAttrs(tag: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const re = /\s([A-Za-z_:][\w:.-]*)="([^"]*)"/g;
+  for (let m = re.exec(tag); m; m = re.exec(tag)) out[m[1]!] = m[2]!;
+  return out;
+}
+
 /** Non-drop SMPTE "HH:MM:SS:FF" -> seconds at the given fps. */
 function timecodeToSeconds(tc: string, fps: number): number {
   const parts = tc.split(":").map((p) => Number(p));
@@ -212,21 +219,24 @@ export function otioToTimeline(content: string, opts: ImportOptions = {}): Timel
 
 /** Import an FCPXML 1.x rough cut (Final Cut / Premiere). Carries width/height/fps in the format. */
 export function fcpxmlToTimeline(content: string, opts: ImportOptions = {}): Timeline {
-  const fmt = /<format\b[^>]*\bframeDuration="1\/(\d+(?:\.\d+)?)s"[^>]*>/.exec(content)
-    ?? /<format\b[^>]*>/.exec(content);
-  const fps = Math.round(Number(/frameDuration="1\/(\d+(?:\.\d+)?)s"/.exec(fmt?.[0] ?? "")?.[1] ?? opts.fps ?? 30));
-  const width = Number(/\bwidth="(\d+)"/.exec(content)?.[1] ?? opts.width ?? 1920);
-  const height = Number(/\bheight="(\d+)"/.exec(content)?.[1] ?? opts.height ?? 1080);
+  const fmtAttrs = xmlAttrs(/<format\b[^>]*>/.exec(content)?.[0] ?? "");
+  const frameDuration = rationalToSeconds(fmtAttrs.frameDuration);
+  const fps = Math.round(frameDuration > 0 ? 1 / frameDuration : opts.fps ?? 30);
+  const width = Number(fmtAttrs.width ?? opts.width ?? 1920);
+  const height = Number(fmtAttrs.height ?? opts.height ?? 1080);
 
   // resource id -> source path
   const assets = new Map<string, string>();
-  const assetRe = /<asset\b[^>]*\bid="([^"]+)"[^>]*\bsrc="file:\/\/([^"]+)"[^>]*\/?>/g;
+  const assetRe = /<asset\b[^>]*\/?>/g;
   for (let m = assetRe.exec(content); m; m = assetRe.exec(content)) {
-    assets.set(m[1]!, decodeURIComponent(m[2]!));
+    const attrs = xmlAttrs(m[0]!);
+    if (!attrs.id || !attrs.src) continue;
+    const src = attrs.src.startsWith("file://") ? attrs.src.replace(/^file:\/\//, "") : attrs.src;
+    assets.set(attrs.id, decodeURIComponent(src));
   }
 
   const collected: CollectedClips = { video: [], text: [], audio: [] };
-  const spine = /<spine>([\s\S]*?)<\/spine>/.exec(content)?.[1] ?? content;
+  const spine = /<spine\b[^>]*>([\s\S]*?)<\/spine>/.exec(content)?.[1] ?? content;
   let counter = 0;
   // asset-clip
   const clipRe = /<asset-clip\b[^>]*\bref="([^"]+)"[^>]*?(?:\boffset="([^"]*)")?[^>]*?(?:\bduration="([^"]*)")?[^>]*?(?:\bstart="([^"]*)")?[^>]*\/?>/g;
@@ -250,11 +260,12 @@ export function fcpxmlToTimeline(content: string, opts: ImportOptions = {}): Tim
     });
   }
   // gaps with titles -> text clips
-  const gapRe = /<gap\b[^>]*\boffset="([^"]*)"[^>]*\bduration="([^"]*)"[^>]*>([\s\S]*?)<\/gap>/g;
+  const gapRe = /<gap\b[^>]*>([\s\S]*?)<\/gap>/g;
   for (let m = gapRe.exec(spine); m; m = gapRe.exec(spine)) {
-    const offset = rationalToSeconds(m[1]);
-    const duration = rationalToSeconds(m[2]);
-    const titleName = /<title\b[^>]*\bname="([^"]*)"/.exec(m[3]!)?.[1];
+    const attrs = xmlAttrs(m[0]!);
+    const offset = rationalToSeconds(attrs.offset);
+    const duration = rationalToSeconds(attrs.duration);
+    const titleName = xmlAttrs(/<title\b[^>]*>/.exec(m[1]!)?.[0] ?? "").name;
     if (!titleName) continue;
     counter += 1;
     collected.text.push({

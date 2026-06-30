@@ -30,7 +30,7 @@ For each output:
 | Area | Risk | How to Validate |
 |------|------|-----------------|
 | TTS voice selection | Default voice may not match playbook mood | Test with multiple voice IDs, compare against playbook `voice_style` |
-| Image gen consistency | DALL-E/FLUX outputs vary wildly per prompt | Test with playbook `image_prompt_prefix` prepended |
+| Image gen consistency | GPT Image/FLUX outputs vary wildly per prompt | Test with playbook `image_prompt_prefix` prepended |
 | Music duration alignment | Music may not match narration duration | Compare `music.duration` vs `tts.duration`, check padding/looping |
 | Audio ducking timing | Ducking may cut music too aggressively | Inspect waveform: music should duck ~6dB under speech, recover smoothly |
 | Video stitch transitions | Crossfade may flicker with mismatched codecs | Test with both matching and mismatched clips, check `auto_normalize` |

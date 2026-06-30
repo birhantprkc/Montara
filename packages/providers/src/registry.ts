@@ -248,7 +248,7 @@ export interface ImageGenInput {
 
 export const IMAGE_PROVIDERS: MediaProvider[] = [
   // cloud (5)
-  { id: "flux", name: "FLUX.2 Pro", vendor: "Black Forest Labs", category: "image", tier: "cloud", authEnv: "BFL_API_KEY", endpoint: "https://api.bfl.ai/v1/flux-2-pro", notes: "High-quality text-to-image/editing with async polling_url and x-key auth." },
+  { id: "flux", name: "FLUX.2 Pro", vendor: "Black Forest Labs", category: "image", tier: "cloud", authEnv: "BFL_API_KEY", endpoint: "https://api.bfl.ai/v1/flux-2-pro-preview", notes: "High-quality text-to-image/editing with async polling_url and x-key auth." },
   { id: "imagen", name: "Google Gemini Image", vendor: "Google", category: "image", tier: "cloud", authEnv: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent", notes: "Gemini image generation request shape with image response modality." },
   { id: "grok-image", name: "Grok Imagine Image", vendor: "xAI", category: "image", tier: "cloud", authEnv: "XAI_API_KEY", endpoint: "https://api.x.ai/v1/images/generations", notes: "Stylised text-to-image." },
   { id: "dalle3", name: "OpenAI Images", vendor: "OpenAI", category: "image", tier: "cloud", authEnv: "OPENAI_API_KEY", endpoint: "https://api.openai.com/v1/images/generations", notes: "Legacy id kept for compatibility; request defaults to GPT Image." },

@@ -15,7 +15,7 @@ import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene } 
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY, listSkills, findSkills } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
-import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance, findPython } from "../../engine/src/index";
+import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance, findPython as findEnginePython } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
 import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
@@ -187,6 +187,7 @@ const VALUE_FLAGS = new Set([
   "--region",
   "--since",
   "--timeout",
+  "--to",
 ]);
 
 function positionalArgs(args: string[]): string[] {
@@ -236,11 +237,55 @@ interface PythonToolResult {
 function pythonEnv(): Record<string, string | undefined> {
   const env: Record<string, string | undefined> = { ...process.env, PYTHONIOENCODING: "utf-8" };
   const localPackages = join(process.cwd(), ".python-packages");
-  if (existsSync(localPackages)) {
+  if (process.env.MONTARA_INCLUDE_LOCAL_PYTHON_PACKAGES === "1" && existsSync(localPackages)) {
     const pathDelimiter = process.platform === "win32" ? ";" : ":";
     env.PYTHONPATH = [localPackages, env.PYTHONPATH].filter(Boolean).join(pathDelimiter);
   }
   return env;
+}
+
+function pythonCandidates(): string[] {
+  const userProfile = process.env.USERPROFILE;
+  return [
+    process.env.MONTARA_PYTHON,
+    process.env.PYTHON,
+    join(process.cwd(), ".venv", "Scripts", "python.exe"),
+    join(process.cwd(), "venv", "Scripts", "python.exe"),
+    userProfile ? join(userProfile, "anaconda3", "python.exe") : undefined,
+    userProfile ? join(userProfile, "miniconda3", "python.exe") : undefined,
+    findEnginePython() ?? undefined,
+    "python",
+    "python3",
+    "py",
+  ].filter((cand, idx, all): cand is string => Boolean(cand) && all.indexOf(cand) === idx);
+}
+
+function pythonCanImport(py: string, modules: string[]): boolean {
+  const code = [
+    "import importlib.util, sys",
+    `mods = ${JSON.stringify(modules)}`,
+    "sys.exit(0 if all(importlib.util.find_spec(m) for m in mods) else 1)",
+  ].join("\n");
+  const r = spawnSync(py, ["-c", code], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: pythonEnv(),
+    timeout: 15_000,
+    maxBuffer: 1 << 20,
+  });
+  return r.status === 0;
+}
+
+function findPythonFor(requiredModules: string[] = []): string | null {
+  for (const cand of pythonCandidates()) {
+    if (!requiredModules.length) {
+      const r = spawnSync(cand, ["--version"], { encoding: "utf8", timeout: 10_000 });
+      if (r.status === 0) return cand;
+      continue;
+    }
+    if (pythonCanImport(cand, requiredModules)) return cand;
+  }
+  return null;
 }
 
 function parsePythonToolJson(stdout: string, stderr: string): PythonToolResult {
@@ -263,7 +308,7 @@ function runPythonTool(
   timeoutMs = 120_000,
   discoverModules: string[] = ["tools.capture"],
 ): PythonToolResult {
-  const py = findPython();
+  const py = findPythonFor(["tools.tool_registry"]);
   if (!py) return { success: false, data: {}, artifacts: [], error: "Python 3 not found on PATH" };
   const code = [
     "import json, sys",
@@ -303,7 +348,7 @@ function runPythonTool(
 }
 
 function runPythonToolInfo(toolName: string, discoverModules: string[] = ["tools.capture"], timeoutMs = 120_000): PythonToolResult {
-  const py = findPython();
+  const py = findPythonFor(["tools.tool_registry"]);
   if (!py) return { success: false, data: {}, artifacts: [], error: "Python 3 not found on PATH" };
   const code = [
     "import json, sys",
@@ -334,9 +379,9 @@ function runPythonToolInfo(toolName: string, discoverModules: string[] = ["tools
   return parsePythonToolJson(proc.stdout || "", proc.stderr || "");
 }
 
-function runPythonSnippet(code: string, args: string[] = [], inputJson?: string, timeoutMs = 120_000): PythonToolResult {
-  const py = findPython();
-  if (!py) return { success: false, data: {}, artifacts: [], error: "Python 3 not found on PATH" };
+function runPythonSnippet(code: string, args: string[] = [], inputJson?: string, timeoutMs = 120_000, requiredModules: string[] = []): PythonToolResult {
+  const py = findPythonFor(requiredModules);
+  if (!py) return { success: false, data: {}, artifacts: [], error: requiredModules.length ? `Python 3 with required modules not found: ${requiredModules.join(", ")}` : "Python 3 not found on PATH" };
   const proc = spawnSync(py, ["-c", code, ...args], {
     cwd: process.cwd(),
     input: inputJson,
@@ -969,7 +1014,7 @@ function runBudgetCommand(rest: string[]): number {
     return 1;
   }
 
-  const result = runPythonSnippet(BUDGET_SNIPPET, [sub], JSON.stringify(payload));
+  const result = runPythonSnippet(BUDGET_SNIPPET, [sub], JSON.stringify(payload), 120_000, ["tools.cost_tracker", "lib.config_model"]);
   if (json) { console.log(JSON.stringify(result, null, 2)); return result.success ? 0 : 1; }
   if (!result.data || !result.data.snapshot) {
     console.error(result.error || "budget command failed");
@@ -1043,7 +1088,7 @@ function runResumeCommand(rest: string[]): number {
   const ptype = optionValue(args, "--pipeline");
   if (ptype) payload.pipeline_type = ptype;
 
-  const result = runPythonSnippet(RESUME_SNIPPET, [], JSON.stringify(payload));
+  const result = runPythonSnippet(RESUME_SNIPPET, [], JSON.stringify(payload), 120_000, ["lib.checkpoint"]);
   if (json) { console.log(JSON.stringify(result, null, 2)); return result.success ? 0 : 1; }
   if (!result.success) { console.error(result.error || "resume failed"); return 1; }
   const d = result.data;
@@ -1088,7 +1133,7 @@ Commands:
   plan  [opts] <idea>             write a structured scene plan to ./out
   make  [opts] <idea>             plan + gate + compose + render + self-review to ./out
   render <ir.json>                render a ScenePlan or Timeline IR JSON to MP4
-  export <edl|fcpxml|otio> <ir.json> [out]
+  export <ir.json> --to edl|fcpxml|otio [out]
                                   export the Timeline IR to a pro-editor interchange file
   import <file.edl|.otio|.fcpxml> [out]
                                   round-trip a pro-editor cut back into Timeline IR (auto-detects format)
@@ -1272,16 +1317,24 @@ export function main(argv = process.argv.slice(2)): number {
     }
 
     if (command === "export") {
-      const format = rest[0] as EditorFormat;
-      const file = rest[1];
-      if (!["edl", "fcpxml", "otio"].includes(format) || !file || !existsSync(file)) {
-        console.error("usage: montara export <edl|fcpxml|otio> <timeline.json> [out]"); return 1;
+      const args = rest;
+      const positional = positionalArgs(args);
+      const knownFormats = new Set(["edl", "fcpxml", "otio"]);
+      const oldStyle = knownFormats.has(positional[0] ?? "");
+      const formatFromOption = optionValue(args, "--to");
+      const format = (oldStyle ? positional[0] : formatFromOption ?? positional[1]) as EditorFormat | undefined;
+      const file = oldStyle ? positional[1] : positional[0];
+      const outArg = oldStyle ? positional[2] : formatFromOption ? positional[1] : positional[2];
+      if (!format || !knownFormats.has(format) || !file || !existsSync(file)) {
+        console.error("usage: montara export <timeline.json> --to edl|fcpxml|otio [out]");
+        console.error("       montara export <edl|fcpxml|otio> <timeline.json> [out]");
+        return 1;
       }
       const tl = JSON.parse(readFileSync(file, "utf8")) as Timeline;
       const issues = validateTimeline(tl);
       if (issues.length) { console.error(`invalid timeline: ${issues.join("; ")}`); return 1; }
       const { content, ext } = exportTimeline(tl, format, { title: "Montara Edit" });
-      const out = rest[2] || join(process.cwd(), "out", `montara-edit.${ext}`);
+      const out = outArg || join(process.cwd(), "out", `montara-edit.${ext}`);
       mkdirSync(dirname(out), { recursive: true });
       writeFileSync(out, content);
       console.log(`exported ${format.toUpperCase()} -> ${out}`);
