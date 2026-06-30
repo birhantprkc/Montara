@@ -22,6 +22,7 @@ import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { exportTimeline, importTimeline, detectEditorFormat, type EditorFormat } from "../../bridge/src/index";
 import { brainCatalogue, ollamaInstalled, ollamaModelsSync, ollamaCompleteSync } from "../../llm/src/index";
 import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback, transcribeAvailable, localTranscribe, analyzeMusic, planSceneMappedMusic, speakerIntelligenceStatus, findDialogueByVoice } from "../../hear/src/index";
+import { listRuntimes, runtimeStatusReport, runtimeInstallPlan, type RuntimeId } from "../../runtimes/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -447,8 +448,9 @@ function buildMontaraStatusReport(): MontaraStatusReport {
     {
       id: "runtime-manager",
       label: "Runtime manager / web GUI",
-      status: "planned",
-      evidence: ["ComfyUI/A1111 manager, web GUI, and WARCUT remain Stage 5 work"],
+      status: "partial",
+      evidence: [`${listRuntimes().length} local generation runtimes registered`, "health/install guidance exists; one-click install remains Stage 5 work"],
+      next: "Add managed install/launch automation after health probes are stable.",
     },
   ];
   const counts = statusCounts(capabilities);
@@ -555,6 +557,53 @@ function runStatusCommand(rest: string[]): number {
     if (out) console.log(`\nreport -> ${out}`);
   }
   return 0;
+}
+
+async function runRuntimesCommand(rest: string[]): Promise<number> {
+  const sub = rest[0] ?? "status";
+  const json = rest.includes("--json");
+  const probe = !rest.includes("--no-probe");
+  if (sub === "install-plan") {
+    const id = positionalArgs(rest).slice(1)[0] as RuntimeId | undefined;
+    if (!id) {
+      console.error("usage: montara runtimes install-plan <comfyui|a1111>");
+      return 1;
+    }
+    const steps = runtimeInstallPlan(id);
+    if (!steps.length) {
+      console.error(`unknown runtime: ${id}`);
+      return 1;
+    }
+    if (json) {
+      console.log(JSON.stringify({ id, steps }, null, 2));
+    } else {
+      console.log(`${id} install plan:`);
+      steps.forEach((step, index) => console.log(`  ${index + 1}. ${step}`));
+    }
+    return 0;
+  }
+  if (sub !== "status" && sub !== "doctor" && sub !== "health") {
+    console.error("usage: montara runtimes [status|doctor|health] [--json] [--out path] [--no-probe]");
+    console.error("       montara runtimes install-plan <comfyui|a1111>");
+    return 1;
+  }
+  const report = await runtimeStatusReport({ probe });
+  const out = optionValue(rest, "--out");
+  if (out) {
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, `${JSON.stringify(report, null, 2)}\n`);
+  }
+  if (json) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    console.log(`runtimes: ${report.summary.reachable}/${report.summary.total} reachable, ${report.summary.configured} configured`);
+    for (const runtime of report.runtimes) {
+      console.log(`  ${runtime.id.padEnd(8)} ${runtime.status.padEnd(14)} ${runtime.url}`);
+      if (runtime.error) console.log(`           ${runtime.error}`);
+    }
+    if (out) console.log(`report -> ${out}`);
+  }
+  return report.runtimes.some((runtime) => runtime.status === "unreachable") ? 1 : 0;
 }
 
 interface PythonToolResult {
@@ -1442,6 +1491,8 @@ function printHelp(): void {
 Commands:
   doctor [--fix]                  check local render prerequisites + Python engine; print setup guide with --fix
   status [--json] [--out path]     summarize local capability, gates, and upstream parity categories
+  runtimes status [--json]         health check external ComfyUI/A1111 localhost runtimes
+  runtimes install-plan <id>       print safe external setup steps, without bundling runtimes
   render3d blender [out]          render the 3D intro via headless Blender + ffmpeg
   voiceid compare <test> ...      speaker-ID: classify a clip against labelled reference clips
   voiceid verify <a> <b>          speaker-ID: are two clips the same speaker?
@@ -1500,6 +1551,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
     if (command === "doctor") return runDoctor(rest);
     if (command === "status") return runStatusCommand(rest);
+    if (command === "runtimes") return runRuntimesCommand(rest);
     if (command === "reel") return runReelCommand(rest);
     if (command === "capture") return runCaptureCommand(rest);
     if (command === "compose") return runComposeCommand(rest);

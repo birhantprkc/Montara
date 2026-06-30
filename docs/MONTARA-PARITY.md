@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-30, after Stage 4.9 status automation.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-30, after Stage 5.1A runtime health.
 
 This checklist tracks two things:
 
@@ -13,8 +13,8 @@ Legend: `☑` done and gated, `◐` partial/runtime-gated, `☐` not done.
 Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
-- `npm.cmd run verify` passed: 295 passed, 0 failed.
-- `npm.cmd run validate` passed: 83 passed, 0 failed.
+- `npm.cmd run verify` passed: 299 passed, 0 failed.
+- `npm.cmd run validate` passed: 84 passed, 0 failed.
 - `python -m pytest tests` passed: 375 passed, 9 skipped.
 
 ## Snapshot
@@ -25,7 +25,7 @@ Latest local gates before this sync:
 | FFmpeg renderer | ☑ | Universal native MP4 path and fallback. |
 | Python tool engine | ☑ | Root-level `tools/` + `lib/`; engine bridge verifies dependency-free. |
 | Engine bridge | ☑ | JSON bridge and composition <-> IR mapping. |
-| CLI | ◐ | Core commands plus `montara status`, `montara compose`, `montara corpus`, `montara import`, `montara budget`, `montara resume`; not every Python tool wired. |
+| CLI | ◐ | Core commands plus `montara status`, `montara runtimes`, `montara compose`, `montara corpus`, `montara import`, `montara budget`, `montara resume`; not every Python tool wired. |
 | Editor export | ☑ | EDL, OTIO, FCPXML export verified. |
 | Editor import | ☑ | `montara import` EDL/OTIO/FCPXML → Timeline IR; verify round-trip green. |
 | CI | ☑ | typecheck + verify + validate + pytest. |
@@ -47,7 +47,7 @@ Latest local gates before this sync:
 | Cloud live executors | ◐ | TS executor + redaction + all-cloud sanitized fixtures + dry-run/live smoke harness; real-key confirmations pending. |
 | Legal/notice | ☑ | Root AGPL-3.0 LICENSE, NOTICE, and docs/ATTRIBUTION.md are present. |
 | Web GUI / WARCUT | ☐ | Long-term product surface. |
-| Runtimes manager | ☐ | No Pinokio-style ComfyUI/A1111 manager yet. |
+| Runtimes manager | ◐ | ComfyUI/A1111 health and install guidance exist; managed install/launch pending. |
 
 ## A. Composition And Render Engines
 
@@ -105,7 +105,7 @@ Latest local gates before this sync:
 | M3 Pro-editor import | ☑ |
 | M4 First-class `montara` CLI | ◐ |
 | M5 Local LLM orchestrator | ◐ |
-| M6 Runtimes manager | ☐ |
+| M6 Runtimes manager | ◐ |
 | M7 Web GUI | ☐ |
 | M8 WARCUT desktop GUI | ☐ |
 | M9 Runtime honesty layer | ☑ |
@@ -118,7 +118,7 @@ Latest local gates before this sync:
 | M16 README demo gallery | ☑ |
 | M17 Public demo assets | ☑ |
 
-Moat completion: 6/17 done, 7 partial, 4 not done.
+Moat completion: 6/17 done, 8 partial, 3 not done.
 
 ## Current Stage Exit Criteria
 

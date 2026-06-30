@@ -160,6 +160,7 @@ import {
 import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck, engineCompliance } from "../packages/engine/src/index";
 import { blenderAvailable, blenderBin } from "../packages/render-blender/src/index";
 import { analyzeMusic, findDialogueByVoice, planSceneMappedMusic, speakerIntelligenceStatus, voiceIdAvailable } from "../packages/hear/src/index";
+import { listRuntimes, runtimeEnvHints, runtimeInstallPlan, runtimeStatusReport } from "../packages/runtimes/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -1157,6 +1158,26 @@ console.log("\n== Render runtimes — Blender (2.3) ==");
 ok("blender availability is a boolean (degrade-friendly), never throws", typeof blenderAvailable() === "boolean");
 ok("blender scene script ships in the repo", existsSync(join(process.cwd(), "blender", "montara_intro.py")));
 ok("blenderBin resolves a concrete binary when installed", blenderAvailable() ? typeof blenderBin() === "string" && blenderBin()!.length > 0 : blenderBin() === null);
+
+console.log("\n== Local generation runtimes (5.1) ==");
+const localRuntimes = listRuntimes();
+ok("runtime registry includes ComfyUI and A1111 without bundling them", (() => {
+  const ids = localRuntimes.map((runtime) => runtime.id);
+  return ids.includes("comfyui") &&
+    ids.includes("a1111") &&
+    localRuntimes.every((runtime) => /External runtime/.test(runtime.licenseBoundary));
+})());
+ok("runtime env hints map local APIs to provider env vars", (() => {
+  const hints = runtimeEnvHints({ COMFYUI_URL: "http://127.0.0.1:8188", A1111_URL: "http://127.0.0.1:7860" });
+  return hints.comfyui === "http://127.0.0.1:8188" && hints.a1111 === "http://127.0.0.1:7860";
+})());
+ok("runtime install plans are guidance-only and keep setup external", (() => {
+  const comfy = runtimeInstallPlan("comfyui").join(" ");
+  const a1111 = runtimeInstallPlan("a1111").join(" ");
+  return comfy.includes("Install ComfyUI externally") && a1111.includes("Install AUTOMATIC1111 externally");
+})());
+const runtimeNoProbe = await runtimeStatusReport({ probe: false, env: {} });
+ok("runtime status report degrades without probing or configured env", runtimeNoProbe.summary.total === 2 && runtimeNoProbe.summary.missing === 2 && runtimeNoProbe.runtimes.every((runtime) => runtime.status === "not-configured"));
 
 console.log("\n== System (zero-key) TTS (2.2) ==");
 const sysReg = buildDefaultRegistry();

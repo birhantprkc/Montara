@@ -410,6 +410,29 @@ ok("status CLI emits a structured Montara/upstream compare report",
     Boolean(statusComparison?.some((row) => row.verdict === "upstream-ahead")),
   `status=${statusCli.status} stdout=${(statusCli.stdout || "").slice(-500)} stderr=${(statusCli.stderr || "").slice(-500)}`);
 
+const runtimesReportOut = join(outDir, "validate-runtimes-status.json");
+try { rmSync(runtimesReportOut, { force: true }); } catch { /* none */ }
+const runtimesCli = spawnSync(npmBin, ["run", "montara", "--", "runtimes", "status", "--json", "--no-probe", "--out", runtimesReportOut], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+let runtimesReport: Record<string, unknown> = {};
+try {
+  runtimesReport = JSON.parse(readFileSync(runtimesReportOut, "utf8")) as Record<string, unknown>;
+} catch {
+  runtimesReport = {};
+}
+const runtimeRows = runtimesReport.runtimes as { id?: string; status?: string; licenseBoundary?: string }[] | undefined;
+ok("runtimes CLI reports ComfyUI/A1111 health without requiring installs",
+  runtimesCli.status === 0 &&
+    existsSync(runtimesReportOut) &&
+    Boolean(runtimeRows?.some((runtime) => runtime.id === "comfyui")) &&
+    Boolean(runtimeRows?.some((runtime) => runtime.id === "a1111")) &&
+    Boolean(runtimeRows?.every((runtime) => typeof runtime.licenseBoundary === "string" && runtime.licenseBoundary.includes("External runtime"))),
+  `status=${runtimesCli.status} stdout=${(runtimesCli.stdout || "").slice(-500)} stderr=${(runtimesCli.stderr || "").slice(-500)}`);
+
 console.log("\n== Python video tool CLI (Stage 1A.4) ==");
 const cliComposeEditPath = join(outDir, "validate-cli-compose.edit-decisions.json");
 const cliComposeOut = join(outDir, "validate-cli-video-compose.mp4");

@@ -32,6 +32,7 @@ Montara should be honest with users and agents:
 | Screen recording | FFmpeg desktop capture, Cap pickup, and `montara capture` Playwright browser recording with user-login storageState. |
 | Cloud providers | Request builders exist for BYOK use. Keep them audited against official provider docs before live execution. |
 | Status reporting | `montara status --json --out out/montara-status.json` summarizes local capability, latest documented gates, and upstream parity categories. |
+| Local generation runtimes | `montara runtimes status` reports ComfyUI/A1111 health and external install guidance; managed install/launch is still partial. |
 
 For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
 [docs/MONTARA-PARITY.md](./docs/MONTARA-PARITY.md).
@@ -41,6 +42,7 @@ For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
 ```bash
 montara doctor
 montara status --out out/montara-status.json
+montara runtimes status --json --out out/runtimes-status.json
 montara plan "Make a 45-second explainer about why the sky is blue"
 montara make "Make a 45-second explainer about why the sky is blue"
 montara render out/timeline.json
@@ -88,13 +90,13 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 4.9 status automation sync:
+Latest local gate snapshot from the Stage 5.1A runtime health sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 295 passed, 0 failed |
-| `npm.cmd run validate` | 83 passed, 0 failed |
+| `npm.cmd run verify` | 299 passed, 0 failed |
+| `npm.cmd run validate` | 84 passed, 0 failed |
 | `python -m pytest tests` | 375 passed, 9 skipped |
 
 ## Agent Entry Points

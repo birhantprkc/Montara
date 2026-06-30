@@ -21,6 +21,7 @@
     "@montara/render-ffmpeg": "workspace:*",
     "@montara/render-remotion": "workspace:*",
     "@montara/research": "workspace:*",
+    "@montara/runtimes": "workspace:*",
     "@montara/style": "workspace:*",
     "@montara/tools": "workspace:*",
     "@montara/understand": "workspace:*",

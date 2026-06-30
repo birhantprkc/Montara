@@ -6,7 +6,7 @@ Snapshot date: 2026-06-30.
 
 - **Python engine bridge:** ready. Current bridge reports 116 tools, 18 lib modules, and 14 pipeline manifests.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
-- **CLI:** `doctor`, `status`, `make`, `plan`, `render`, `review`, `analyze`, `capture`, `compose`,
+- **CLI:** `doctor`, `status`, `runtimes`, `make`, `plan`, `render`, `review`, `analyze`, `capture`, `compose`,
   `corpus`, `reel`, `music`, `voiceid`, provider listing, engine bridge commands,
   and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
@@ -23,14 +23,16 @@ Snapshot date: 2026-06-30.
   `skills/meta/documentary-evidence-craft.md`; `warfront-craft.md` is a compatibility alias.
 - **Layer 3 skills:** 69 installed `.agents/skills` packs covering GSAP, HyperFrames, Three.js,
   Manim, FFmpeg, video understanding, music, speech, Playwright, visual style, and character animation.
+- **Runtime health:** `@montara/runtimes` registers ComfyUI and A1111, reports localhost
+  health, and prints external install guidance without bundling GPL/AGPL runtimes or model weights.
 
 ## Latest Gates
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 295 passed, 0 failed |
-| `npm.cmd run validate` | 83 passed, 0 failed |
+| `npm.cmd run verify` | 299 passed, 0 failed |
+| `npm.cmd run validate` | 84 passed, 0 failed |
 | `python -m pytest tests` | 375 passed, 9 skipped |
 
 ## Example Outputs
@@ -45,6 +47,7 @@ Snapshot date: 2026-06-30.
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
 | Montara status report | `out/validate-montara-status.json` | CLI compare report for local capability and upstream parity |
+| Runtime health report | `out/validate-runtimes-status.json` | CLI report for ComfyUI/A1111 external runtime health |
 
 Generated outputs live under `out/` and are not committed.
 The README demo gallery and [docs/DEMOS.md](./DEMOS.md) now map these artifacts
@@ -65,6 +68,7 @@ expectations.
 | Spline | Planned registry entry only. |
 | FFmpeg | Fully working native renderer and fallback. |
 | Playwright | Browser capture with `montara capture`, login/storageState workflow; runtime-gated on Node Playwright install. |
+| ComfyUI / A1111 | Health/install guidance exists in `@montara/runtimes`; managed install/launch pending. |
 
 ## Provider Executor Status
 
@@ -103,4 +107,4 @@ Best current path:
 1. Finish Remotion default routing for Timeline scenes.
 2. Add documentary stock-footage validate case using the new corpus CLI surface.
 3. Add native package work for Revideo / Motion Canvas beyond registered adapters.
-4. Use `montara status --json --out out/montara-status.json` before publishing parity claims.
+4. Complete managed install/launch automation for ComfyUI/A1111 after the health layer.
