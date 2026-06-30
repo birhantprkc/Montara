@@ -1423,6 +1423,10 @@ ok("findSkills surfaces native render validation for runtime QA", (() => {
   const hits = findSkills("native render validation remotion three blender");
   return hits.some((s) => s.id === "core/native-render-validation.md");
 })());
+ok("findSkills surfaces provider audit for live BYOK checks", (() => {
+  const hits = findSkills("provider audit live byok redacted fixture");
+  return hits.some((s) => s.id === "core/provider-audit.md");
+})());
 
 const reelPlan = planReelTreatment({
   understanding: { durationSec: 12, sceneCount: 1, tags: ["bright", "muted", "slow-cut"] },

@@ -87,6 +87,7 @@ Key capability families to look for in the output:
 | Playwright Recording | `core/playwright-recording.md` | Browser trailers, login-wall recording, storageState workflow | `playwright-recording` |
 | Desktop Screen Capture | `core/desktop-screen-capture.md` | Native app trailers and capture routing | `ffmpeg`, `playwright-recording` |
 | Native Render Validation | `core/native-render-validation.md` | Runtime truth, native-vs-fallback proof, MP4 QA for render engines | `remotion`, `hyperframes-cli`, `threejs-fundamentals`, `manimce-best-practices` |
+| Provider Audit | `core/provider-audit.md` | Official-doc checks, redacted fixtures, dry-run/live BYOK smoke protocol | `bfl-api`, `flux-best-practices`, `grok-media`, `elevenlabs` |
 | Timeline Editing | `editing/README.md` | Layered editing — PiP, collage, masks, effects, opacity, z-order on the Timeline IR | `ffmpeg`, `timeline-ir` |
 
 ## Editing Reference (`editing/`)

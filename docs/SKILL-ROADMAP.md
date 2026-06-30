@@ -33,8 +33,8 @@ load them before doing work.
 3. `skills/core/native-render-validation.md`: added; how agents validate
    Remotion, Revideo, Three.js, Manim, Blender, Motion Canvas, Spline, and
    Playwright.
-4. `skills/core/provider-audit.md`: how to check official docs before live BYOK
-   calls.
+4. `skills/core/provider-audit.md`: added; how to check official docs before
+   live BYOK calls.
 5. `skills/creative/topic-aware-overlays.md`: how reel/talking-head edits choose
    diagrams, UI mockups, system maps, data visuals, or minimal overlays.
 6. `skills/meta/documentary-evidence-craft.md`: generalized premium documentary
@@ -54,7 +54,7 @@ Examples:
 
 ## Gaps Worth Building
 
-- Provider-audit skill guidance for live BYOK docs checks.
+- Topic-aware overlay skill for reel/talking-head visual reasoning.
 - Spline capture/export adapter and validation skill.
 - Real local vision model skill path for CLIP/BLIP/video-language analysis.
 - Speaker/voice intelligence skill path for pyannote, SpeechBrain, Resemblyzer,

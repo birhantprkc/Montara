@@ -345,7 +345,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 4.4 | PROMPT_GALLERY full coverage | ☑ | 0.1.8 |
 | 4.5 | Live BYOK provider executors + sanitized fixture tests | ◐ | TS executor + all-cloud sanitized fixtures + dry-run/live smoke harness; Python OpenAI/BFL request builders; real-key confirmations pending |
 | 4.6 | `skills/core/native-render-validation.md` | ☑ | Native-vs-fallback proof and MP4 QA guidance added |
-| 4.7 | `skills/core/provider-audit.md` | ☐ | Per SKILL-ROADMAP |
+| 4.7 | `skills/core/provider-audit.md` | ☑ | Official-doc checks, redacted fixtures, dry-run/live BYOK smoke protocol |
 | 4.8 | YouTube/community launch plan | ☐ | Optional; not blocking technical win |
 | 4.9 | Compare report automation (`montara status` vs upstream) | ☐ | For future "detailed analysis" with no gaps |
 
@@ -446,7 +446,8 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 4.5B.1 | Python OpenAI/BFL image request-shape audit | done |
 | ✅ | 4.5B.2 | Remaining provider fixtures + live-key smoke harness | done |
 | ✅ | 4.6 | `skills/core/native-render-validation.md` | done |
-| 🎯 1 | 4.7 | `skills/core/provider-audit.md` | 1d |
+| ✅ | 4.7 | `skills/core/provider-audit.md` | done |
+| 🎯 1 | 4.8 | YouTube/community launch plan | optional |
 
 ---
 
