@@ -31,6 +31,7 @@ Montara should be honest with users and agents:
 | Local LLM orchestration | The architecture supports local brains, but a fully shipped local orchestration loop is still being hardened. |
 | Screen recording | FFmpeg desktop capture, Cap pickup, and `montara capture` Playwright browser recording with user-login storageState. |
 | Cloud providers | Request builders exist for BYOK use. Keep them audited against official provider docs before live execution. |
+| Status reporting | `montara status --json --out out/montara-status.json` summarizes local capability, latest documented gates, and upstream parity categories. |
 
 For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
 [docs/MONTARA-PARITY.md](./docs/MONTARA-PARITY.md).
@@ -39,6 +40,7 @@ For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
 
 ```bash
 montara doctor
+montara status --out out/montara-status.json
 montara plan "Make a 45-second explainer about why the sky is blue"
 montara make "Make a 45-second explainer about why the sky is blue"
 montara render out/timeline.json
@@ -86,13 +88,13 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 4.8 launch-plan sync:
+Latest local gate snapshot from the Stage 4.9 status automation sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 295 passed, 0 failed |
-| `npm.cmd run validate` | 82 passed, 0 failed |
+| `npm.cmd run validate` | 83 passed, 0 failed |
 | `python -m pytest tests` | 375 passed, 9 skipped |
 
 ## Agent Entry Points
@@ -108,6 +110,8 @@ Latest local gate snapshot from the Stage 4.8 launch-plan sync:
 Agents should run the same loop every time: inspect sources, read the relevant
 skills, produce or update the Timeline IR, render, QA the MP4, and export editor
 formats when requested.
+Use `montara status --json --out out/montara-status.json` before broad parity
+claims so the report is tied to the current local registry and docs snapshot.
 
 ## License
 

@@ -347,7 +347,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 4.6 | `skills/core/native-render-validation.md` | ☑ | Native-vs-fallback proof and MP4 QA guidance added |
 | 4.7 | `skills/core/provider-audit.md` | ☑ | Official-doc checks, redacted fixtures, dry-run/live BYOK smoke protocol |
 | 4.8 | YouTube/community launch plan | ☑ | `docs/LAUNCH-PLAN.md` maps proof videos, commands, artifacts, caveats, and launch checklist |
-| 4.9 | Compare report automation (`montara status` vs upstream) | ☐ | For future "detailed analysis" with no gaps |
+| 4.9 | Compare report automation (`montara status` vs upstream) | ☑ | CLI emits JSON/human local capability + upstream comparison report |
 
 **Stage 4 exit criteria:** New user reproduces 5 gallery demos without reading OpenMontage; agent-only workflow matches upstream quality.
 
@@ -448,7 +448,8 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 4.6 | `skills/core/native-render-validation.md` | done |
 | ✅ | 4.7 | `skills/core/provider-audit.md` | done |
 | ✅ | 4.8 | YouTube/community launch plan | done |
-| 🎯 1 | 4.9 | Compare report automation (`montara status` vs upstream) | optional |
+| ✅ | 4.9 | Compare report automation (`montara status` vs upstream) | done |
+| 🎯 1 | 5.1 | `packages/runtimes` ComfyUI/A1111 install/health | long-term |
 
 ---
 

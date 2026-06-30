@@ -385,6 +385,31 @@ ok("capture CLI routes URL briefs to Playwright recommendation",
   captureRecommend.status === 0 && /Recommended:\*\* playwright|capture recommendation: playwright/.test(captureRecommend.stdout ?? ""),
   (captureRecommend.error?.message || captureRecommend.stderr || captureRecommend.stdout || "").slice(-500));
 
+console.log("\n== status CLI (Stage 4.9) ==");
+const statusReportOut = join(outDir, "validate-montara-status.json");
+try { rmSync(statusReportOut, { force: true }); } catch { /* none */ }
+const statusCli = spawnSync(npmBin, ["run", "montara", "--", "status", "--json", "--out", statusReportOut], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+let statusReport: Record<string, unknown> = {};
+try {
+  statusReport = JSON.parse(readFileSync(statusReportOut, "utf8")) as Record<string, unknown>;
+} catch {
+  statusReport = {};
+}
+const statusSummary = statusReport.summary as { done?: number; partial?: number; planned?: number } | undefined;
+const statusComparison = statusReport.upstreamComparison as { verdict?: string }[] | undefined;
+ok("status CLI emits a structured Montara/upstream compare report",
+  statusCli.status === 0 &&
+    existsSync(statusReportOut) &&
+    Boolean(statusSummary && (statusSummary.done ?? 0) >= 6 && (statusSummary.partial ?? 0) >= 1) &&
+    Boolean(statusComparison?.some((row) => row.verdict === "montara-ahead")) &&
+    Boolean(statusComparison?.some((row) => row.verdict === "upstream-ahead")),
+  `status=${statusCli.status} stdout=${(statusCli.stdout || "").slice(-500)} stderr=${(statusCli.stderr || "").slice(-500)}`);
+
 console.log("\n== Python video tool CLI (Stage 1A.4) ==");
 const cliComposeEditPath = join(outDir, "validate-cli-compose.edit-decisions.json");
 const cliComposeOut = join(outDir, "validate-cli-video-compose.mp4");

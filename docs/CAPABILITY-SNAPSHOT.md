@@ -6,7 +6,7 @@ Snapshot date: 2026-06-30.
 
 - **Python engine bridge:** ready. Current bridge reports 116 tools, 18 lib modules, and 14 pipeline manifests.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
-- **CLI:** `doctor`, `make`, `plan`, `render`, `review`, `analyze`, `capture`, `compose`,
+- **CLI:** `doctor`, `status`, `make`, `plan`, `render`, `review`, `analyze`, `capture`, `compose`,
   `corpus`, `reel`, `music`, `voiceid`, provider listing, engine bridge commands,
   and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
@@ -30,7 +30,7 @@ Snapshot date: 2026-06-30.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 295 passed, 0 failed |
-| `npm.cmd run validate` | 82 passed, 0 failed |
+| `npm.cmd run validate` | 83 passed, 0 failed |
 | `python -m pytest tests` | 375 passed, 9 skipped |
 
 ## Example Outputs
@@ -44,6 +44,7 @@ Snapshot date: 2026-06-30.
 | Native HyperFrames smoke | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` | HyperFrames strict lint/validate/render kinetic typography when `npx hyperframes` is available |
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
+| Montara status report | `out/validate-montara-status.json` | CLI compare report for local capability and upstream parity |
 
 Generated outputs live under `out/` and are not committed.
 The README demo gallery and [docs/DEMOS.md](./DEMOS.md) now map these artifacts
@@ -102,4 +103,4 @@ Best current path:
 1. Finish Remotion default routing for Timeline scenes.
 2. Add documentary stock-footage validate case using the new corpus CLI surface.
 3. Add native package work for Revideo / Motion Canvas beyond registered adapters.
-4. Add compare-report automation for `montara status` against the PLAN parity categories.
+4. Use `montara status --json --out out/montara-status.json` before publishing parity claims.

@@ -103,7 +103,7 @@ Open focused issues rather than vague roadmap posts:
 | Revideo and Motion Canvas native packages | Turns registered adapters into verified renderers. |
 | Real CLIP/BLIP local understanding | Replaces signal-only understanding with actual local vision models. |
 | Runtime manager for ComfyUI/A1111 | Makes local generation setup repeatable. |
-| Compare report automation | Lets `montara status` produce a fresh parity report against OpenMontage-style categories. |
+| Compare report automation | Lets `montara status` produce a fresh parity report against upstream-style categories. |
 
 ## Metrics
 

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import type { ScenePlan, Timeline } from "../../core/src/index";
-import { validateTimeline, pictureInPicture, collage, type Corner, type MediaSpec } from "../../core/src/index";
+import { validateTimeline, scenePlanToTimeline, pictureInPicture, collage, type Corner, type MediaSpec } from "../../core/src/index";
 import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts, buildReel, type Caption, type ThumbConcept } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
@@ -225,6 +225,336 @@ function splitOptionList(values: string[]): string[] {
     .flatMap((value) => value.split(","))
     .map((value) => value.trim())
     .filter(Boolean);
+}
+
+type StatusLevel = "done" | "partial" | "planned";
+type ComparisonVerdict = "montara-ahead" | "tie" | "upstream-ahead";
+
+interface GateSnapshot {
+  command: string;
+  result: string;
+}
+
+interface StatusCapability {
+  id: string;
+  label: string;
+  status: StatusLevel;
+  evidence: string[];
+  next?: string;
+}
+
+interface StatusComparison {
+  category: string;
+  upstream: string;
+  montara: string;
+  verdict: ComparisonVerdict;
+}
+
+interface MontaraStatusReport {
+  generatedAt: string;
+  source: string;
+  summary: {
+    done: number;
+    partial: number;
+    planned: number;
+    verdict: string;
+  };
+  gates: GateSnapshot[];
+  capabilities: StatusCapability[];
+  renderEngines: {
+    id: string;
+    maturity: string;
+    available: boolean;
+    role: string;
+  }[];
+  providers: {
+    total: number;
+    available: number;
+    cloud: number;
+    localOrStock: number;
+  };
+  skills: {
+    total: number;
+    keyDocs: string[];
+  };
+  upstreamComparison: StatusComparison[];
+  nextTasks: string[];
+}
+
+function readLatestGateSnapshot(): GateSnapshot[] {
+  const readme = join(process.cwd(), "README.md");
+  if (!existsSync(readme)) return [];
+  const text = readFileSync(readme, "utf8");
+  const marker = text.indexOf("Latest local gate snapshot");
+  if (marker < 0) return [];
+  const nextSection = text.indexOf("\n## ", marker + 1);
+  const gateSection = text.slice(marker, nextSection < 0 ? undefined : nextSection);
+  const rows: GateSnapshot[] = [];
+  const re = /\| `([^`]+)` \| ([^|]+) \|/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(gateSection))) {
+    rows.push({ command: match[1] ?? "", result: (match[2] ?? "").trim() });
+  }
+  return rows.filter((row) => row.command.length > 0 && row.command !== "Command");
+}
+
+function statusCounts(items: StatusCapability[]): { done: number; partial: number; planned: number } {
+  return {
+    done: items.filter((item) => item.status === "done").length,
+    partial: items.filter((item) => item.status === "partial").length,
+    planned: items.filter((item) => item.status === "planned").length,
+  };
+}
+
+function docExists(path: string): boolean {
+  return existsSync(join(process.cwd(), path));
+}
+
+function editorBridgeOk(): boolean {
+  const timeline = scenePlanToTimeline({
+    width: 1280,
+    height: 720,
+    fps: 30,
+    scenes: [{ id: "status", title: "Montara status", durationSec: 1, background: "101820" }],
+  });
+  if (validateTimeline(timeline).length) return false;
+  try {
+    const formats: EditorFormat[] = ["edl", "otio", "fcpxml"];
+    return formats.every((format) => exportTimeline(timeline, format, { title: "Montara Status" }).content.length > 20);
+  } catch {
+    return false;
+  }
+}
+
+function buildMontaraStatusReport(): MontaraStatusReport {
+  const engines = listEngines().map((engine) => ({
+    id: engine.id,
+    maturity: engine.maturity,
+    available: engineReallyAvailable(engine.id),
+    role: engine.role,
+  }));
+  const providers = [
+    ...listVideoProviders(true),
+    ...listImageProviders(true),
+    ...listTtsProviders(true),
+    ...listMusicProviders(true),
+  ];
+  const skills = listSkills();
+  const pipelineCount = listPipelines().length;
+  const python = engineReady();
+  const brainBackends = brainCatalogue();
+  const docsReady = ["README.md", "AGENT_GUIDE.md", "docs/DEMOS.md", "PROMPT_GALLERY.md", "docs/LAUNCH-PLAN.md"].every(docExists);
+  const providerAuditReady = buildProviderAuditReport().invalid === 0;
+  const ffmpeg = engines.find((engine) => engine.id === "ffmpeg");
+  const remotion = engines.find((engine) => engine.id === "remotion");
+  const hyperframesDoc = docExists("skills/core/hyperframes.md") || docExists(".agents/skills/hyperframes/SKILL.md");
+  const launchPlan = docExists("docs/LAUNCH-PLAN.md");
+  const editorOk = editorBridgeOk();
+  const capabilities: StatusCapability[] = [
+    {
+      id: "timeline-ir",
+      label: "Timeline IR",
+      status: "done",
+      evidence: ["scene plans compile to Timeline IR", "Timeline validation is available in @montara/core"],
+    },
+    {
+      id: "scene-decision-bridge",
+      label: "scene_plan/edit_decisions bridge",
+      status: "done",
+      evidence: ["scene_plan and edit_decisions bridge into the Timeline IR"],
+    },
+    {
+      id: "ffmpeg-render",
+      label: "FFmpeg render and fallback",
+      status: ffmpeg?.available ? "done" : "partial",
+      evidence: [`ffmpeg engine ${ffmpeg?.available ? "available" : "not currently available"}`, "validate renders real MP4s"],
+    },
+    {
+      id: "native-composition",
+      label: "Native composition engines",
+      status: "partial",
+      evidence: [
+        `${engines.length} engines registered`,
+        `Remotion ${remotion?.available ? "available" : "runtime-gated"}`,
+        "Revideo, Motion Canvas, Three.js, Manim, Blender, Spline, Playwright are tracked by maturity",
+      ],
+      next: "Finish Remotion default Timeline routing and native package work for Revideo/Motion Canvas.",
+    },
+    {
+      id: "python-engine",
+      label: "Python media engine bridge",
+      status: python.ready ? "done" : "partial",
+      evidence: python.ready && python.info
+        ? [`${python.info.tools} tools`, `${python.info.lib} lib modules`, `${python.info.pipelines.length} pipelines`]
+        : [`not fully ready: ${python.reasons.join("; ")}`],
+    },
+    {
+      id: "providers",
+      label: "Cloud/local provider surface",
+      status: "partial",
+      evidence: [
+        `${providers.length} registered provider entries`,
+        `${providers.filter((provider) => providerAvailable(provider)).length} currently available with local env`,
+        providerAuditReady ? "sanitized provider audit fixtures valid" : "provider audit fixtures have issues",
+      ],
+      next: "Production claims still require live BYOK smoke records.",
+    },
+    {
+      id: "skills",
+      label: "Agent skills and guidance",
+      status: skills.length > 20 && docsReady ? "done" : "partial",
+      evidence: [`${skills.length} skills indexed`, `${pipelineCount} pipelines registered`, docsReady ? "core docs linked" : "some docs missing"],
+    },
+    {
+      id: "screen-capture",
+      label: "Browser and desktop capture",
+      status: "partial",
+      evidence: ["capture CLI exists", "Playwright auth storageState workflow is documented and pytest-covered"],
+      next: "Complete full screen-demo MP4 validate flow.",
+    },
+    {
+      id: "editor-handoff",
+      label: "Editor handoff",
+      status: editorOk ? "done" : "partial",
+      evidence: [editorOk ? "EDL, OTIO, and FCPXML export generated in memory" : "editor export check failed"],
+    },
+    {
+      id: "understanding",
+      label: "Video understanding",
+      status: "partial",
+      evidence: ["FFmpeg scene/audio/frame analysis works", "CLIP/BLIP local vision is still planned"],
+      next: "Replace signal-only default with real local vision model path.",
+    },
+    {
+      id: "local-brain",
+      label: "Local LLM orchestration",
+      status: "partial",
+      evidence: [`${brainBackends.length} local brain backend definitions`, `Ollama ${ollamaInstalled() ? "installed" : "not detected"}`],
+      next: "Ship a complete local orchestration loop, not just probes/catalogue.",
+    },
+    {
+      id: "public-proof",
+      label: "Public proof and launch",
+      status: launchPlan ? "done" : "partial",
+      evidence: ["README demo gallery", "docs/DEMOS.md artifact ledger", launchPlan ? "docs/LAUNCH-PLAN.md" : "launch plan missing"],
+    },
+    {
+      id: "status-automation",
+      label: "Compare report automation",
+      status: "done",
+      evidence: ["montara status emits this structured report", "JSON output is available with --json or --out"],
+    },
+    {
+      id: "runtime-manager",
+      label: "Runtime manager / web GUI",
+      status: "planned",
+      evidence: ["ComfyUI/A1111 manager, web GUI, and WARCUT remain Stage 5 work"],
+    },
+  ];
+  const counts = statusCounts(capabilities);
+  return {
+    generatedAt: new Date().toISOString(),
+    source: "PLAN.md + local registry probes + README gate snapshot",
+    summary: {
+      ...counts,
+      verdict: counts.planned === 0 && counts.partial <= 2 ? "launch-ready" : "strong but still runtime-gated",
+    },
+    gates: readLatestGateSnapshot(),
+    capabilities,
+    renderEngines: engines,
+    providers: {
+      total: providers.length,
+      available: providers.filter((provider) => providerAvailable(provider)).length,
+      cloud: providers.filter((provider) => provider.tier === "cloud").length,
+      localOrStock: providers.filter((provider) => provider.tier !== "cloud").length,
+    },
+    skills: {
+      total: skills.length,
+      keyDocs: ["AGENT_GUIDE.md", "skills/INDEX.md", "docs/DEMOS.md", "docs/LAUNCH-PLAN.md", "docs/PROVIDER-AUDIT.md"],
+    },
+    upstreamComparison: [
+      {
+        category: "Data model",
+        upstream: "scene_plan/edit_decisions",
+        montara: "Timeline IR plus scene_plan/edit_decisions bridge",
+        verdict: "montara-ahead",
+      },
+      {
+        category: "Agent skills",
+        upstream: "strong source skills",
+        montara: "ported skills plus Montara-specific Timeline, audit, capture, launch, and render validation guidance",
+        verdict: "montara-ahead",
+      },
+      {
+        category: "Native composition polish",
+        upstream: "more battle-tested Remotion/HyperFrames path",
+        montara: "native smoke and adapters, but default Timeline routing still hardening",
+        verdict: "upstream-ahead",
+      },
+      {
+        category: "Local-first proof",
+        upstream: "strong demo narrative",
+        montara: "validate-generated MP4s, editor exports, provider fixtures, and public proof ledger",
+        verdict: "tie",
+      },
+      {
+        category: "Provider safety",
+        upstream: "provider guidance",
+        montara: "redacted fixtures, dry-run smoke, explicit live BYOK opt-in",
+        verdict: "montara-ahead",
+      },
+    ],
+    nextTasks: [
+      "Finish Remotion default Timeline routing.",
+      "Add documentary stock-footage validate case through corpus CLI.",
+      "Turn Revideo and Motion Canvas from registered/runtime-gated adapters into native validate cases.",
+      "Ship real local CLIP/BLIP understanding path.",
+      "Build the Stage 5 runtime manager and web GUI.",
+    ],
+  };
+}
+
+function printStatusReport(report: MontaraStatusReport): void {
+  console.log(`Montara status: ${report.summary.done} done, ${report.summary.partial} partial, ${report.summary.planned} planned`);
+  console.log(`Verdict: ${report.summary.verdict}`);
+  if (report.gates.length) {
+    console.log("\nLatest documented gates:");
+    for (const gate of report.gates) console.log(`  ${gate.command.padEnd(28)} ${gate.result}`);
+  }
+  console.log("\nCapabilities:");
+  for (const cap of report.capabilities) {
+    console.log(`  ${cap.status.padEnd(7)} ${cap.label}`);
+    for (const evidence of cap.evidence.slice(0, 2)) console.log(`          - ${evidence}`);
+    if (cap.next) console.log(`          next: ${cap.next}`);
+  }
+  console.log("\nRender engines:");
+  for (const engine of report.renderEngines) {
+    console.log(`  ${engine.id.padEnd(14)} ${engine.maturity.padEnd(13)} ${engine.available ? "available" : "runtime-gated"} - ${engine.role}`);
+  }
+  console.log(`\nProviders: ${report.providers.total} total, ${report.providers.cloud} cloud, ${report.providers.localOrStock} local/stock, ${report.providers.available} available now`);
+  console.log(`Skills: ${report.skills.total} indexed`);
+  console.log("\nUpstream comparison:");
+  for (const row of report.upstreamComparison) {
+    console.log(`  ${row.verdict.padEnd(17)} ${row.category}`);
+  }
+  console.log("\nNext:");
+  for (const task of report.nextTasks.slice(0, 3)) console.log(`  - ${task}`);
+}
+
+function runStatusCommand(rest: string[]): number {
+  const report = buildMontaraStatusReport();
+  const out = optionValue(rest, "--out");
+  if (out) {
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, `${JSON.stringify(report, null, 2)}\n`);
+  }
+  if (rest.includes("--json")) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    printStatusReport(report);
+    if (out) console.log(`\nreport -> ${out}`);
+  }
+  return 0;
 }
 
 interface PythonToolResult {
@@ -1111,6 +1441,7 @@ function printHelp(): void {
 
 Commands:
   doctor [--fix]                  check local render prerequisites + Python engine; print setup guide with --fix
+  status [--json] [--out path]     summarize local capability, gates, and upstream parity categories
   render3d blender [out]          render the 3D intro via headless Blender + ffmpeg
   voiceid compare <test> ...      speaker-ID: classify a clip against labelled reference clips
   voiceid verify <a> <b>          speaker-ID: are two clips the same speaker?
@@ -1168,6 +1499,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     }
 
     if (command === "doctor") return runDoctor(rest);
+    if (command === "status") return runStatusCommand(rest);
     if (command === "reel") return runReelCommand(rest);
     if (command === "capture") return runCaptureCommand(rest);
     if (command === "compose") return runComposeCommand(rest);
