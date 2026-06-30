@@ -34,19 +34,24 @@ Last checked: 2026-06-30.
 - `packages/providers/src/executor.ts` now provides an injectable BYOK executor
   plus request redaction, so CI can replay sanitized HTTP fixtures without live
   keys, network calls, or provider spend.
+- `packages/providers/src/audit.ts` builds a redacted fixture report for all 18
+  cloud providers and exposes a dry-run/live smoke harness. CLI entry points:
+  `montara providers audit` and `montara providers smoke <provider-id> [--live]`.
 
 ## Known Follow-Ups
 
-- The TS executor is fixture-tested, not live-key tested. Before spending user
-  money, run a real BYOK smoke and save a sanitized fixture.
+- The TS executor and audit harness are fixture-tested, not broadly live-key
+  tested. Before spending user money, run `montara providers smoke <id> --live`
+  with `MONTARA_LIVE_PROVIDER_SMOKE=1`, then save a sanitized fixture.
 - Python image providers now expose testable request builders:
   `tools/graphics/openai_image.py` defaults to GPT Image 2, and
   `tools/graphics/flux_image.py` prefers direct BFL FLUX.2 while retaining
   fal.ai as a compatibility fallback. They still need real-key smoke runs before
   production spend.
 - Recraft, xAI, MiniMax, Kling, HeyGen, Suno, ElevenLabs Music/SFX, and
-  Runway image-to-video need sanitized request/response fixtures before they can
-  be called "production-perfect."
+  Runway image-to-video now have sanitized request fixtures where represented in
+  the registry, but still need live response fixtures before they can be called
+  "production-perfect."
 - Keep secrets out of fixtures. Redact `Authorization`, `x-key`, `xi-api-key`,
   API-key query parameters, temporary result URLs when needed, and any provider
   account identifiers.

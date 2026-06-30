@@ -29,8 +29,8 @@ Snapshot date: 2026-06-30.
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 284 passed, 0 failed |
-| `npm.cmd run validate` | 81 passed, 0 failed |
+| `npm.cmd run verify` | 292 passed, 0 failed |
+| `npm.cmd run validate` | 82 passed, 0 failed |
 | `python -m pytest tests` | 375 passed, 9 skipped |
 
 ## Example Outputs
@@ -75,9 +75,15 @@ image, Google Veo 3.1, and Runway versioned task requests. The Python image
 provider tools now also expose testable OpenAI/BFL request builders; `flux_image`
 prefers direct BFL and keeps fal.ai as a compatibility fallback.
 
+`montara providers audit` now writes a redacted fixture report covering every
+cloud video/image/TTS/music provider in the registry, and `montara providers
+smoke <provider-id>` builds a dry-run request by default. A real network smoke is
+blocked unless the caller passes `--live`, provides the provider key, and sets
+`MONTARA_LIVE_PROVIDER_SMOKE=1`.
+
 This is not yet a blanket production claim for every cloud provider. Python
-provider tools still need real-key smoke runs, and the remaining cloud long tail
-still needs sanitized fixtures; see [docs/PROVIDER-AUDIT.md](./PROVIDER-AUDIT.md).
+provider tools and the cloud long tail still need real-key smoke confirmations;
+see [docs/PROVIDER-AUDIT.md](./PROVIDER-AUDIT.md).
 
 ## Voice And Audio Options
 
@@ -93,7 +99,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Finish remaining provider executor fixtures and real-key smoke harness.
+1. Add native render validation skill guidance.
 2. Finish Remotion default routing for Timeline scenes.
 3. Add documentary stock-footage validate case using the new corpus CLI surface.
 4. Add native package work for Revideo / Motion Canvas beyond registered adapters.

@@ -6,7 +6,7 @@ import { validateTimeline, pictureInPicture, collage, type Corner, type MediaSpe
 import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts, buildReel, type Caption, type ThumbConcept } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
-import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable } from "../../providers/src/index";
+import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable, buildProviderAuditReport, sanitizeProviderAuditReport, writeProviderAuditReport, runProviderSmoke, type MediaCategory } from "../../providers/src/index";
 import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, directScript, reviewSourceMedia, planReelTreatment, createReelArtifacts, type ReelInputKind, type ReelStyleMode, type SceneEmotion } from "../../quality/src/index";
 import { TTSSelector } from "../../tools/src/audio/tts-selector";
 import { runResearch } from "../../research/src/index";
@@ -146,6 +146,8 @@ function numberOption(args: string[], name: string, fallback: number): number {
 const VALUE_FLAGS = new Set([
   "--url",
   "--output",
+  "--out",
+  "--category",
   "--provider",
   "--auth-state",
   "--auth",
@@ -1126,6 +1128,8 @@ Commands:
   pipelines                       list the available pipeline shapes
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
+  providers audit [--out path]       write sanitized request fixtures for cloud providers
+  providers smoke <id> [--live]      dry-run or opt-in live-key smoke for one provider
   engines                         list composition engines + availability
   styles                          list style playbooks
   profiles                        list output profiles (aspect ratios)
@@ -1155,7 +1159,7 @@ Options (plan/make):
 `);
 }
 
-export function main(argv = process.argv.slice(2)): number {
+export async function main(argv = process.argv.slice(2)): Promise<number> {
   const [command, ...rest] = argv;
   try {
     if (!command || command === "help" || command === "--help" || command === "-h") {
@@ -1628,7 +1632,47 @@ export function main(argv = process.argv.slice(2)): number {
     }
 
     if (command === "providers") {
-      const category = rest[0] ?? "video";
+      const sub = rest[0] ?? "video";
+      if (sub === "audit" || sub === "fixtures") {
+        const out = optionValue(rest, "--out") ?? join(process.cwd(), "out", "provider-audit-fixtures.json");
+        const report = rest.includes("--dry") ? sanitizeProviderAuditReport(buildProviderAuditReport()) : writeProviderAuditReport(out);
+        if (rest.includes("--json")) {
+          console.log(JSON.stringify(report, null, 2));
+        } else {
+          console.log(`provider audit: ${report.total - report.invalid}/${report.total} fixture request(s) valid`);
+          if (!rest.includes("--dry")) console.log(out);
+          for (const f of report.fixtures) {
+            const status = f.issues.length ? `issues: ${f.issues.join("; ")}` : "ok";
+            console.log(`  ${f.providerId.padEnd(22)} ${f.category.padEnd(5)} ${status}`);
+          }
+        }
+        return report.invalid === 0 ? 0 : 1;
+      }
+      if (sub === "smoke") {
+        const positional = positionalArgs(rest).slice(1);
+        const providerId = positional[0];
+        if (!providerId) {
+          console.error("usage: montara providers smoke <provider-id> [--category video|image|tts|music] [--live] [--out path] [--json]");
+          return 1;
+        }
+        const category = optionValue(rest, "--category") as MediaCategory | undefined;
+        const result = await runProviderSmoke({
+          providerId,
+          category,
+          live: rest.includes("--live"),
+          outPath: optionValue(rest, "--out"),
+        });
+        if (rest.includes("--json")) {
+          console.log(JSON.stringify({ ...result, request: result.redactedRequest }, null, 2));
+        } else {
+          console.log(`${result.providerId}: ${result.mode} ${result.ok ? "ok" : "blocked"}`);
+          console.log(`${result.redactedRequest.method} ${result.redactedRequest.url}`);
+          if (result.nextStep) console.log(result.nextStep);
+          if (result.error) console.error(result.error);
+        }
+        return result.ok ? 0 : 1;
+      }
+      const category = sub;
       const providers =
         category === "image" ? listImageProviders(true)
         : category === "tts" ? listTtsProviders(true)
@@ -1774,4 +1818,4 @@ export function main(argv = process.argv.slice(2)): number {
   }
 }
 
-process.exitCode = main();
+process.exitCode = await main();

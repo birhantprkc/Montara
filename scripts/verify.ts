@@ -66,6 +66,11 @@ import {
   LOCAL_MUSIC_FALLBACK,
   getTtsProvider,
   buildTtsRequest,
+  buildProviderAuditFixtures,
+  buildProviderAuditReport,
+  writeProviderAuditReport,
+  runProviderSmoke,
+  cloudProviders,
   planSpeechGeneration,
   runSpeechGeneration,
   runMusicGeneration,
@@ -591,6 +596,35 @@ const fixtureExec = await executeProviderRequest(getImageProvider("flux")!, flux
   download: async () => new Uint8Array([1, 2, 3, 4]),
 });
 ok("BYOK executor replays sanitized async fixture and writes artifact", fixtureExec.ok && fixtureExec.polls === 1 && fixtureExec.outputUrl === "https://cdn.example/flux.png" && existsSync(fixtureArtifact));
+
+const providerFixtures = buildProviderAuditFixtures();
+const providerCloudCount = cloudProviders().length;
+ok("provider audit fixture builder covers every cloud video/image/tts/music provider", providerFixtures.length === providerCloudCount && providerFixtures.length >= 18,
+  `fixtures ${providerFixtures.length}, cloud ${providerCloudCount}`);
+ok("provider audit fixtures are parseable and secret-redacted", providerFixtures.every((fixture) => fixture.issues.length === 0),
+  providerFixtures.filter((fixture) => fixture.issues.length).map((fixture) => `${fixture.providerId}: ${fixture.issues.join(", ")}`).join("; "));
+ok("provider audit fixtures include the remaining long-tail cloud providers", ["kling", "grok-image", "recraft", "minimax-video", "heygen", "suno", "elevenlabs-music", "elevenlabs-sfx"].every((id) => providerFixtures.some((fixture) => fixture.providerId === id)));
+const providerAuditReport = buildProviderAuditReport();
+ok("provider audit report summarizes fixture validity", providerAuditReport.total === providerFixtures.length && providerAuditReport.invalid === 0);
+const providerAuditPath = join(process.cwd(), "out", "verify-provider-audit-fixtures.json");
+writeProviderAuditReport(providerAuditPath);
+ok("provider audit report writes a sanitized JSON fixture file", existsSync(providerAuditPath) && !readFileSync(providerAuditPath, "utf8").includes("fixture-redaction-marker"));
+const drySmoke = await runProviderSmoke({ providerId: "flux", category: "image", env: {} });
+ok("provider smoke dry-run builds a redacted request without requiring keys", drySmoke.ok && drySmoke.mode === "dry-run" && drySmoke.redactedRequest.headers["x-key"] === "[REDACTED]");
+const blockedSmoke = await runProviderSmoke({ providerId: "flux", category: "image", live: true, env: { BFL_API_KEY: "bk" } });
+ok("provider live smoke is blocked without explicit opt-in", !blockedSmoke.ok && blockedSmoke.mode === "blocked" && Boolean(blockedSmoke.nextStep?.includes("MONTARA_LIVE_PROVIDER_SMOKE")));
+const liveSmoke = await runProviderSmoke({
+  providerId: "flux",
+  category: "image",
+  live: true,
+  env: { BFL_API_KEY: "bk", MONTARA_LIVE_PROVIDER_SMOKE: "1" },
+  outPath: join(process.cwd(), "out", "verify-provider-smoke-live.bin"),
+  fetch: async (_url, init) => init.method === "POST"
+    ? { ok: true, status: 200, json: async () => ({ polling_url: "https://api.bfl.ai/v1/get_result?id=live_fixture" }) }
+    : { ok: true, status: 200, json: async () => ({ status: "Ready", result: { sample: "https://cdn.example/live.png" } }) },
+  download: async () => new Uint8Array([5, 4, 3, 2]),
+});
+ok("provider live smoke harness executes through the BYOK executor when explicitly opted in", liveSmoke.ok && liveSmoke.mode === "live" && liveSmoke.execution?.outputUrl === "https://cdn.example/live.png");
 
 const offlineImg = planImageGeneration(iInput, {});
 ok("with no credentials an image plan falls back to local-free", offlineImg.mode === "fallback" && offlineImg.provider.tier === "local-free");

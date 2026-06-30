@@ -430,6 +430,7 @@ export function timelineToCaptionCardVideos(timeline: Timeline, outDir: string):
 // Media provider registry (§C/§D/§E parity surface).
 export * from "./registry";
 export * from "./executor";
+export * from "./audit";
 // Local audio mixer + enhancer (§E, real ffmpeg).
 export * from "./audio";
 // Post-production / enhancement (§F): real ffmpeg passes + model-enhancer catalogue.

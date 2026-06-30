@@ -525,6 +525,7 @@ Agents should prefer the public CLI when it exists:
 | smart source reel | `montara reel <input.mp4>` |
 | Python compose artifact render | `montara compose <edit-decisions.json> [out.mp4] [--assets asset-manifest.json]` |
 | stock/corpus discovery and retrieval | `montara corpus sources|build|search|stats|get` |
+| provider audit / smoke | `montara providers audit` and `montara providers smoke <provider-id> [--live]` |
 | editor handoff | `montara export <timeline.json> --to otio|fcpxml|edl [out]` |
 | engine inventory | `montara engines` |
 | Python engine bridge | `montara engine info|smoke|providers|timeline|render` |

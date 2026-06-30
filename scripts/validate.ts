@@ -31,6 +31,7 @@ import {
   getImageProvider,
   buildImageRequest,
   redactProviderRequest,
+  writeProviderAuditReport,
   runImageGeneration,
   TTS_PROVIDERS,
   MUSIC_PROVIDERS,
@@ -253,6 +254,9 @@ const fixtureExec = await executeProviderRequest(getImageProvider("flux")!, flux
   download: async () => new Uint8Array([9, 8, 7]),
 });
 ok("sanitized provider executor writes a fixture artifact", fixtureExec.ok && fixtureExec.outputUrl === "https://cdn.example/fixture.png" && existsSync(fixtureOut));
+const providerAuditOut = join(outDir, "validate-provider-audit-fixtures.json");
+const providerAudit = writeProviderAuditReport(providerAuditOut);
+ok("provider audit writes sanitized fixtures for all cloud providers", providerAudit.total >= 18 && providerAudit.invalid === 0 && existsSync(providerAuditOut) && !readFileSync(providerAuditOut, "utf8").includes("fixture-redaction-marker"));
 
 console.log("\n== audio: tts + music + mixer + enhance (Phase 1.8 §E) ==");
 ok("4 TTS + 3 music providers registered", TTS_PROVIDERS.length === 4 && MUSIC_PROVIDERS.length === 3);
