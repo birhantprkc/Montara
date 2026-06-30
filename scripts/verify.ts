@@ -56,7 +56,9 @@ import {
   IMAGE_PROVIDERS,
   getImageProvider,
   buildImageRequest,
+  executeProviderRequest,
   planImageGeneration,
+  redactProviderRequest,
   runImageGeneration,
   TTS_PROVIDERS,
   MUSIC_PROVIDERS,
@@ -562,9 +564,33 @@ ok("every image provider is category image", IMAGE_PROVIDERS.every((p) => p.cate
 
 const iInput = { prompt: "a narrow strait seen from orbit", outPath: join(process.cwd(), "out", "verify-image.png"), width: 512, height: 512 };
 const dalleReq = buildImageRequest(getImageProvider("dalle3")!, iInput, { OPENAI_API_KEY: "ok" });
-ok("OpenAI image request is a Bearer POST with GPT Image model + prompt", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer ok" && Boolean(dalleReq.body?.includes("gpt-image-1")));
+ok("OpenAI image request is a Bearer POST with GPT Image 2 model + prompt", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer ok" && Boolean(dalleReq.body?.includes("gpt-image-2")));
+const fluxReq = buildImageRequest(getImageProvider("flux")!, iInput, { BFL_API_KEY: "bk-secret" });
+ok("BFL FLUX.2 request uses x-key auth and async polling_url", fluxReq.method === "POST" && fluxReq.url.endsWith("/flux-2-pro") && fluxReq.headers["x-key"] === "bk-secret" && fluxReq.poll?.field === "polling_url");
+const imagenReq = buildImageRequest(getImageProvider("imagen")!, iInput, { GEMINI_API_KEY: "gk" });
+ok("Google image request uses Gemini image model + key query + image modality", imagenReq.url.includes("gemini-3.1-flash-image") && imagenReq.url.includes("key=gk") && !("Authorization" in imagenReq.headers) && Boolean(imagenReq.body?.includes("responseModalities")));
 const unsplashReq = buildImageRequest(getImageProvider("unsplash")!, iInput, { UNSPLASH_ACCESS_KEY: "uk" });
 ok("Unsplash request is a GET with Client-ID auth", unsplashReq.method === "GET" && unsplashReq.headers.Authorization === "Client-ID uk");
+
+const runwayReq = buildVideoRequest(getVideoProvider("runway-gen3")!, vInput, { RUNWAY_API_KEY: "rk-secret" });
+ok("Runway request uses versioned task API with promptText", runwayReq.url.endsWith("/text_to_video") && runwayReq.headers["X-Runway-Version"] === "2024-11-06" && Boolean(runwayReq.body?.includes("promptText")));
+const veoReq = buildVideoRequest(getVideoProvider("google-veo3")!, vInput, { GEMINI_API_KEY: "gk" });
+ok("Veo request uses 3.1 long-running endpoint and typed parameters", veoReq.url.includes("veo-3.1-generate-preview:predictLongRunning") && veoReq.url.includes("key=gk") && Boolean(veoReq.body?.includes("durationSeconds")));
+const redactedFlux = redactProviderRequest(fluxReq);
+ok("provider request redaction removes secrets from headers and URLs", redactedFlux.headers["x-key"] === "[REDACTED]" && !redactedFlux.url.includes("bk-secret"));
+
+const fixtureArtifact = join(process.cwd(), "out", "verify-provider-live-fixture.bin");
+const fixtureExec = await executeProviderRequest(getImageProvider("flux")!, fluxReq, {
+  outPath: fixtureArtifact,
+  fetch: async (url, init) => {
+    if (init.method === "POST") {
+      return { ok: true, status: 200, json: async () => ({ id: "job_123", polling_url: "https://api.bfl.ai/v1/get_result?id=job_123" }) };
+    }
+    return { ok: true, status: 200, json: async () => ({ status: "Ready", result: { sample: "https://cdn.example/flux.png" }, seed: 42 }) };
+  },
+  download: async () => new Uint8Array([1, 2, 3, 4]),
+});
+ok("BYOK executor replays sanitized async fixture and writes artifact", fixtureExec.ok && fixtureExec.polls === 1 && fixtureExec.outputUrl === "https://cdn.example/flux.png" && existsSync(fixtureArtifact));
 
 const offlineImg = planImageGeneration(iInput, {});
 ok("with no credentials an image plan falls back to local-free", offlineImg.mode === "fallback" && offlineImg.provider.tier === "local-free");

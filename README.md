@@ -86,20 +86,21 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 4.2 public demo gallery sync:
+Latest local gate snapshot from the Stage 4.5A provider executor sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 272 passed, 0 failed |
-| `npm.cmd run validate` | 79 passed, 0 failed |
-| `python -m pytest tests` | 367 passed, 8 skipped |
+| `npm.cmd run verify` | 278 passed, 0 failed |
+| `npm.cmd run validate` | 81 passed, 0 failed |
+| `python -m pytest tests` | 367 passed, 9 skipped |
 
 ## Agent Entry Points
 
 - [AGENT_GUIDE.md](./AGENT_GUIDE.md) is the assistant-agnostic operating contract.
 - [skills/INDEX.md](./skills/INDEX.md) is the skill map.
 - [docs/DEMOS.md](./docs/DEMOS.md) is the checked-in demo gallery and artifact ledger.
+- [docs/PROVIDER-AUDIT.md](./docs/PROVIDER-AUDIT.md) records current cloud-provider request shapes and live-audit gaps.
 - [PROMPT_GALLERY.md](./PROMPT_GALLERY.md) contains prompts that exercise the real system without overclaiming runtimes.
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) explains what is solid, adapter-backed, or planned.
 

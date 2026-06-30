@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-06-29, after Stage 4.2 public demo gallery.
+Last synced with [PLAN.md](../PLAN.md): 2026-06-30, after Stage 4.5A provider executor fixtures.
 
 This checklist tracks two things:
 
@@ -13,9 +13,9 @@ Legend: `☑` done and gated, `◐` partial/runtime-gated, `☐` not done.
 Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
-- `npm.cmd run verify` passed: 272 passed, 0 failed.
-- `npm.cmd run validate` passed: 79 passed, 0 failed.
-- `python -m pytest tests` passed: 367 passed, 8 skipped.
+- `npm.cmd run verify` passed: 278 passed, 0 failed.
+- `npm.cmd run validate` passed: 81 passed, 0 failed.
+- `python -m pytest tests` passed: 367 passed, 9 skipped.
 
 ## Snapshot
 
@@ -42,7 +42,7 @@ Latest local gates before this sync:
 | Spline | ☐ | Planned registry entry only. |
 | Local LLM orchestrator | ◐ | Backend catalogue/probes; full local brain not shipped. |
 | CLIP/BLIP vision default | ☐ | Current default is FFmpeg/frame/audio signal analysis. |
-| Cloud live executors | ◐ | Request builders and audit notes; sanitized live fixtures pending. |
+| Cloud live executors | ◐ | TS executor + redaction + first-wave sanitized fixtures; remaining providers and Python tools pending. |
 | Legal/notice | ☑ | Root AGPL-3.0 LICENSE, NOTICE, and docs/ATTRIBUTION.md are present. |
 | Web GUI / WARCUT | ☐ | Long-term product surface. |
 | Runtimes manager | ☐ | No Pinokio-style ComfyUI/A1111 manager yet. |
@@ -84,8 +84,8 @@ Latest local gates before this sync:
 
 | Category | Status | Notes |
 | --- | --- | --- |
-| C Video providers | ◐ | 14 registered; live executor audits pending. |
-| D Image providers | ◐ | 10 registered; OpenAI/Google defaults updated; live fixtures pending. |
+| C Video providers | ◐ | 14 registered; Runway/Veo TS request shapes fixture-gated; remaining live audits pending. |
+| D Image providers | ◐ | 10 registered; OpenAI/BFL/Google TS request shapes and BFL-style executor fixture gated. |
 | E Audio/TTS/music | ◐ | Local/offline fallbacks and analysis exist; premium providers BYOK/runtime-gated. |
 | F Post/enhancement | ◐ | Core FFmpeg operations work; model enhancers runtime-gated. |
 | G Analysis/understanding | ◐ | Reference analysis and signalstats work; full CLIP/BLIP default pending. |

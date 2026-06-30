@@ -29,9 +29,9 @@ Snapshot date: 2026-06-29.
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 272 passed, 0 failed |
-| `npm.cmd run validate` | 79 passed, 0 failed |
-| `python -m pytest tests` | 367 passed, 8 skipped |
+| `npm.cmd run verify` | 278 passed, 0 failed |
+| `npm.cmd run validate` | 81 passed, 0 failed |
+| `python -m pytest tests` | 367 passed, 9 skipped |
 
 ## Example Outputs
 
@@ -65,6 +65,18 @@ expectations.
 | FFmpeg | Fully working native renderer and fallback. |
 | Playwright | Browser capture with `montara capture`, login/storageState workflow; runtime-gated on Node Playwright install. |
 
+## Provider Executor Status
+
+The TypeScript provider registry now includes an injectable BYOK executor and
+redaction helper. `verify` and `validate` replay sanitized fixtures for BFL-style
+async submit/poll/download without live keys or network calls. First-wave request
+shape coverage includes OpenAI Images (`gpt-image-2`), BFL FLUX.2, Google Gemini
+image, Google Veo 3.1, and Runway versioned task requests.
+
+This is not yet a blanket production claim for every cloud provider. Python
+provider tools and the remaining cloud long tail still need live BYOK smoke runs
+and sanitized fixtures; see [docs/PROVIDER-AUDIT.md](./PROVIDER-AUDIT.md).
+
 ## Voice And Audio Options
 
 Best current path:
@@ -79,7 +91,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Audit live BYOK provider executors against current official docs and add sanitized fixture tests.
+1. Finish remaining provider executor fixtures and Python live-shape audits.
 2. Finish Remotion default routing for Timeline scenes.
 3. Add documentary stock-footage validate case using the new corpus CLI surface.
 4. Add native package work for Revideo / Motion Canvas beyond registered adapters.

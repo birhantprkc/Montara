@@ -2,6 +2,9 @@
 
 Everything you need to know about every provider in Montara — setup instructions, pricing, free tiers, and what each unlocks.
 
+Provider APIs and pricing drift quickly. Treat this guide as setup guidance; the
+current request-builder truth lives in [PROVIDER-AUDIT.md](./PROVIDER-AUDIT.md).
+
 ---
 
 ## Quick Start: What Should I Set Up?
@@ -15,7 +18,7 @@ Everything you need to know about every provider in Montara — setup instructio
 | 3 | **$0** | ElevenLabs | Premium TTS + music + SFX (10K chars/month free) |
 | 4 | **$0** | Piper (local install) | Fully offline TTS — no API key, no cost, no network |
 | 5 | **~$0.03/image** | fal.ai | FLUX images + Kling/Veo/MiniMax video + Recraft — broad single-key image + video coverage |
-| 6 | **~$0.04/image** | OpenAI | DALL-E 3 images + OpenAI TTS |
+| 6 | **provider-priced** | OpenAI | GPT Image generation + OpenAI TTS |
 | 7 | **~$0.04/image** | Google Imagen | Imagen 4 images (shares the Google API key) |
 | 8 | **$12/month** | Runway | Gen-4 video — highest quality AI video |
 | 9 | **pay-as-you-go** | HeyGen | Avatar videos, multi-model video gateway |
@@ -37,13 +40,14 @@ GOOGLE_API_KEY=              # Google TTS + Google Imagen
 
 # VOICE + MUSIC
 ELEVENLABS_API_KEY=          # TTS, music, sound effects (10K chars/month free)
-OPENAI_API_KEY=              # OpenAI TTS + DALL-E 3 images
+OPENAI_API_KEY=              # OpenAI TTS + GPT Image generation
 XAI_API_KEY=                 # xAI Grok image generation/editing + Grok video generation
 DOUBAO_SPEECH_API_KEY=       # Volcengine Doubao Speech TTS (strong Mandarin narration)
 DOUBAO_SPEECH_VOICE_TYPE=    # Default Doubao speaker/voice type
 
 # MULTI-MODEL GATEWAY (one key, 6+ tools)
 FAL_KEY=                     # FLUX, Recraft, Kling, Veo, MiniMax video
+BFL_API_KEY=                 # Direct BFL FLUX.2 provider registry path
 
 # VIDEO
 HEYGEN_API_KEY=              # HeyGen avatar video gateway
@@ -116,8 +120,8 @@ No subscription — pure pay-as-you-go, no minimum spend.
 
 | Model | Price | Per $1 |
 |-------|-------|--------|
-| FLUX Pro v1.1 | $0.05/image | 20 images |
-| FLUX Dev | $0.03/image | 33 images |
+| FLUX gateway model | varies | check fal.ai / BFL live pricing |
+| FLUX dev/local | local or provider-priced | check model license and provider pricing |
 | Recraft v3 | ~$0.04/image | 25 images |
 
 **Video generation:**
@@ -276,7 +280,7 @@ Google TTS offers 700+ voices across 50+ languages. Voice names follow the patte
 
 ### OpenAI — TTS + Image Generation
 
-> **Solid all-rounder.** DALL-E 3 handles complex multi-element compositions well. TTS is fast and affordable.
+> **Solid all-rounder.** GPT Image handles complex multi-element compositions well. TTS is fast and affordable.
 
 **Tools unlocked:** `openai_tts`, `openai_image`
 **Env var:** `OPENAI_API_KEY`
@@ -299,12 +303,10 @@ Google TTS offers 700+ voices across 50+ languages. Voice names follow the patte
 
 #### Image Pricing
 
-| Model | Size | Quality | Price per image |
-|-------|------|---------|----------------|
-| DALL-E 3 | 1024x1024 | standard | $0.040 |
-| DALL-E 3 | 1024x1024 | hd | $0.080 |
-| DALL-E 3 | 1024x1792 | standard | $0.080 |
-| DALL-E 3 | 1024x1792 | hd | $0.120 |
+OpenAI image pricing varies by model, quality, and size. Montara's current
+TypeScript request spec defaults to GPT Image 2 and keeps GPT Image 1 / DALL-E 3
+as compatibility paths where the tool exposes them. Check OpenAI's live pricing
+page before spending production budget.
 
 **Free tier:** None. Requires prepaid billing. Previously offered $5 in free credits for new accounts (discontinued for most signups).
 
@@ -672,7 +674,7 @@ First run downloads the model (~4GB). Subsequent runs use the cached model.
 
 **VRAM requirement:** 4GB+ (8GB recommended for 1024x1024 images)
 
-**Supports:** Negative prompts, seeds, custom sizes. Quality is lower than FLUX or DALL-E 3 but completely free and offline.
+**Supports:** Negative prompts, seeds, custom sizes. Quality is lower than FLUX or GPT Image but completely free and offline.
 
 ---
 
@@ -743,7 +745,7 @@ How many providers cover each capability:
 
 | Capability | Cloud Providers | Local Providers | Free Options |
 |-----------|----------------|-----------------|--------------|
-| **Image Generation** | FLUX, Grok, Google Imagen, DALL-E 3, Recraft | Local Diffusion | Pexels, Pixabay (stock) |
+| **Image Generation** | FLUX, Grok, Google image generation, GPT Image, Recraft | Local Diffusion | Pexels, Pixabay (stock) |
 | **Video Generation** | Grok, Kling, Runway, Veo, Higgsfield, MiniMax, HeyGen | WAN, Hunyuan, CogVideo, LTX | Pexels, Pixabay (stock) |
 | **Text-to-Speech** | ElevenLabs, Google TTS, OpenAI | Piper | Piper, Google free tier, ElevenLabs free tier |
 | **Music Generation** | ElevenLabs, Suno | — | ElevenLabs free tier |

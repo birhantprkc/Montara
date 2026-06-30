@@ -11,7 +11,9 @@ than the schema promised — a Decision-Communication / cost-accuracy violation.
 import pytest
 
 import tools.video.higgsfield_video as higgsfield_video
+import tools.graphics.openai_image as openai_image
 import tools.video.runway_video as runway_video
+from tools.graphics.openai_image import OpenAIImage
 from tools.video.higgsfield_video import HiggsFieldVideo
 from tools.video.runway_video import RunwayVideo
 
@@ -42,3 +44,11 @@ def test_estimate_default_model_matches_schema(tool_cls):
         f"{tool.name}.estimate_runtime default model diverges from schema default "
         f"{schema_default!r}"
     )
+
+
+def test_openai_image_default_model_matches_schema():
+    tool = OpenAIImage()
+    schema_default = tool.input_schema["properties"]["model"]["default"]
+
+    assert openai_image._DEFAULT_MODEL == schema_default == "gpt-image-2"
+    assert tool.estimate_cost({}) == tool.estimate_cost({"model": schema_default})

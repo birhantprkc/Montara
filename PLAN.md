@@ -70,7 +70,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **Spline** | ☐ | Planned registry entry only |
 | **Local LLM orchestrator** | ◐ | `@montara/llm` catalogue + Ollama probe; not full `montara make` brain |
 | **CLIP/BLIP vision default** | ☐ | FFmpeg/signalstats today; Python `clip_embedder` not default in TS path |
-| **Cloud live executors** | ◐ | BYOK request builders; PROVIDER-AUDIT documents gaps |
+| **Cloud live executors** | ◐ | TS executor + first-wave sanitized fixtures; remaining provider audits pending |
 | **LICENSE / NOTICE** | ☑ | Root AGPL-3.0 LICENSE + NOTICE + docs/ATTRIBUTION.md |
 | **Web GUI** | ☐ | `packages/web` scaffold only |
 | **WARCUT desktop** | ☐ | Not started |
@@ -87,7 +87,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | CLI | none | `montara` commands | **Montara** |
 | Playwright auth capture | none | `playwright_recorder` | **Montara** |
 | Documentary evidence craft | brand-specific | generalized skill | **Montara** |
-| README / demos / community | strong | runnable local README gallery; public assets gallery still pending | **Tie** |
+| README / demos / community | strong | runnable local README gallery + checked-in public assets | **Tie** |
 | AGENT_GUIDE depth | ~481 lines | ~484 lines + Montara-specific protocols | **Montara** |
 | HyperFrames / Remotion default path | battle-tested | adapter + fallback | **OpenMontage** |
 | `make setup` one-command | yes | `montara doctor` partial | **OpenMontage** |
@@ -176,7 +176,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 | **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **~85%** |
 | **2** | Native composition | Remotion + HyperFrames as real defaults, not FFmpeg solids | **~45%** |
 | **3** | Moat core | IR import, local LLM, CLI completeness, capture, craft gates | **~40%** |
-| **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~35%** |
+| **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~40%** |
 | **5** | Product surface | runtimes, web GUI, WARCUT, public launch | **~5%** |
 
 ---
@@ -343,7 +343,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 4.2 | Public demo gallery (`assets/` + docs/DEMOS.md) | ☑ | Each demo records prompt, pipeline, tools, runtime, cost, artifact |
 | 4.3 | AGENT_GUIDE parity + onboarding | ☑ | 0.1.3 + 0.1.4 |
 | 4.4 | PROMPT_GALLERY full coverage | ☑ | 0.1.8 |
-| 4.5 | Live BYOK provider executors + sanitized fixture tests | ☐ | Per PROVIDER-AUDIT follow-ups |
+| 4.5 | Live BYOK provider executors + sanitized fixture tests | ◐ | TS executor + OpenAI/BFL/Google/Runway fixtures; remaining providers and Python tools pending |
 | 4.6 | `skills/core/native-render-validation.md` | ☐ | Per SKILL-ROADMAP |
 | 4.7 | `skills/core/provider-audit.md` | ☐ | Per SKILL-ROADMAP |
 | 4.8 | YouTube/community launch plan | ☐ | Optional; not blocking technical win |
@@ -442,7 +442,8 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 1A.4 | CLI wire `video_compose` + `corpus_builder` | done |
 | ✅ | 4.1 | README demo gallery | done |
 | ✅ | 4.2 | Public demo gallery (`assets/` + docs/DEMOS.md) | done |
-| 🎯 1 | 4.5 | Live BYOK provider executors + sanitized fixture tests | 2d |
+| ✅ | 4.5A | TS provider executor + first-wave sanitized fixtures | done |
+| 🎯 1 | 4.5B | Remaining provider fixtures + Python live-shape audit | 2d |
 
 ---
 

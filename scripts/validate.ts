@@ -27,8 +27,10 @@ import {
   planVideoGeneration,
   runVideoGeneration,
   IMAGE_PROVIDERS,
+  executeProviderRequest,
   getImageProvider,
   buildImageRequest,
+  redactProviderRequest,
   runImageGeneration,
   TTS_PROVIDERS,
   MUSIC_PROVIDERS,
@@ -239,7 +241,18 @@ try { rmSync(genImagePath, { force: true }); } catch { /* none */ }
 const iGen = runImageGeneration({ prompt: "a narrow strait from orbit", outPath: genImagePath, width: 320, height: 180 }, {});
 ok("offline image generation falls back to a real local PNG", iGen.plan.mode === "fallback" && existsSync(genImagePath));
 const dalleReq = buildImageRequest(getImageProvider("dalle3")!, { prompt: "x", outPath: genImagePath }, { OPENAI_API_KEY: "demo-key" });
-ok("BYOK image request is a real Bearer POST", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer demo-key");
+ok("BYOK image request is a real Bearer POST with GPT Image 2", dalleReq.method === "POST" && dalleReq.headers.Authorization === "Bearer demo-key" && Boolean(dalleReq.body?.includes("gpt-image-2")));
+const fluxReq = buildImageRequest(getImageProvider("flux")!, { prompt: "x", outPath: genImagePath }, { BFL_API_KEY: "bfl-secret" });
+ok("BFL request fixture is secret-redactable and pollable", redactProviderRequest(fluxReq).headers["x-key"] === "[REDACTED]" && fluxReq.poll?.field === "polling_url");
+const fixtureOut = join(outDir, "validate-provider-executor.bin");
+const fixtureExec = await executeProviderRequest(getImageProvider("flux")!, fluxReq, {
+  outPath: fixtureOut,
+  fetch: async (_url, init) => init.method === "POST"
+    ? { ok: true, status: 200, json: async () => ({ polling_url: "https://api.bfl.ai/v1/get_result?id=fixture" }) }
+    : { ok: true, status: 200, json: async () => ({ status: "Ready", result: { sample: "https://cdn.example/fixture.png" } }) },
+  download: async () => new Uint8Array([9, 8, 7]),
+});
+ok("sanitized provider executor writes a fixture artifact", fixtureExec.ok && fixtureExec.outputUrl === "https://cdn.example/fixture.png" && existsSync(fixtureOut));
 
 console.log("\n== audio: tts + music + mixer + enhance (Phase 1.8 §E) ==");
 ok("4 TTS + 3 music providers registered", TTS_PROVIDERS.length === 4 && MUSIC_PROVIDERS.length === 3);
