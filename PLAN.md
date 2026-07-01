@@ -254,13 +254,13 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | 1B.07 | hybrid | ☑ | |
 | 1B.08 | localization-dub | ☑ | |
 | 1B.09 | podcast-repurpose | ☑ | |
-| 1B.10 | screen-demo | ◐ | Playwright path new; needs validate case |
+| 1B.10 | screen-demo | ☑ | Offline capture artifact -> `montara capture pick-latest` -> `video_compose` MP4 validate-gated |
 | 1B.11 | talking-head | ☑ | |
 | 1B.12 | character-animation | ☑ | |
 | 1B.13 | framework-smoke | ☑ | test harness |
 | 1B.14 | kinetic-typography | ☑ | promoted to `pipeline_defs/` with HyperFrames-aware stage directors |
 
-**Task:** For each ◐ pipeline, add a `validate` case that produces a real MP4 offline.
+**1B pipeline validate gap is now closed.** Keep future pipeline work focused on deeper native runtime quality and source-specific treatment, not basic MP4 proof.
 
 ### 1C — Providers & tools (parity categories)
 
@@ -291,7 +291,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | Playwright | ◐ capture | CLI: `montara capture --url`; auth via `montara capture login` |
 | Spline | ☐ planned | Defer until contract clear |
 
-**Stage 1 exit criteria:** All 1B pipelines ◐→☑ with validate MP4; MONTARA-PARITY synced; 1A.4 CLI wiring for compose/corpus.
+**Stage 1 exit criteria:** All 1B pipeline validate MP4 gaps are closed; MONTARA-PARITY synced; 1A.4 CLI wiring for compose/corpus/capture artifact pickup is green. Stage 1C-K still carry partial maturity items.
 
 ---
 
@@ -452,12 +452,12 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 5.1A | `packages/runtimes` ComfyUI/A1111 health + install guidance | done |
 | ✅ | 5.1B | Managed install/launch automation for ComfyUI/A1111 | done |
 | ✅ | 1B.06 | `documentary-montage` offline stock-footage MP4 validate path | done |
-| 🎯 1 | 1B.10 | `screen-demo` offline MP4 validate path using capture artifacts | Stage 1 gap |
-| 🎯 2 | 2.2 | Remotion default Timeline routing instead of smoke-only proof | Stage 2 gap |
-| 🎯 3 | 2.7 | 60s documentary open-stock corpus montage beyond fixture proof | Stage 2 gap |
-| 🎯 4 | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | Stage 3 gap |
-| 🎯 5 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
-| 🎯 6 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
+| ✅ | 1B.10 | `screen-demo` offline MP4 validate path using capture artifacts | done |
+| 🎯 1 | 2.2 | Remotion default Timeline routing instead of smoke-only proof | Stage 2 gap |
+| 🎯 2 | 2.7 | 60s documentary open-stock corpus montage beyond fixture proof | Stage 2 gap |
+| 🎯 3 | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | Stage 3 gap |
+| 🎯 4 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
+| 🎯 5 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
 
 ---
 

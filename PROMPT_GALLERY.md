@@ -51,7 +51,9 @@ precision; source every claim; cue music by scene; master once around `-14 LUFS`
 > "Create a trailer for this desktop app. Record the app locally, show the three most impressive workflows, add captions and callouts, and produce a final MP4."
 
 Expected treatment: use `screen_capture_selector`; prefer FFmpeg for automated
-desktop capture or Cap if the user wants polished cursor/webcam effects.
+desktop capture or Cap if the user wants polished cursor/webcam effects. If the
+recording was made outside Montara, use `montara capture pick-latest
+--recordings-dir ... --output ...` before composing the screen-demo.
 
 ### Website Behind Login
 

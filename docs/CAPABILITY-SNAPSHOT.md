@@ -20,6 +20,9 @@ Snapshot date: 2026-07-01.
 - **Documentary corpus proof:** `montara corpus seed-fixture` creates an offline
   Python-compatible corpus, `clip_search` retrieves from it with a local fallback embedder,
   and `montara compose` renders the selected clips to MP4.
+- **Screen-demo capture proof:** `montara capture pick-latest --recordings-dir`
+  materializes a completed local recording artifact, then `montara compose` renders it
+  through the screen-demo edit-decision path to MP4.
 - **Voice similarity:** `voice_id.py` and `@montara/hear` expose optional Resemblyzer/SpeechBrain/
   pyannote status without hard-failing.
 - **Documentary evidence craft:** generalized Montara skill at
@@ -36,8 +39,8 @@ Snapshot date: 2026-07-01.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 303 passed, 0 failed |
-| `npm.cmd run validate` | 86 passed, 0 failed |
-| `python -m pytest tests` | 377 passed, 8 skipped |
+| `npm.cmd run validate` | 87 passed, 0 failed |
+| `python -m pytest tests` | 378 passed, 8 skipped |
 
 ## Example Outputs
 
@@ -54,6 +57,7 @@ Snapshot date: 2026-07-01.
 | Runtime health report | `out/validate-runtimes-status.json` | CLI report for ComfyUI/A1111 external runtime health |
 | Runtime manager script | `out/validate-comfyui-install.ps1` | Generated safe install script from the dry-run manager |
 | Documentary corpus montage | `out/validate-documentary-montage.mp4` | Offline fixture corpus -> Python `clip_search` -> `video_compose` |
+| Screen-demo capture proof | `out/validate-screen-demo.mp4` | Local recording artifact -> `montara capture pick-latest` -> `video_compose` |
 
 Generated outputs live under `out/` and are not committed.
 The README demo gallery and [docs/DEMOS.md](./DEMOS.md) now map these artifacts
@@ -73,7 +77,7 @@ expectations.
 | Manim | Adapter package exists; native binary optional. |
 | Spline | Planned registry entry only. |
 | FFmpeg | Fully working native renderer and fallback. |
-| Playwright | Browser capture with `montara capture`, login/storageState workflow; runtime-gated on Node Playwright install. |
+| Playwright | Browser capture with `montara capture`, login/storageState workflow, and deterministic completed-recording pickup; runtime-gated on Node Playwright install for live browser recording. |
 | ComfyUI / A1111 | Health/status, install/launch dry-runs, env writers, and generated scripts exist in `@montara/runtimes`; real setup is opt-in with `--execute`. |
 
 ## Provider Executor Status
@@ -110,7 +114,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Add the screen-demo offline MP4 validate path using capture artifacts.
-2. Finish Remotion default routing for Timeline scenes.
-3. Extend the documentary proof from fixture corpus to a longer open-stock corpus montage.
-4. Add native package work for Revideo / Motion Canvas beyond registered adapters.
+1. Finish Remotion default routing for Timeline scenes.
+2. Extend the documentary proof from fixture corpus to a longer open-stock corpus montage.
+3. Add native package work for Revideo / Motion Canvas beyond registered adapters.
+4. Run live-key provider smoke confirmations where keys are available.

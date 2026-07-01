@@ -578,6 +578,71 @@ ok("documentary-montage corpus fixture search composes a real stock-footage MP4"
     documentaryDuration > 1.8,
   `seed=${documentarySeedCli.status} stats=${documentaryStatsCli.status} search=${documentarySearchCli.status} compose=${documentaryComposeCli.status} dur=${documentaryDuration.toFixed(2)} searchErr=${(documentarySearchCli.stderr || documentarySearchCli.stdout || "").slice(-500)} composeErr=${(documentaryComposeCli.stderr || documentaryComposeCli.stdout || "").slice(-500)}`);
 
+const screenCaptureDir = join(outDir, "validate-screen-demo-captures");
+const screenCaptureSession = join(screenCaptureDir, "take-001", "output");
+const screenCaptureFixture = join(screenCaptureSession, "screen-demo-capture-source.mp4");
+const screenCapturePicked = join(outDir, "validate-screen-demo-capture.mp4");
+const screenDemoEditPath = join(outDir, "validate-screen-demo.edit-decisions.json");
+const screenDemoOut = join(outDir, "validate-screen-demo.mp4");
+const screenDemoReport = join(outDir, "validate-screen-demo.render-report.json");
+try { rmSync(screenCaptureDir, { recursive: true, force: true }); } catch { /* none */ }
+for (const p of [screenCapturePicked, screenDemoEditPath, screenDemoOut, screenDemoReport]) {
+  try { rmSync(p, { force: true }); } catch { /* none */ }
+}
+mkdirSync(screenCaptureSession, { recursive: true });
+renderCaptionCardVideo({
+  title: "Dashboard Capture - Timeline IR",
+  outPath: screenCaptureFixture,
+  durationSec: 1.6,
+  width: 1280,
+  height: 720,
+  fps: 30,
+  background: "223142",
+});
+const screenCapturePickCli = spawnSync(npmBin, ["run", "montara", "--", "capture", "pick-latest", "--recordings-dir", screenCaptureDir, "--output", screenCapturePicked, "--since", "60", "--json"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+type CapturePickResult = { success?: boolean; data?: { output_path?: string; original_path?: string; capture_method?: string; source?: string } };
+let screenCapturePick: CapturePickResult = {};
+try { screenCapturePick = JSON.parse((screenCapturePickCli.stdout || "").slice((screenCapturePickCli.stdout || "").indexOf("{"))) as CapturePickResult; } catch { screenCapturePick = {}; }
+const screenCapturePath = String(screenCapturePick.data?.output_path ?? screenCapturePicked);
+const screenCaptureDuration = existsSync(screenCapturePath) ? probeDuration(screenCapturePath) : 0;
+writeFileSync(screenDemoEditPath, `${JSON.stringify({
+  version: "1.0",
+  render_runtime: "ffmpeg",
+  renderer_family: "screen-demo",
+  metadata: {
+    pipeline: "screen-demo",
+    production_mode: "real_capture",
+    capture_method: screenCapturePick.data?.capture_method ?? "local_recording",
+    capture_source: screenCapturePick.data?.source ?? "recordings_dir",
+  },
+  cuts: [
+    { source: screenCapturePath, in_seconds: 0, out_seconds: Math.min(1.3, Math.max(0.6, screenCaptureDuration - 0.05)) },
+  ],
+}, null, 2)}\n`);
+const screenDemoComposeCli = spawnSync(npmBin, ["run", "montara", "--", "compose", screenDemoEditPath, screenDemoOut, "--operation", "compose", "--json"], {
+  encoding: "utf8",
+  timeout: 180000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+const screenDemoDuration = existsSync(screenDemoOut) ? probeDuration(screenDemoOut) : 0;
+ok("screen-demo capture artifact pickup composes a real offline MP4",
+  screenCapturePickCli.status === 0 &&
+    screenCapturePick.success === true &&
+    screenCapturePick.data?.source === "recordings_dir" &&
+    existsSync(screenCapturePath) &&
+    screenCaptureDuration > 1 &&
+    screenDemoComposeCli.status === 0 &&
+    existsSync(screenDemoOut) &&
+    existsSync(screenDemoReport) &&
+    screenDemoDuration > 1,
+  `pick=${screenCapturePickCli.status} compose=${screenDemoComposeCli.status} captureDur=${screenCaptureDuration.toFixed(2)} demoDur=${screenDemoDuration.toFixed(2)} pickErr=${(screenCapturePickCli.stderr || screenCapturePickCli.stdout || "").slice(-500)} composeErr=${(screenDemoComposeCli.stderr || screenDemoComposeCli.stdout || "").slice(-500)}`);
+
 console.log("\n== style + output profiles (Phase 1.12 §J) ==");
 ok("3 styles + 6 output profiles registered", STYLE_PLAYBOOKS.length === 3 && OUTPUT_PROFILES.length === 6);
 const branded = applyOutputProfile(applyStyle(result.timeline, "clean-professional"), "shorts");

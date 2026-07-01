@@ -200,6 +200,8 @@ const VALUE_FLAGS = new Set([
   "--candidate-pool",
   "--region",
   "--since",
+  "--recordings-dir",
+  "--recordings",
   "--timeout",
   "--to",
 ]);
@@ -424,9 +426,12 @@ function buildMontaraStatusReport(): MontaraStatusReport {
     {
       id: "screen-capture",
       label: "Browser and desktop capture",
-      status: "partial",
-      evidence: ["capture CLI exists", "Playwright auth storageState workflow is documented and pytest-covered"],
-      next: "Complete full screen-demo MP4 validate flow.",
+      status: "done",
+      evidence: [
+        "capture CLI exists",
+        "Playwright auth storageState workflow is documented and pytest-covered",
+        "screen-demo capture artifact pickup composes to MP4 in validate",
+      ],
     },
     {
       id: "editor-handoff",
@@ -522,7 +527,6 @@ function buildMontaraStatusReport(): MontaraStatusReport {
       },
     ],
     nextTasks: [
-      "Complete the screen-demo offline MP4 validate flow with capture artifacts.",
       "Finish Remotion default Timeline routing.",
       "Extend documentary montage from fixture corpus proof to a longer open-stock corpus montage.",
       "Turn Revideo and Motion Canvas from registered/runtime-gated adapters into native validate cases.",
@@ -939,6 +943,7 @@ function runCaptureCommand(rest: string[]): number {
       operation: "pick_latest",
       since_minutes: numberOption(args, "--since", 5),
       output_path: output,
+      recordings_dir: optionValue(args, "--recordings-dir") ?? optionValue(args, "--recordings"),
     });
     printPythonToolResult(result, json);
     return result.success ? 0 : 1;
@@ -977,7 +982,7 @@ function runCaptureCommand(rest: string[]): number {
     return result.success ? 0 : 1;
   }
 
-  console.error("usage: montara capture [recommend|status|setup|login|record|pick-latest] [--url URL] [out.mp4] [--provider auto|ffmpeg|cap|playwright]");
+  console.error("usage: montara capture [recommend|status|setup|login|record|pick-latest] [--url URL] [out.mp4] [--provider auto|ffmpeg|cap|playwright] [--recordings-dir dir]");
   return 1;
 }
 
@@ -1723,7 +1728,7 @@ Commands:
                                   round-trip a pro-editor cut back into Timeline IR (auto-detects format)
   review <mp4>                    post-render self-review report for an MP4
   analyze <mp4>                   scene/understanding analysis + concept variants for a video
-  capture [--url URL] [out.mp4]    record/recommend screen capture; Playwright auth via capture login
+  capture [--url URL] [out.mp4]    record/recommend/pick screen captures; Playwright auth via capture login
   compose <edit-decisions.json> [out.mp4]
                                   run Python video_compose; pass --assets for high-level render artifacts
   corpus <sources|seed-fixture|build|search>

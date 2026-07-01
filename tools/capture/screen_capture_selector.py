@@ -10,6 +10,9 @@ Provider discovery is automatic via the registry (capability="screen_capture").
 
 from __future__ import annotations
 
+import shutil
+import time
+from pathlib import Path
 from typing import Any
 
 from tools.base_tool import (
@@ -133,6 +136,14 @@ class ScreenCaptureSelector(BaseTool):
                 "default": 5,
                 "description": "For pick_latest: look back this many minutes",
             },
+            "recordings_dir": {
+                "type": "string",
+                "description": (
+                    "For pick_latest: scan this provider/export directory for "
+                    "the most recent local recording. Useful for deterministic "
+                    "offline validation and user-supplied capture folders."
+                ),
+            },
         },
     }
 
@@ -142,7 +153,9 @@ class ScreenCaptureSelector(BaseTool):
             "recommended_provider": {"type": "string"},
             "options": {"type": "array"},
             "output_path": {"type": "string"},
+            "original_path": {"type": "string"},
             "capture_method": {"type": "string"},
+            "source": {"type": "string"},
         },
     }
 
@@ -407,8 +420,29 @@ class ScreenCaptureSelector(BaseTool):
 
     def _pick_latest(self, inputs: dict[str, Any]) -> ToolResult:
         """Try to pick the latest recording from any available provider."""
-        providers = self._providers()
+        recordings_dir = inputs.get("recordings_dir")
+        output_path = inputs.get("output_path")
         since = inputs.get("since_minutes", 5)
+
+        if recordings_dir:
+            recordings = self._recent_recordings_from_dir(
+                Path(recordings_dir),
+                since_seconds=int(since) * 60,
+            )
+            if recordings:
+                return self._materialize_recording(
+                    Path(recordings[0]["path"]),
+                    output_path,
+                    capture_method="local_recording",
+                    source_label="recordings_dir",
+                    size_mb=recordings[0]["size_mb"],
+                )
+            return ToolResult(
+                success=False,
+                error=f"No recent recordings found in recordings_dir: {recordings_dir}",
+            )
+
+        providers = self._providers()
 
         # Try Cap first (more likely to have user-initiated recordings)
         cap_tool = providers.get("cap")
@@ -419,18 +453,72 @@ class ScreenCaptureSelector(BaseTool):
             })
             if result.success and result.data.get("recordings"):
                 latest = result.data["recordings"][0]
-                return ToolResult(
-                    success=True,
-                    data={
-                        "output_path": latest["path"],
-                        "size_mb": latest["size_mb"],
-                        "capture_method": "cap",
-                        "source": "cap_recordings_dir",
-                    },
-                    artifacts=[latest["path"]],
+                return self._materialize_recording(
+                    Path(latest["path"]),
+                    output_path,
+                    capture_method="cap",
+                    source_label="cap_recordings_dir",
+                    size_mb=latest["size_mb"],
                 )
 
         return ToolResult(
             success=False,
             error="No recent recordings found. Record something first using Cap or FFmpeg.",
+        )
+
+    @staticmethod
+    def _recent_recordings_from_dir(recordings_dir: Path, since_seconds: int = 300) -> list[dict[str, Any]]:
+        """Find recent video files in a provider/export directory."""
+        if not recordings_dir.exists() or not recordings_dir.is_dir():
+            return []
+
+        cutoff = time.time() - max(0, since_seconds)
+        candidates: list[dict[str, Any]] = []
+        video_suffixes = {".mp4", ".mov", ".mkv", ".webm"}
+        for item in recordings_dir.rglob("*"):
+            if not item.is_file() or item.suffix.lower() not in video_suffixes:
+                continue
+            stat = item.stat()
+            if stat.st_mtime < cutoff:
+                continue
+            candidates.append({
+                "path": str(item),
+                "name": item.name,
+                "size_mb": round(stat.st_size / (1024 * 1024), 3),
+                "modified": stat.st_mtime,
+            })
+        candidates.sort(key=lambda row: row["modified"], reverse=True)
+        return candidates[:10]
+
+    @staticmethod
+    def _materialize_recording(
+        source: Path,
+        output_path: str | None,
+        *,
+        capture_method: str,
+        source_label: str,
+        size_mb: float,
+    ) -> ToolResult:
+        """Return the source recording, copying it to output_path when requested."""
+        final_path = source
+        if output_path:
+            requested = Path(output_path)
+            if requested.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}:
+                final_path = requested
+            else:
+                final_path = requested / source.name
+            final_path.parent.mkdir(parents=True, exist_ok=True)
+            if source.resolve() != final_path.resolve():
+                shutil.copy2(source, final_path)
+
+        return ToolResult(
+            success=True,
+            data={
+                "output_path": str(final_path),
+                "original_path": str(source),
+                "size_mb": size_mb,
+                "capture_method": capture_method,
+                "source": source_label,
+            },
+            artifacts=[str(final_path)],
         )

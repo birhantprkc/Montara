@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1B.06 documentary corpus validation.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1B.10 screen-demo capture validation.
 
 This checklist tracks two things:
 
@@ -14,8 +14,8 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 303 passed, 0 failed.
-- `npm.cmd run validate` passed: 86 passed, 0 failed.
-- `python -m pytest tests` passed: 377 passed, 8 skipped.
+- `npm.cmd run validate` passed: 87 passed, 0 failed.
+- `python -m pytest tests` passed: 378 passed, 8 skipped.
 
 ## Snapshot
 
@@ -77,7 +77,7 @@ Latest local gates before this sync:
 | hybrid | ☑ | Manifest + skills. |
 | localization-dub | ☑ | Manifest + skills. |
 | podcast-repurpose | ☑ | Manifest + skills. |
-| screen-demo | ◐ | Capture CLI smoke is validated; full screen-demo MP4 flow still pending. |
+| screen-demo | ☑ | Offline capture artifact pickup -> `montara capture pick-latest` -> `video_compose` MP4 validate path is green. |
 | talking-head | ☑ | Manifest + skills. |
 | character-animation | ☑ | Contract tests green. |
 | kinetic-typography | ☑ | Manifest + HyperFrames-aware stage skills; native strict kinetic smoke validate-gated. |
@@ -125,10 +125,10 @@ Moat completion: 6/17 done, 8 partial, 3 not done.
 Stage 0 is complete: legal files exist, AGENT_GUIDE links onboarding, docs are synced,
 and the Stage 0 gate set passed before commit `0x26`.
 
-Stage 1 exits when:
+Stage 1B pipeline MP4 coverage is now closed. Broader Stage 1 exits when:
 
-- all partial pipelines have offline validate MP4 cases except `screen-demo`;
+- all partial pipelines have offline validate MP4 cases, including `screen-demo`;
 - Python compose/corpus tools are wired through CLI; (done in `0x32`)
-- screen-demo uses the capture CLI in a real offline MP4 flow.
+- screen-demo uses the capture CLI in a real offline MP4 flow. (done in `0x47`)
 
 Stage 2 exits when native Remotion, HyperFrames, and documentary stock-footage validate cases are green.

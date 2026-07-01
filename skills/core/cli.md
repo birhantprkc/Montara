@@ -20,7 +20,7 @@ generated outputs under `./out` unless the user gives an explicit path.
 | `review <mp4>` | Emit a post-render self-review report for an existing MP4. |
 | `export <ir.json> --to otio\|fcpxml\|edl` | Export Timeline IR for professional editors. |
 | `import <file>` | Import EDL/OTIO/FCPXML back into Timeline IR where supported. |
-| `capture ...` | Record browser demos with Playwright guidance and login storageState support. |
+| `capture ...` | Record browser demos, pick up completed desktop recordings, and guide Playwright login storageState support. |
 | `compose ...` | Route Python `video_compose` / HyperFrames-style artifacts into MP4. |
 | `corpus ...` | Discover, seed fixtures, build, search, and inspect footage/source corpora. |
 | `budget ...` | Check cost caps and provider spend decisions. |
@@ -73,6 +73,22 @@ Use corpus commands for documentary-montage and source-footage workflows.
 `seed-fixture` is not a stock acquisition path. Use it only to validate the
 corpus/search/compose contract offline, then use `build` or user-supplied clips
 for real documentary work.
+
+## Capture CLI
+
+Use capture commands for screen-demo and software-trailer source footage.
+
+| Command | What it does |
+|---|---|
+| `capture recommend [--url URL]` | Pick FFmpeg, Cap, or Playwright based on the brief and installed providers. |
+| `capture login --url URL [--auth-state path]` | Let the user log in once and save a Playwright storageState file outside git. |
+| `capture record --url URL out/browser.mp4 [--auth-state path]` | Record a browser walkthrough when Playwright/Chromium are installed. |
+| `capture pick-latest --recordings-dir dir --output out/screen.mp4` | Materialize the latest completed local recording artifact for screen-demo composition. |
+
+`pick-latest` is the deterministic offline validation path and the safest route
+when a user records a native desktop app with Cap, FFmpeg, OBS, or another tool.
+Do not claim live Playwright or desktop automation succeeded unless the command
+actually recorded a real MP4.
 
 ## Agent rule
 

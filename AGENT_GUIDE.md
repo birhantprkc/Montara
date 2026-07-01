@@ -107,6 +107,15 @@ need a pipeline underneath.
 When no pipeline fits, choose the nearest one and log the mismatch. Do not make
 an invisible ad-hoc pipeline.
 
+For `screen-demo`, choose the capture route before editing:
+
+- browser/SaaS: `montara capture login --url ...` when authentication is needed,
+  then `montara capture record --url ... out/browser-capture.mp4`;
+- native desktop or user-operated capture: ask for or create the recording, then
+  use `montara capture pick-latest --recordings-dir <dir> --output out/screen-capture.mp4`;
+- only compose the screen-demo after the picked/recorded MP4 exists and has been
+  probed.
+
 ## Stage Artifact Contract
 
 Each stage has a concrete artifact. If a stage cannot produce its artifact, do
