@@ -18,7 +18,14 @@ from tools.base_tool import (
     ToolStatus,
     ToolTier,
 )
-from tools.video._shared import HEYGEN_PROVIDERS, estimate_quality_cost, estimate_speed_runtime, generate_heygen_video
+from tools.video._shared import (
+    HEYGEN_PROVIDERS,
+    build_heygen_submit_request,
+    build_heygen_workflow_input,
+    estimate_quality_cost,
+    estimate_speed_runtime,
+    generate_heygen_video,
+)
 
 
 class HeyGenVideo(BaseTool):
@@ -102,6 +109,17 @@ class HeyGenVideo(BaseTool):
     def estimate_runtime(self, inputs: dict[str, Any]) -> float:
         meta = HEYGEN_PROVIDERS.get(inputs.get("provider_variant", "veo_3_1"), HEYGEN_PROVIDERS["veo_3_1"])
         return estimate_speed_runtime(meta["speed"])
+
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        """Build the HeyGen workflow submit request.
+
+        Reproduces the first/submit POST that ``generate_heygen_video`` sends to
+        the HeyGen workflow-execution endpoint. Local reference-image uploads are
+        resolved by ``generate_heygen_video`` at execution time; this builder uses
+        ``reference_image_url`` directly and performs no network calls.
+        """
+        workflow_input = build_heygen_workflow_input(inputs)
+        return build_heygen_submit_request(workflow_input, api_key)
 
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         if self.get_status() != ToolStatus.AVAILABLE:

@@ -266,9 +266,9 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 
 | Category | Status | Remaining work |
 |----------|--------|----------------|
-| **C** Video providers (14 cloud + local + stock) | ◐ | Google Veo + Runway request shapes refreshed against official docs; live executor audit per PROVIDER-AUDIT still pending |
-| **D** Image providers (10) | ◐ | TS + Python; OpenAI/BFL/Google Interactions API request shapes fixture/request-builder gated |
-| **E** Audio/TTS/music | ◐ | Piper local path; mixer/enhance via FFmpeg |
+| **C** Video providers (14 cloud + local + stock) | ◐ | Google Veo + Runway request shapes refreshed against official docs; every cloud video tool (kling/grok/minimax/heygen/higgsfield/veo/runway) now exposes an offline-testable `build_request()` with pytest parity; live executor audit per PROVIDER-AUDIT still pending |
+| **D** Image providers (10) | ◐ | TS + Python; OpenAI/BFL/Google/Grok/Recraft image tools expose `build_request()` with pytest parity; Google Interactions API request shapes fixture/request-builder gated |
+| **E** Audio/TTS/music | ◐ | Piper local path; mixer/enhance via FFmpeg; ElevenLabs/Google/OpenAI/Doubao TTS + Suno/ElevenLabs music tools expose `build_request()` with pytest parity |
 | **F** Post/enhancement | ◐ | Model enhancers runtime-gated |
 | **G** Analysis/understanding | ◐ | Reference analysis ☑ in verify; optional Transformers.js CLIP frame classification path + `montara understand` CLI proof; BLIP/cached-weight validate pending |
 | **H** Intelligence (research, corpus, scoring) | ◐ | TS ports exist; Python corpus has CLI build/search/status surface |
@@ -459,6 +459,7 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | done |
 | ✅ | 1G.1 | Optional Transformers.js CLIP path + `montara understand --vision` CLI proof | done |
 | ✅ | 1C.1 | Official-doc provider request-shape refresh for Google, Runway, OpenAI, and BFL | done |
+| ✅ | 1C-K.1 | Offline-testable `build_request()` + pytest across all cloud video/image/TTS/music Python tools | done |
 | 🎯 1 | 1C-K | Stage 1 residual partials audit + next highest-risk closure | Stage 1 gap pass |
 | 🎯 2 | 2.4/2.5/2.6/2.8 | Remaining Stage 2 native composition/runtime maturity | Stage 2 gap pass |
 | 🎯 3 | 3.3/3.5/3.7/3.8/3.10-3.12 | Remaining Stage 3 moat partials | Stage 3 gap pass |

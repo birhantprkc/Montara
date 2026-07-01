@@ -143,6 +143,35 @@ class SunoMusic(BaseTool):
         # Suno credits cost $0.005 each; a generation is roughly 10 credits
         return 0.05
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        custom_mode = inputs.get("custom_mode", False)
+        instrumental = inputs.get("instrumental", True)
+        model = inputs.get("model", "V4")
+
+        payload: dict[str, Any] = {
+            "model": model,
+            "customMode": custom_mode,
+            "instrumental": instrumental,
+            "callBackUrl": "",  # no webhook; we poll
+        }
+
+        if custom_mode:
+            payload["prompt"] = inputs["prompt"]  # exact lyrics
+            payload["style"] = inputs.get("style", "")
+            payload["title"] = inputs.get("title", "")
+        else:
+            payload["prompt"] = inputs["prompt"][:500]  # description, max 500 chars
+
+        return {
+            "method": "POST",
+            "url": f"{self._BASE_URL}/generate",
+            "headers": {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            "json": payload,
+        }
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         api_key = self._get_api_key()
         if not api_key:
@@ -203,31 +232,12 @@ class SunoMusic(BaseTool):
         """Submit a generation request and return the taskId."""
         import requests
 
-        custom_mode = inputs.get("custom_mode", False)
-        instrumental = inputs.get("instrumental", True)
-        model = inputs.get("model", "V4")
-
-        payload: dict[str, Any] = {
-            "model": model,
-            "customMode": custom_mode,
-            "instrumental": instrumental,
-            "callBackUrl": "",  # no webhook; we poll
-        }
-
-        if custom_mode:
-            payload["prompt"] = inputs["prompt"]  # exact lyrics
-            payload["style"] = inputs.get("style", "")
-            payload["title"] = inputs.get("title", "")
-        else:
-            payload["prompt"] = inputs["prompt"][:500]  # description, max 500 chars
+        request = self.build_request(inputs, api_key)
 
         response = requests.post(
-            f"{self._BASE_URL}/generate",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
+            request["url"],
+            headers=request["headers"],
+            json=request["json"],
             timeout=30,
         )
         response.raise_for_status()

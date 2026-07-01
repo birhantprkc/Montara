@@ -116,6 +116,31 @@ class KlingVideo(BaseTool):
     def estimate_runtime(self, inputs: dict[str, Any]) -> float:
         return 60.0  # ~1 minute typical
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        operation = inputs.get("operation", "text_to_video")
+        variant = inputs.get("model_variant", "v3/standard")
+        # fal.ai uses hyphens in endpoint paths (text-to-video, not text_to_video)
+        operation_path = operation.replace("_", "-")
+        model_path = f"kling-video/{variant}/{operation_path}"
+
+        payload: dict[str, Any] = {"prompt": inputs["prompt"]}
+        if inputs.get("duration"):
+            payload["duration"] = inputs["duration"]
+        if inputs.get("aspect_ratio"):
+            payload["aspect_ratio"] = inputs["aspect_ratio"]
+        if operation == "image_to_video" and inputs.get("image_url"):
+            payload["image_url"] = inputs["image_url"]
+
+        return {
+            "method": "POST",
+            "url": f"https://queue.fal.run/fal-ai/{model_path}",
+            "headers": {
+                "Authorization": f"Key {api_key}",
+                "Content-Type": "application/json",
+            },
+            "json": payload,
+        }
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         api_key = self._get_api_key()
         if not api_key:
@@ -133,25 +158,15 @@ class KlingVideo(BaseTool):
         operation_path = operation.replace("_", "-")
         model_path = f"kling-video/{variant}/{operation_path}"
 
-        payload: dict[str, Any] = {"prompt": inputs["prompt"]}
-        if inputs.get("duration"):
-            payload["duration"] = inputs["duration"]
-        if inputs.get("aspect_ratio"):
-            payload["aspect_ratio"] = inputs["aspect_ratio"]
-        if operation == "image_to_video" and inputs.get("image_url"):
-            payload["image_url"] = inputs["image_url"]
-
-        headers = {
-            "Authorization": f"Key {api_key}",
-            "Content-Type": "application/json",
-        }
+        request = self.build_request(inputs, api_key)
+        headers = request["headers"]
 
         try:
             # Submit to queue API (async) — sync endpoint times out for video gen
             submit_resp = requests.post(
-                f"https://queue.fal.run/fal-ai/{model_path}",
+                request["url"],
                 headers=headers,
-                json=payload,
+                json=request["json"],
                 timeout=30,
             )
             submit_resp.raise_for_status()

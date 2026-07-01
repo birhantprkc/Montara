@@ -212,6 +212,17 @@ class GrokVideo(BaseTool):
 
         return payload
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        return {
+            "method": "POST",
+            "url": "https://api.x.ai/v1/videos/generations",
+            "headers": {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            "json": self._build_payload(inputs),
+        }
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         api_key = os.environ.get("XAI_API_KEY")
         if not api_key:
@@ -224,15 +235,13 @@ class GrokVideo(BaseTool):
         from tools.video._shared import probe_output
 
         start = time.time()
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
 
         try:
-            payload = self._build_payload(inputs)
+            request = self.build_request(inputs, api_key)
+            headers = request["headers"]
+            payload = request["json"]
             response = requests.post(
-                "https://api.x.ai/v1/videos/generations",
+                request["url"],
                 headers=headers,
                 json=payload,
                 timeout=60,

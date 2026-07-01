@@ -191,30 +191,9 @@ class VeoVideo(BaseTool):
             return self._file_to_data_uri(path_value)
         return None
 
-    def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        api_key = self._get_api_key()
-        if not api_key:
-            return ToolResult(
-                success=False,
-                error="FAL_KEY / FAL_AI_API_KEY not set. " + self.install_instructions,
-            )
-
-        import requests
-
-        start = time.time()
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
         operation = inputs.get("operation", "text_to_video")
         variant = inputs.get("model_variant", "veo3.1")
-        duration = inputs.get("duration", "8s")
-
-        # Current fal Veo 3.1 image-guided endpoints only accept 8-second clips.
-        if variant == "veo3.1" and operation in {"reference_to_video", "first_last_frame_to_video"} and duration != "8s":
-            return ToolResult(
-                success=False,
-                error=(
-                    f"{operation} with {variant} currently requires duration='8s' on fal.ai; "
-                    f"received duration='{duration}'"
-                ),
-            )
 
         # Build fal.ai model path
         operation_map = {
@@ -246,10 +225,7 @@ class VeoVideo(BaseTool):
         if operation == "image_to_video":
             image_value = self._normalize_file_input(inputs.get("image_url"), inputs.get("image_path"))
             if not image_value:
-                return ToolResult(
-                    success=False,
-                    error="image_to_video requires image_url or image_path",
-                )
+                raise ValueError("image_to_video requires image_url or image_path")
             payload["image_url"] = image_value
 
         if operation == "reference_to_video":
@@ -258,9 +234,8 @@ class VeoVideo(BaseTool):
             normalized = list(image_urls)
             normalized.extend(self._file_to_data_uri(path) for path in image_paths)
             if not normalized:
-                return ToolResult(
-                    success=False,
-                    error="reference_to_video requires reference_image_urls or reference_image_paths",
+                raise ValueError(
+                    "reference_to_video requires reference_image_urls or reference_image_paths"
                 )
             payload["image_urls"] = normalized
 
@@ -272,24 +247,59 @@ class VeoVideo(BaseTool):
                 inputs.get("last_frame_url"), inputs.get("last_frame_path")
             )
             if not first_frame or not last_frame:
-                return ToolResult(
-                    success=False,
-                    error="first_last_frame_to_video requires first_frame_url/path and last_frame_url/path",
+                raise ValueError(
+                    "first_last_frame_to_video requires first_frame_url/path and last_frame_url/path"
                 )
             payload["first_frame_url"] = first_frame
             payload["last_frame_url"] = last_frame
 
-        headers = {
-            "Authorization": f"Key {api_key}",
-            "Content-Type": "application/json",
+        return {
+            "method": "POST",
+            "url": f"https://queue.fal.run/fal-ai/{model_path}",
+            "headers": {
+                "Authorization": f"Key {api_key}",
+                "Content-Type": "application/json",
+            },
+            "json": payload,
         }
+
+    def execute(self, inputs: dict[str, Any]) -> ToolResult:
+        api_key = self._get_api_key()
+        if not api_key:
+            return ToolResult(
+                success=False,
+                error="FAL_KEY / FAL_AI_API_KEY not set. " + self.install_instructions,
+            )
+
+        import requests
+
+        start = time.time()
+        operation = inputs.get("operation", "text_to_video")
+        variant = inputs.get("model_variant", "veo3.1")
+        duration = inputs.get("duration", "8s")
+
+        # Current fal Veo 3.1 image-guided endpoints only accept 8-second clips.
+        if variant == "veo3.1" and operation in {"reference_to_video", "first_last_frame_to_video"} and duration != "8s":
+            return ToolResult(
+                success=False,
+                error=(
+                    f"{operation} with {variant} currently requires duration='8s' on fal.ai; "
+                    f"received duration='{duration}'"
+                ),
+            )
+
+        try:
+            request = self.build_request(inputs, api_key)
+        except ValueError as e:
+            return ToolResult(success=False, error=str(e))
+        headers = request["headers"]
 
         try:
             # Submit to queue API (async) — sync endpoint times out for video gen
             submit_resp = requests.post(
-                f"https://queue.fal.run/fal-ai/{model_path}",
+                request["url"],
                 headers=headers,
-                json=payload,
+                json=request["json"],
                 timeout=30,
             )
             submit_resp.raise_for_status()

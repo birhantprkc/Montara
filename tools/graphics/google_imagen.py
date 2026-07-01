@@ -154,6 +154,36 @@ class GoogleImagen(BaseTool):
             return 0.02 * n
         return 0.04 * n
 
+    def _resolve_aspect_ratio(self, inputs: dict[str, Any]) -> str:
+        """Explicit aspect_ratio > derived from width/height > default 1:1."""
+        if "aspect_ratio" in inputs:
+            return inputs["aspect_ratio"]
+        if "width" in inputs and "height" in inputs:
+            return _dims_to_aspect_ratio(inputs["width"], inputs["height"])
+        return "1:1"
+
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        model = inputs.get("model", "imagen-4.0-generate-001")
+        parameters: dict[str, Any] = {
+            "sampleCount": inputs.get("number_of_images", 1),
+            "aspectRatio": self._resolve_aspect_ratio(inputs),
+        }
+        return {
+            "method": "POST",
+            "url": (
+                f"https://generativelanguage.googleapis.com/v1beta/models/"
+                f"{model}:predict"
+            ),
+            "headers": {
+                "Content-Type": "application/json",
+                "x-goog-api-key": api_key,
+            },
+            "json": {
+                "instances": [{"prompt": inputs["prompt"]}],
+                "parameters": parameters,
+            },
+        }
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         # Two auth paths: an AI Studio API key, or a service-account JSON that
         # routes to Vertex AI (the AI Studio endpoint does not accept service
@@ -190,25 +220,15 @@ class GoogleImagen(BaseTool):
         import logging
         logger = logging.getLogger(__name__)
 
-        # Resolve aspect ratio: explicit > derived from width/height > default
-        if "aspect_ratio" in inputs:
-            aspect_ratio = inputs["aspect_ratio"]
-        elif "width" in inputs and "height" in inputs:
+        # Resolve aspect ratio: explicit > derived from width/height > default.
+        # Log the remap for the width/height path (build_request stays quiet/pure).
+        if "aspect_ratio" not in inputs and "width" in inputs and "height" in inputs:
             requested_ratio = f"{inputs['width']}x{inputs['height']}"
-            aspect_ratio = _dims_to_aspect_ratio(inputs["width"], inputs["height"])
             logger.info(
                 "google_imagen: remapped %s to nearest supported aspect ratio %s",
-                requested_ratio, aspect_ratio,
+                requested_ratio, _dims_to_aspect_ratio(inputs["width"], inputs["height"]),
             )
-        else:
-            aspect_ratio = "1:1"
-
-        number_of_images = inputs.get("number_of_images", 1)
-
-        parameters: dict[str, Any] = {
-            "sampleCount": number_of_images,
-            "aspectRatio": aspect_ratio,
-        }
+        aspect_ratio = self._resolve_aspect_ratio(inputs)
 
         if bearer_token:
             location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
@@ -221,24 +241,24 @@ class GoogleImagen(BaseTool):
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {bearer_token}",
             }
-        else:
-            url = (
-                f"https://generativelanguage.googleapis.com/v1beta/models/"
-                f"{model}:predict"
-            )
-            headers = {
-                "Content-Type": "application/json",
-                "x-goog-api-key": api_key,
+            payload: dict[str, Any] = {
+                "instances": [{"prompt": prompt}],
+                "parameters": {
+                    "sampleCount": inputs.get("number_of_images", 1),
+                    "aspectRatio": aspect_ratio,
+                },
             }
+        else:
+            request = self.build_request(inputs, api_key)
+            url = request["url"]
+            headers = request["headers"]
+            payload = request["json"]
 
         try:
             response = requests.post(
                 url,
                 headers=headers,
-                json={
-                    "instances": [{"prompt": prompt}],
-                    "parameters": parameters,
-                },
+                json=payload,
                 timeout=120,
             )
             response.raise_for_status()

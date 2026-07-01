@@ -146,6 +146,39 @@ class GoogleTTS(BaseTool):
         """Check if voice requires the v1beta1 endpoint."""
         return any(prefix in voice for prefix in self._BETA_VOICE_PREFIXES)
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        text = inputs["text"]
+        voice_name = inputs.get("voice", "en-US-Chirp3-HD-Orus")
+        language_code = inputs.get("language_code", "en-US")
+        speaking_rate = inputs.get("speaking_rate", 1.0)
+        pitch = inputs.get("pitch", 0.0)
+        audio_encoding = inputs.get("audio_encoding", "MP3")
+
+        payload = {
+            "input": {"text": text},
+            "voice": {
+                "languageCode": language_code,
+                "name": voice_name,
+            },
+            "audioConfig": {
+                "audioEncoding": audio_encoding,
+                "speakingRate": speaking_rate,
+                "pitch": pitch,
+            },
+        }
+
+        # Chirp 3 HD and Journey voices require the v1beta1 endpoint
+        api_version = "v1beta1" if self._needs_beta_api(voice_name) else "v1"
+        url = f"https://texttospeech.googleapis.com/{api_version}/text:synthesize"
+
+        return {
+            "method": "POST",
+            "url": url,
+            "headers": {"Content-Type": "application/json"},
+            "params": {"key": api_key},
+            "json": payload,
+        }
+
     def estimate_cost(self, inputs: dict[str, Any]) -> float:
         text = inputs.get("text", "")
         char_count = len(text)
@@ -206,24 +239,11 @@ class GoogleTTS(BaseTool):
         pitch = inputs.get("pitch", 0.0)
         audio_encoding = inputs.get("audio_encoding", "MP3")
 
-        payload = {
-            "input": {"text": text},
-            "voice": {
-                "languageCode": language_code,
-                "name": voice_name,
-            },
-            "audioConfig": {
-                "audioEncoding": audio_encoding,
-                "speakingRate": speaking_rate,
-                "pitch": pitch,
-            },
-        }
+        request = self.build_request(inputs, api_key=api_key or "")
+        url = request["url"]
+        payload = request["json"]
 
-        # Chirp 3 HD and Journey voices require the v1beta1 endpoint
-        api_version = "v1beta1" if self._needs_beta_api(voice_name) else "v1"
-        url = f"https://texttospeech.googleapis.com/{api_version}/text:synthesize"
-
-        headers = {"Content-Type": "application/json"}
+        headers = dict(request["headers"])
         params: dict[str, str] = {}
         if bearer_token:
             headers["Authorization"] = f"Bearer {bearer_token}"

@@ -185,6 +185,22 @@ class DoubaoTTS(BaseTool):
         # and prefer provider-returned usage when available.
         return round(len(inputs.get("text", "")) * 0.000015, 4)
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        voice_id = inputs.get("voice_id") or os.environ.get(self.DEFAULT_VOICE_ENV) or ""
+        resource_id = inputs.get("resource_id", self.DEFAULT_RESOURCE_ID)
+        request_id = inputs.get("request_id") or str(uuid.uuid4())
+        return {
+            "method": "POST",
+            "url": self.SUBMIT_URL,
+            "headers": self._headers(
+                api_key=api_key,
+                resource_id=resource_id,
+                request_id=request_id,
+                return_usage=bool(inputs.get("return_usage", True)),
+            ),
+            "json": self._submit_body(inputs, voice_id=voice_id, request_id=request_id),
+        }
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         api_key = os.environ.get("DOUBAO_SPEECH_API_KEY")
         if not api_key:
@@ -225,15 +241,11 @@ class DoubaoTTS(BaseTool):
         metadata_path.parent.mkdir(parents=True, exist_ok=True)
 
         req_id = str(uuid.uuid4())
-        headers = self._headers(
-            api_key=api_key,
-            resource_id=resource_id,
-            request_id=req_id,
-            return_usage=bool(inputs.get("return_usage", True)),
-        )
-        body = self._submit_body(inputs, voice_id=voice_id, request_id=req_id)
+        request = self.build_request({**inputs, "request_id": req_id, "voice_id": voice_id}, api_key)
 
-        submit_response = requests.post(self.SUBMIT_URL, headers=headers, json=body, timeout=(10, 60))
+        submit_response = requests.post(
+            request["url"], headers=request["headers"], json=request["json"], timeout=(10, 60)
+        )
         submit_data = self._json_or_raise(submit_response)
         self._raise_for_doubao_error(submit_response.status_code, submit_data)
 

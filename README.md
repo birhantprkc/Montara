@@ -101,14 +101,14 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 1 provider request-shape refresh:
+Latest local gate snapshot from the Stage 1 Python provider `build_request()` extraction:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 310 passed, 0 failed |
 | `npm.cmd run validate` | 92 passed, 0 failed |
-| `python -m pytest tests` | 379 passed, 8 skipped |
+| `python -m pytest tests` | 399 passed, 8 skipped |
 
 ## Agent Entry Points
 

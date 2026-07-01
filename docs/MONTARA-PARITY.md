@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1 provider request-shape refresh.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1 Python provider `build_request()` extraction.
 
 This checklist tracks two things:
 
@@ -15,7 +15,7 @@ Latest local gates before this sync:
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 310 passed, 0 failed.
 - `npm.cmd run validate` passed: 92 passed, 0 failed.
-- `python -m pytest tests` passed: 379 passed, 8 skipped.
+- `python -m pytest tests` passed: 399 passed, 8 skipped.
 
 ## Snapshot
 
@@ -86,9 +86,9 @@ Latest local gates before this sync:
 
 | Category | Status | Notes |
 | --- | --- | --- |
-| C Video providers | ◐ | 14 registered; cloud request fixtures cover Kling/Runway Gen-4.5/Veo/xAI/Higgsfield/MiniMax/HeyGen; Google/Runway request shapes refreshed against current official docs; real-key confirmations pending. |
-| D Image providers | ◐ | 10 registered; OpenAI/BFL/Google Interactions API TS request shapes, Python OpenAI/BFL image request builders, and all-cloud fixture report gated. |
-| E Audio/TTS/music | ◐ | Local/offline fallbacks and analysis exist; TTS/music cloud fixtures covered; premium providers BYOK/runtime-gated. |
+| C Video providers | ◐ | 14 registered; cloud request fixtures cover Kling/Runway Gen-4.5/Veo/xAI/Higgsfield/MiniMax/HeyGen; every cloud video Python tool now exposes an offline `build_request()` with pytest parity; Google/Runway request shapes refreshed against current official docs; real-key confirmations pending. |
+| D Image providers | ◐ | 10 registered; OpenAI/BFL/Google Interactions API TS request shapes; Python OpenAI/BFL/Google-Imagen/Grok/Recraft image tools expose `build_request()` with pytest parity; all-cloud fixture report gated. |
+| E Audio/TTS/music | ◐ | Local/offline fallbacks and analysis exist; TTS/music cloud fixtures covered; ElevenLabs/Google/OpenAI/Doubao TTS + Suno/ElevenLabs music tools expose `build_request()` with pytest parity; premium providers BYOK/runtime-gated. |
 | F Post/enhancement | ◐ | Core FFmpeg operations work; model enhancers runtime-gated. |
 | G Analysis/understanding | ◐ | Reference analysis, signalstats fallback, optional Transformers.js CLIP path, and `montara understand` CLI proof work; BLIP/default cached-weight validation pending. |
 | H Intelligence | ◐ | Research/corpus/scoring ports exist; Python corpus has CLI source/build/search/status surface. |

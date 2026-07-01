@@ -109,6 +109,34 @@ class MiniMaxVideo(BaseTool):
             return 30.0
         return 60.0
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        operation = inputs.get("operation", "text_to_video")
+        variant = inputs.get("model_variant", "hailuo-02/pro")
+
+        # Build fal.ai model path
+        if operation == "text_to_video":
+            model_path = f"minimax/{variant}/text-to-video"
+            if variant == "video-01":
+                model_path = "minimax/video-01"
+        else:
+            model_path = f"minimax/{variant}/image-to-video"
+            if variant == "video-01":
+                model_path = "minimax/video-01/image-to-video"
+
+        payload: dict[str, Any] = {"prompt": inputs["prompt"]}
+        if operation == "image_to_video" and inputs.get("image_url"):
+            payload["image_url"] = inputs["image_url"]
+
+        return {
+            "method": "POST",
+            "url": f"https://queue.fal.run/fal-ai/{model_path}",
+            "headers": {
+                "Authorization": f"Key {api_key}",
+                "Content-Type": "application/json",
+            },
+            "json": payload,
+        }
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         api_key = self._get_api_key()
         if not api_key:
@@ -133,21 +161,15 @@ class MiniMaxVideo(BaseTool):
             if variant == "video-01":
                 model_path = "minimax/video-01/image-to-video"
 
-        payload: dict[str, Any] = {"prompt": inputs["prompt"]}
-        if operation == "image_to_video" and inputs.get("image_url"):
-            payload["image_url"] = inputs["image_url"]
-
-        headers = {
-            "Authorization": f"Key {api_key}",
-            "Content-Type": "application/json",
-        }
+        request = self.build_request(inputs, api_key)
+        headers = request["headers"]
 
         try:
             # Submit to queue API (async) — sync endpoint times out for video gen
             submit_resp = requests.post(
-                f"https://queue.fal.run/fal-ai/{model_path}",
+                request["url"],
                 headers=headers,
-                json=payload,
+                json=request["json"],
                 timeout=30,
             )
             submit_resp.raise_for_status()

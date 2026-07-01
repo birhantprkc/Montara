@@ -201,6 +201,18 @@ class GrokImage(BaseTool):
 
         return endpoint, payload
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        endpoint, payload = self._build_payload(inputs)
+        return {
+            "method": "POST",
+            "url": endpoint,
+            "headers": {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            "json": payload,
+        }
+
     @staticmethod
     def _infer_extension(url: str) -> str:
         suffix = Path(urlparse(url).path).suffix.lower()
@@ -234,13 +246,11 @@ class GrokImage(BaseTool):
 
         start = time.time()
         try:
-            endpoint, payload = self._build_payload(inputs)
+            request = self.build_request(inputs, api_key)
+            payload = request["json"]
             response = requests.post(
-                endpoint,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
+                request["url"],
+                headers=request["headers"],
                 json=payload,
                 timeout=180,
             )

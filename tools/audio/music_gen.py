@@ -99,6 +99,30 @@ class MusicGen(BaseTool):
         # Approximate: ~$0.05 per 30 seconds
         return round(duration / 30 * 0.05, 4)
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        prompt = inputs["prompt"]
+        duration = inputs.get("duration_seconds")
+        if duration is None:
+            raise ValueError(
+                "music_gen: duration_seconds is required. "
+                "Derive it from the approved target runtime in the script/proposal. "
+                "Silent defaults to 60s are not permitted — the generated music "
+                "must match the actual video duration."
+            )
+
+        return {
+            "method": "POST",
+            "url": "https://api.elevenlabs.io/v1/music",
+            "headers": {
+                "xi-api-key": api_key,
+                "Content-Type": "application/json",
+            },
+            "json": {
+                "prompt": prompt,
+                "music_length_ms": int(duration * 1000),
+            },
+        }
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         api_key = os.environ.get("ELEVENLABS_API_KEY")
         if not api_key:
@@ -137,20 +161,10 @@ class MusicGen(BaseTool):
                 ),
             )
 
-        url = "https://api.elevenlabs.io/v1/music"
-
-        headers = {
-            "xi-api-key": api_key,
-            "Content-Type": "application/json",
-        }
-
-        payload = {
-            "prompt": prompt,
-            "music_length_ms": int(duration * 1000),
-        }
+        request = self.build_request(inputs, api_key)
 
         response = requests.post(
-            url, headers=headers, json=payload, timeout=180
+            request["url"], headers=request["headers"], json=request["json"], timeout=180
         )
         response.raise_for_status()
 

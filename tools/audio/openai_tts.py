@@ -105,6 +105,30 @@ class OpenAITTS(BaseTool):
     def estimate_cost(self, inputs: dict[str, Any]) -> float:
         return round(len(inputs.get("text", "")) * 0.000015, 4)
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        model = inputs.get("model", "gpt-4o-mini-tts")
+        voice = inputs.get("voice", "alloy")
+        fmt = inputs.get("format", "mp3")
+        body: dict[str, Any] = {
+            "model": model,
+            "voice": voice,
+            "input": inputs["text"],
+            "response_format": fmt,
+        }
+        if inputs.get("instructions"):
+            body["instructions"] = inputs["instructions"]
+        if inputs.get("speed") and inputs["speed"] != 1.0:
+            body["speed"] = inputs["speed"]
+        return {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/audio/speech",
+            "headers": {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            "json": body,
+        }
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         if not os.environ.get("OPENAI_API_KEY"):
             return ToolResult(success=False, error="No OpenAI API key. " + self.install_instructions)
@@ -132,16 +156,7 @@ class OpenAITTS(BaseTool):
         output_path = Path(inputs.get("output_path", f"openai_tts.{fmt}"))
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        kwargs: dict[str, Any] = {
-            "model": model,
-            "voice": voice,
-            "input": text,
-            "response_format": fmt,
-        }
-        if inputs.get("instructions"):
-            kwargs["instructions"] = inputs["instructions"]
-        if inputs.get("speed") and inputs["speed"] != 1.0:
-            kwargs["speed"] = inputs["speed"]
+        kwargs: dict[str, Any] = dict(self.build_request(inputs, api_key=os.environ["OPENAI_API_KEY"])["json"])
 
         with client.audio.speech.with_streaming_response.create(**kwargs) as response:
             response.stream_to_file(output_path)

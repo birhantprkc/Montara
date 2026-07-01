@@ -163,18 +163,7 @@ class HiggsFieldVideo(BaseTool):
             return 60.0
         return 60.0
 
-    def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        creds = self._get_credentials()
-        if not creds:
-            return ToolResult(
-                success=False,
-                error="Higgsfield credentials not set. " + self.install_instructions,
-            )
-
-        import requests
-
-        api_key, api_secret = creds
-        start = time.time()
+    def build_request(self, inputs: dict[str, Any], api_key: str, api_secret: str = "") -> dict[str, Any]:
         operation = inputs.get("operation", "text_to_video")
         model = inputs.get("model", _DEFAULT_MODEL)
 
@@ -190,18 +179,41 @@ class HiggsFieldVideo(BaseTool):
         if operation == "image_to_video" and inputs.get("image_url"):
             payload["image_url"] = inputs["image_url"]
 
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "X-API-Secret": api_secret,
-            "Content-Type": "application/json",
+        return {
+            "method": "POST",
+            "url": "https://platform.higgsfield.ai/v1/generations",
+            "headers": {
+                "Authorization": f"Bearer {api_key}",
+                "X-API-Secret": api_secret,
+                "Content-Type": "application/json",
+            },
+            "json": payload,
         }
+
+    def execute(self, inputs: dict[str, Any]) -> ToolResult:
+        creds = self._get_credentials()
+        if not creds:
+            return ToolResult(
+                success=False,
+                error="Higgsfield credentials not set. " + self.install_instructions,
+            )
+
+        import requests
+
+        api_key, api_secret = creds
+        start = time.time()
+        operation = inputs.get("operation", "text_to_video")
+        model = inputs.get("model", _DEFAULT_MODEL)
+
+        request = self.build_request(inputs, api_key, api_secret)
+        headers = request["headers"]
 
         try:
             # Submit generation request
             submit_resp = requests.post(
-                "https://platform.higgsfield.ai/v1/generations",
+                request["url"],
                 headers=headers,
-                json=payload,
+                json=request["json"],
                 timeout=30,
             )
             submit_resp.raise_for_status()

@@ -120,27 +120,20 @@ class RecraftImage(BaseTool):
             return 0.25
         return 0.04
 
-    def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        api_key = self._get_api_key()
-        if not api_key:
-            return ToolResult(
-                success=False,
-                error="FAL_KEY not set. " + self.install_instructions,
-            )
-
-        import requests
-
-        start = time.time()
-        model = inputs.get("model", "v4")
-        prompt = inputs["prompt"]
-
+    @staticmethod
+    def _model_path(model: str) -> str:
         model_path = f"recraft/{model}/text-to-image"
         if model == "v4-pro":
             model_path = "recraft/v4/pro/text-to-image"
         elif model == "v4":
             model_path = "recraft/v4/text-to-image"
+        return model_path
 
-        payload: dict[str, Any] = {"prompt": prompt}
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        model = inputs.get("model", "v4")
+        model_path = self._model_path(model)
+
+        payload: dict[str, Any] = {"prompt": inputs["prompt"]}
         if inputs.get("image_size"):
             payload["image_size"] = inputs["image_size"]
         if inputs.get("style"):
@@ -156,14 +149,39 @@ class RecraftImage(BaseTool):
         if inputs.get("colors"):
             payload["colors"] = inputs["colors"]
 
+        return {
+            "method": "POST",
+            "url": f"https://fal.run/fal-ai/{model_path}",
+            "headers": {
+                "Authorization": f"Key {api_key}",
+                "Content-Type": "application/json",
+            },
+            "json": payload,
+        }
+
+    def execute(self, inputs: dict[str, Any]) -> ToolResult:
+        api_key = self._get_api_key()
+        if not api_key:
+            return ToolResult(
+                success=False,
+                error="FAL_KEY not set. " + self.install_instructions,
+            )
+
+        import requests
+
+        start = time.time()
+        model = inputs.get("model", "v4")
+        prompt = inputs["prompt"]
+
+        model_path = self._model_path(model)
+
+        request = self.build_request(inputs, api_key)
+
         try:
             response = requests.post(
-                f"https://fal.run/fal-ai/{model_path}",
-                headers={
-                    "Authorization": f"Key {api_key}",
-                    "Content-Type": "application/json",
-                },
-                json=payload,
+                request["url"],
+                headers=request["headers"],
+                json=request["json"],
                 timeout=120,
             )
             response.raise_for_status()

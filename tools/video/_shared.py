@@ -493,6 +493,33 @@ def upload_image_heygen(image_path: str, api_key: str) -> str:
     return upload_image_fal(image_path)
 
 
+def build_heygen_workflow_input(inputs: dict[str, Any]) -> dict[str, Any]:
+    """Build the HeyGen workflow ``input`` block for the submit request.
+
+    Uses ``reference_image_url`` directly when present; local-path uploads are
+    resolved by the caller before submitting (see ``generate_heygen_video``).
+    """
+    provider = inputs.get("provider_variant", "veo_3_1")
+    workflow_input: dict[str, Any] = {
+        "prompt": inputs["prompt"],
+        "provider": provider,
+        "aspect_ratio": inputs.get("aspect_ratio", "16:9"),
+    }
+    if inputs.get("operation", "text_to_video") == "image_to_video" and inputs.get("reference_image_url"):
+        workflow_input["reference_image_url"] = inputs["reference_image_url"]
+    return workflow_input
+
+
+def build_heygen_submit_request(workflow_input: dict[str, Any], api_key: str) -> dict[str, Any]:
+    """Return the submit request spec for the HeyGen workflow execution endpoint."""
+    return {
+        "method": "POST",
+        "url": "https://api.heygen.com/v1/workflows/executions",
+        "headers": {"X-Api-Key": api_key, "Content-Type": "application/json"},
+        "json": {"workflow_type": "GenerateVideoNode", "input": workflow_input},
+    }
+
+
 def generate_heygen_video(inputs: dict[str, Any]) -> ToolResult:
     import requests
 
@@ -527,10 +554,11 @@ def generate_heygen_video(inputs: dict[str, Any]) -> ToolResult:
             )
         workflow_input["reference_image_url"] = ref_url
 
+    request = build_heygen_submit_request(workflow_input, api_key)
     response = requests.post(
-        "https://api.heygen.com/v1/workflows/executions",
-        headers={"X-Api-Key": api_key, "Content-Type": "application/json"},
-        json={"workflow_type": "GenerateVideoNode", "input": workflow_input},
+        request["url"],
+        headers=request["headers"],
+        json=request["json"],
         timeout=30,
     )
     response.raise_for_status()

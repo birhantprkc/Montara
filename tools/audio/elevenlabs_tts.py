@@ -123,6 +123,31 @@ class ElevenLabsTTS(BaseTool):
     def estimate_cost(self, inputs: dict[str, Any]) -> float:
         return round(len(inputs.get("text", "")) * 0.0003, 4)
 
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
+        text = inputs["text"]
+        voice_id = inputs.get("voice_id", self.DEFAULT_VOICE_ID)
+        model_id = inputs.get("model_id", "eleven_multilingual_v2")
+        output_format = inputs.get("output_format", "mp3_44100_128")
+        return {
+            "method": "POST",
+            "url": f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+            "headers": {
+                "xi-api-key": api_key,
+                "Content-Type": "application/json",
+                "Accept": "audio/mpeg",
+            },
+            "params": {"output_format": output_format},
+            "json": {
+                "text": text,
+                "model_id": model_id,
+                "voice_settings": {
+                    "stability": inputs.get("stability", 0.5),
+                    "similarity_boost": inputs.get("similarity_boost", 0.75),
+                    "style": inputs.get("style", 0.0),
+                },
+            },
+        }
+
     def execute(self, inputs: dict[str, Any]) -> ToolResult:
         api_key = os.environ.get("ELEVENLABS_API_KEY")
         if not api_key:
@@ -146,23 +171,12 @@ class ElevenLabsTTS(BaseTool):
         model_id = inputs.get("model_id", "eleven_multilingual_v2")
         output_format = inputs.get("output_format", "mp3_44100_128")
 
+        request = self.build_request(inputs, api_key)
         response = requests.post(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
-            headers={
-                "xi-api-key": api_key,
-                "Content-Type": "application/json",
-                "Accept": "audio/mpeg",
-            },
-            json={
-                "text": text,
-                "model_id": model_id,
-                "voice_settings": {
-                    "stability": inputs.get("stability", 0.5),
-                    "similarity_boost": inputs.get("similarity_boost", 0.75),
-                    "style": inputs.get("style", 0.0),
-                },
-            },
-            params={"output_format": output_format},
+            request["url"],
+            headers=request["headers"],
+            json=request["json"],
+            params=request["params"],
             timeout=120,
         )
         response.raise_for_status()
