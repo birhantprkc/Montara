@@ -164,6 +164,62 @@ def test_clip_search_fallback_ranks_local_fixture_corpus(monkeypatch, tmp_path):
     assert rows[0]["record"]["clip_id"] == "local_fixture_01"
 
 
+def test_clip_search_select_slots_accumulates_exclusions(monkeypatch, tmp_path):
+    import lib.clip_embedder as clip_embedder
+    from lib.corpus import ClipRecord, Corpus
+
+    monkeypatch.setattr(clip_embedder, "_FALLBACK", True)
+    monkeypatch.setattr(clip_embedder, "_FALLBACK_REASON", "test fallback")
+    monkeypatch.setattr(clip_embedder, "_MODEL", None)
+    monkeypatch.setattr(clip_embedder, "_PROCESSOR", None)
+
+    corpus = Corpus(tmp_path / "corpus")
+    vectors = clip_embedder.embed_texts([
+        "archive maritime chokepoint shipping",
+        "commons port logistics cranes",
+        "NASA earth observation routes",
+    ])
+    for i, query in enumerate([
+        "archive maritime chokepoint shipping",
+        "commons port logistics cranes",
+        "NASA earth observation routes",
+    ]):
+        clip_id = f"open_stock_{i + 1:02d}"
+        corpus.add(
+            ClipRecord(
+                clip_id=clip_id,
+                source=["archive_org", "wikimedia", "nasa"][i],
+                source_id=clip_id,
+                source_url=f"https://example.test/{clip_id}",
+                local_path=f"clips/{clip_id}.mp4",
+                query=query,
+                source_tags=query,
+                motion_score=2.0,
+            ),
+            vectors[i],
+            vectors[i],
+        )
+    corpus.save()
+
+    result = ClipSearch().execute({
+        "operation": "select_slots",
+        "corpus_dir": str(tmp_path / "corpus"),
+        "slots": [
+            {"slot_id": "slot_01", "query_text": "archive maritime chokepoint shipping"},
+            {"slot_id": "slot_02", "query_text": "archive maritime chokepoint shipping"},
+        ],
+        "k": 3,
+        "motion_min": 0.1,
+    })
+
+    assert result.success
+    selections = result.data["selections"]
+    assert result.data["selected_count"] == 2
+    assert selections[0]["record"]["clip_id"] == "open_stock_01"
+    assert selections[1]["record"]["clip_id"] != "open_stock_01"
+    assert len(set(result.data["selected_ids"])) == 2
+
+
 def test_video_compose_surfaces_all_three_runtimes():
     """Preflight must see remotion, hyperframes, and ffmpeg as separate engines."""
     info = VideoCompose().get_info()

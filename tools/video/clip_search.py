@@ -102,6 +102,7 @@ class ClipSearch(BaseTool):
                 "type": "string",
                 "enum": [
                     "rank_for_slot",
+                    "select_slots",
                     "find_similar_set",
                     "diversify",
                     "get",
@@ -140,6 +141,24 @@ class ClipSearch(BaseTool):
                 "type": "array",
                 "items": {"type": "string"},
                 "description": "Clip ids to skip (already used in this edit).",
+            },
+            # select_slots
+            "slots": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "slot_id": {"type": "string"},
+                        "query_text": {"type": "string"},
+                        "description": {"type": "string"},
+                        "duration_seconds": {"type": "number"},
+                        "k": {"type": "integer"},
+                    },
+                },
+                "description": (
+                    "Timeline-ordered slot list. Each slot is ranked with "
+                    "the accumulated exclude_ids so one primary clip is not reused."
+                ),
             },
             # find_similar_set
             "seed_clip_id": {"type": "string"},
@@ -201,6 +220,8 @@ class ClipSearch(BaseTool):
                 payload = _op_stats(corp)
             elif operation == "rank_for_slot":
                 payload = _op_rank_for_slot(corp, inputs)
+            elif operation == "select_slots":
+                payload = _op_select_slots(corp, inputs)
             elif operation == "find_similar_set":
                 payload = _op_find_similar_set(corp, inputs)
             elif operation == "diversify":
@@ -304,6 +325,89 @@ def _op_rank_for_slot(corp, inputs: dict[str, Any]) -> dict[str, Any]:
             {"score": score, "record": asdict(rec)}
             for rec, score in results
         ],
+    }
+
+
+def _op_select_slots(corp, inputs: dict[str, Any]) -> dict[str, Any]:
+    """Select one non-reused corpus clip per timeline slot.
+
+    Agents were previously expected to call ``rank_for_slot`` in a loop
+    and remember ``exclude_ids`` themselves. This operation makes the
+    documentary asset-director contract explicit and cheaper to validate:
+    slots are processed in order, each chosen clip is added to the
+    exclusion set, and the returned selection trace records the query,
+    score, provenance row, and missing slots.
+    """
+    slots = inputs.get("slots") or []
+    if not isinstance(slots, list) or not slots:
+        raise ValueError("select_slots requires a non-empty 'slots' array")
+
+    selected_ids = list(inputs.get("exclude_ids") or [])
+    selections: list[dict[str, Any]] = []
+    missing: list[dict[str, Any]] = []
+
+    default_k = int(inputs.get("k", 10))
+    default_tag_weight = float(inputs.get("tag_weight", 0.3))
+    default_motion_min = inputs.get("motion_min")
+    default_kind = inputs.get("kind")
+
+    for i, slot in enumerate(slots):
+        if not isinstance(slot, dict):
+            missing.append({
+                "slot_id": f"slot_{i + 1:02d}",
+                "reason": "slot entry is not an object",
+            })
+            continue
+
+        slot_id = str(slot.get("slot_id") or f"slot_{i + 1:02d}")
+        query_text = str(
+            slot.get("query_text")
+            or slot.get("description")
+            or slot.get("query")
+            or ""
+        ).strip()
+        if not query_text:
+            missing.append({"slot_id": slot_id, "reason": "missing query_text"})
+            continue
+
+        rank_inputs = {
+            "query_text": query_text,
+            "k": int(slot.get("k", default_k)),
+            "tag_weight": float(slot.get("tag_weight", default_tag_weight)),
+            "motion_min": slot.get("motion_min", default_motion_min),
+            "kind": slot.get("kind", default_kind),
+            "exclude_ids": selected_ids,
+        }
+        ranked = _op_rank_for_slot(corp, rank_inputs)["results"]
+        if not ranked:
+            missing.append({
+                "slot_id": slot_id,
+                "query_text": query_text,
+                "reason": "no ranked candidates after exclusions",
+            })
+            continue
+
+        pick = ranked[0]
+        record = pick["record"]
+        clip_id = record.get("clip_id")
+        if clip_id:
+            selected_ids.append(clip_id)
+        selections.append({
+            "slot_id": slot_id,
+            "query_text": query_text,
+            "duration_seconds": slot.get("duration_seconds"),
+            "score": pick["score"],
+            "record": record,
+            "candidate_count": len(ranked),
+        })
+
+    return {
+        "slot_count": len(slots),
+        "selected_count": len(selections),
+        "missing_count": len(missing),
+        "selected_ids": selected_ids,
+        "selections": selections,
+        "missing_slots": missing,
     }
 
 

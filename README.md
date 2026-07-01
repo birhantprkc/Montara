@@ -76,6 +76,7 @@ current reproducible demos to inspect before trusting a workflow:
 | Python compose CLI | `npm.cmd run validate` | `out/validate-cli-video-compose.mp4` + `.render-report.json` | `montara compose` -> Python `video_compose` -> FFmpeg | `$0` |
 | Smart reel proof | `npm.cmd run validate` | `out/validate-smart-reel.mp4` | Source-aware reel planner + caption/end-card treatment | `$0` |
 | Documentary corpus proof | `npm.cmd run validate` | `out/validate-documentary-montage.mp4` + `out/validate-documentary-corpus/` | `corpus seed-fixture` -> Python `clip_search` -> `video_compose` | `$0` |
+| 60s documentary open-stock proof | `npm.cmd run validate` | `out/validate-documentary-open-stock-60s.mp4` + `.selection.json` + `.asset-manifest.json` | `corpus seed-open-stock-proof` -> `clip_search.select_slots` -> `video_compose` | `$0` |
 | Screen-demo capture proof | `npm.cmd run validate` | `out/validate-screen-demo.mp4` + `out/validate-screen-demo-capture.mp4` | `capture pick-latest --recordings-dir` -> `video_compose` | `$0` |
 | Editor handoff | `npm.cmd run montara -- export out/validate-compose-core.timeline.json --to otio out/validate-compose-core.otio` | OTIO/EDL/FCPXML files on demand | One Timeline IR -> editor bridge | `$0` |
 | Corpus/source discovery | `npm.cmd run montara -- corpus sources` | source-provider menu in stdout | Python `corpus_builder` discovery, no download required | `$0` |
@@ -95,14 +96,14 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 2.2 native Remotion Timeline routing sync:
+Latest local gate snapshot from the Stage 2.7 documentary open-stock corpus sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 305 passed, 0 failed |
-| `npm.cmd run validate` | 88 passed, 0 failed |
-| `python -m pytest tests` | 378 passed, 8 skipped |
+| `npm.cmd run validate` | 89 passed, 0 failed |
+| `python -m pytest tests` | 379 passed, 8 skipped |
 
 ## Agent Entry Points
 

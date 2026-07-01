@@ -13,9 +13,19 @@ clips that fill each slot. There are two paths:
    JAXA, NOAA, Dareful, Wikimedia, Unsplash) and download/embed the candidates.
 2. **Pick per slot** — run CLIP retrieval against the corpus with each
    slot description and choose one winner per slot.
+   Prefer `clip_search.select_slots` (or `montara corpus select-slots`)
+   for timeline-ordered edits: it accumulates `exclude_ids` as it goes
+   so the same primary clip cannot silently win multiple slots.
 
 Best for: 50+ slot productions, automated diversification, hands-off
 slot filling where CLIP similarity ranking matters.
+
+**Validate/proof path:** For no-key regression coverage, Montara exposes
+`montara corpus seed-open-stock-proof <corpus-dir> <clip...>`. It creates a
+12-slot, 60-second, provenance-aware proof corpus plus
+`open-stock-proof.slots.json`. This is a deterministic surrogate for CI and
+demo checks; for publishable footage, replace it with live `corpus_builder`
+downloads from open sources and keep each file's real URL/license row.
 
 ### Fast Path: Direct Search (Recommended for act-by-act production)
 
@@ -272,7 +282,25 @@ checking for three failure modes:
 ### 4. Rank Candidates Per Slot
 
 For each slot in `scene_plan.metadata.slots[]`, call `clip_search`
-with `operation=rank_for_slot`:
+with `operation=select_slots` when you have the full timeline-ordered slot
+list:
+
+```python
+clip_search.execute({
+    "operation": "select_slots",
+    "corpus_dir": "projects/<name>/corpus",
+    "slots": [
+        {"slot_id": "slot_01", "query_text": "raindrop on asphalt slow motion", "duration_seconds": 4.5},
+        {"slot_id": "slot_02", "query_text": "taxi headlights in heavy rain", "duration_seconds": 3.2},
+    ],
+    "k": 12,
+    "tag_weight": 0.3,
+    "motion_min": 1.5,
+    "kind": "video",
+})
+```
+
+Use `rank_for_slot` for one-off gap filling or manual retries:
 
 ```python
 clip_search.execute({

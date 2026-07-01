@@ -17,9 +17,12 @@ Snapshot date: 2026-07-01.
 - **Playwright browser capture:** `playwright_recorder` is discoverable, pytest-covered, exposed
   through `montara capture`, supports interactive login storageState, records browser video,
   and transcodes to MP4 through FFmpeg.
-- **Documentary corpus proof:** `montara corpus seed-fixture` creates an offline
-  Python-compatible corpus, `clip_search` retrieves from it with a local fallback embedder,
-  and `montara compose` renders the selected clips to MP4.
+- **Documentary corpus proof:** `montara corpus seed-fixture` covers the small
+  offline fixture path, and `montara corpus seed-open-stock-proof` now creates a
+  12-slot, 60-second provenance-aware corpus proof. `clip_search.select_slots`
+  selects non-reused rows, writes selection/asset artifacts, and `montara compose`
+  renders the MP4. Live publication footage still runs through `corpus_builder`
+  against open sources such as Archive.org, Wikimedia, NASA, NOAA, NARA, and LOC.
 - **Screen-demo capture proof:** `montara capture pick-latest --recordings-dir`
   materializes a completed local recording artifact, then `montara compose` renders it
   through the screen-demo edit-decision path to MP4.
@@ -39,8 +42,8 @@ Snapshot date: 2026-07-01.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 305 passed, 0 failed |
-| `npm.cmd run validate` | 88 passed, 0 failed |
-| `python -m pytest tests` | 378 passed, 8 skipped |
+| `npm.cmd run validate` | 89 passed, 0 failed |
+| `python -m pytest tests` | 379 passed, 8 skipped |
 
 ## Example Outputs
 
@@ -58,6 +61,7 @@ Snapshot date: 2026-07-01.
 | Runtime health report | `out/validate-runtimes-status.json` | CLI report for ComfyUI/A1111 external runtime health |
 | Runtime manager script | `out/validate-comfyui-install.ps1` | Generated safe install script from the dry-run manager |
 | Documentary corpus montage | `out/validate-documentary-montage.mp4` | Offline fixture corpus -> Python `clip_search` -> `video_compose` |
+| 60s documentary open-stock proof | `out/validate-documentary-open-stock-60s.mp4` | `seed-open-stock-proof` -> `clip_search.select_slots` -> `video_compose` |
 | Screen-demo capture proof | `out/validate-screen-demo.mp4` | Local recording artifact -> `montara capture pick-latest` -> `video_compose` |
 
 Generated outputs live under `out/` and are not committed.

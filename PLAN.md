@@ -307,7 +307,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 2.4 | `make setup` equivalent: `montara doctor --fix` + HyperFrames cache-warm | ☐ | npx hyperframes doctor |
 | 2.5 | Revideo MIT fallback auto-switch | ☐ | License-aware adapter selection |
 | 2.6 | Motion Canvas native package | ☐ | kinetic-typography pipeline default |
-| 2.7 | Documentary montage: CLIP corpus + real footage stitch | ◐ | Stage 1 offline fixture MP4 green; 60s open-stock corpus montage still pending |
+| 2.7 | Documentary montage: CLIP corpus + real footage stitch | ☑ | `validate` now builds a 60s provenance-aware open-stock corpus proof, selects non-reused rows with `clip_search.select_slots`, writes asset/selection artifacts, and composes a real MP4 |
 | 2.8 | Character animation: HyperFrames SVG rig → final MP4 | ☐ | match OpenMontage pipeline output |
 
 **Stage 2 exit criteria:** 2.1 + 2.3 + 2.7 green in `validate`; README embeds 3 native-composition demo videos.
@@ -454,10 +454,10 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 1B.06 | `documentary-montage` offline stock-footage MP4 validate path | done |
 | ✅ | 1B.10 | `screen-demo` offline MP4 validate path using capture artifacts | done |
 | ✅ | 2.2 | Remotion default Timeline routing instead of smoke-only proof | done |
-| 🎯 1 | 2.7 | 60s documentary open-stock corpus montage beyond fixture proof | Stage 2 gap |
-| 🎯 2 | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | Stage 3 gap |
-| 🎯 3 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
-| 🎯 4 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
+| ✅ | 2.7 | 60s documentary open-stock corpus montage beyond fixture proof | done |
+| 🎯 1 | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | Stage 3 gap |
+| 🎯 2 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
+| 🎯 3 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
 
 ---
 

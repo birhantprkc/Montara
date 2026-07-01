@@ -593,6 +593,166 @@ ok("documentary-montage corpus fixture search composes a real stock-footage MP4"
     documentaryDuration > 1.8,
   `seed=${documentarySeedCli.status} stats=${documentaryStatsCli.status} search=${documentarySearchCli.status} compose=${documentaryComposeCli.status} dur=${documentaryDuration.toFixed(2)} searchErr=${(documentarySearchCli.stderr || documentarySearchCli.stdout || "").slice(-500)} composeErr=${(documentaryComposeCli.stderr || documentaryComposeCli.stdout || "").slice(-500)}`);
 
+const documentaryOpenStockCorpusDir = join(outDir, "validate-documentary-open-stock-corpus");
+const documentaryOpenStockClipsDir = join(outDir, "validate-documentary-open-stock-clips");
+const documentaryOpenStockEditPath = join(outDir, "validate-documentary-open-stock-60s.edit-decisions.json");
+const documentaryOpenStockAssetPath = join(outDir, "validate-documentary-open-stock-60s.asset-manifest.json");
+const documentaryOpenStockSelectionPath = join(outDir, "validate-documentary-open-stock-60s.selection.json");
+const documentaryOpenStockOut = join(outDir, "validate-documentary-open-stock-60s.mp4");
+const documentaryOpenStockReport = join(outDir, "validate-documentary-open-stock-60s.render-report.json");
+try { rmSync(documentaryOpenStockCorpusDir, { recursive: true, force: true }); } catch { /* none */ }
+try { rmSync(documentaryOpenStockClipsDir, { recursive: true, force: true }); } catch { /* none */ }
+for (const p of [documentaryOpenStockEditPath, documentaryOpenStockAssetPath, documentaryOpenStockSelectionPath, documentaryOpenStockOut, documentaryOpenStockReport]) {
+  try { rmSync(p, { force: true }); } catch { /* none */ }
+}
+mkdirSync(documentaryOpenStockClipsDir, { recursive: true });
+const documentaryOpenStockProofClipSpecs: Array<[string, string]> = [
+  ["Shipping Chokepoint", "0d2538"],
+  ["Container Port Logistics", "243b3a"],
+  ["Earth Observation", "2a3158"],
+  ["Ocean Weather Risk", "22465a"],
+  ["Historic Fleet", "4a3134"],
+  ["Coastline Infrastructure", "334528"],
+  ["Satellite Route Map", "173d49"],
+  ["Night Port Motion", "1d2d40"],
+  ["Dock Worker Scale", "3e3a25"],
+  ["Historic Trade Map", "43304e"],
+  ["Industrial Cargo Motion", "3b2b45"],
+  ["Closing Waterway", "213f53"],
+];
+const documentaryOpenStockProofClips = documentaryOpenStockProofClipSpecs.map(([title, background], index) => {
+  const out = join(documentaryOpenStockClipsDir, `open-stock-proof-${String(index + 1).padStart(2, "0")}.mp4`);
+  renderCaptionCardVideo({
+    title,
+    outPath: out,
+    durationSec: 5.25,
+    width: 640,
+    height: 360,
+    fps: 30,
+    background,
+  });
+  return out;
+});
+const documentaryOpenStockSeedCli = spawnSync(npmBin, ["run", "montara", "--", "corpus", "seed-open-stock-proof", documentaryOpenStockCorpusDir, ...documentaryOpenStockProofClips, "--json"], {
+  encoding: "utf8",
+  timeout: 180000,
+  maxBuffer: 1 << 23,
+  shell: process.platform === "win32",
+});
+const documentaryOpenStockSlotsPath = join(documentaryOpenStockCorpusDir, "open-stock-proof.slots.json");
+const documentaryOpenStockSelectCli = spawnSync(npmBin, ["run", "montara", "--", "corpus", "select-slots", documentaryOpenStockCorpusDir, documentaryOpenStockSlotsPath, "--k", "12", "--motion-min", "0.1", "--kind", "video", "--json"], {
+  encoding: "utf8",
+  timeout: 240000,
+  maxBuffer: 1 << 23,
+  shell: process.platform === "win32",
+});
+type CorpusSlotSelection = {
+  success?: boolean;
+  data?: {
+    slot_count?: number;
+    selected_count?: number;
+    missing_count?: number;
+    selections?: {
+      slot_id?: string;
+      query_text?: string;
+      duration_seconds?: number;
+      score?: number;
+      record?: {
+        clip_id?: string;
+        local_path?: string;
+        source?: string;
+        source_id?: string;
+        source_url?: string;
+        license?: string;
+        creator?: string;
+        duration?: number;
+        width?: number;
+        height?: number;
+      };
+    }[];
+  };
+};
+let documentaryOpenStockSelection: CorpusSlotSelection = {};
+try { documentaryOpenStockSelection = JSON.parse((documentaryOpenStockSelectCli.stdout || "").slice((documentaryOpenStockSelectCli.stdout || "").indexOf("{"))) as CorpusSlotSelection; } catch { documentaryOpenStockSelection = {}; }
+writeFileSync(documentaryOpenStockSelectionPath, `${JSON.stringify(documentaryOpenStockSelection.data ?? {}, null, 2)}\n`);
+const documentaryOpenStockSelections = documentaryOpenStockSelection.data?.selections ?? [];
+const documentaryOpenStockCuts = documentaryOpenStockSelections.map((row) => ({
+  source: join(documentaryOpenStockCorpusDir, String(row.record?.local_path ?? "")),
+  in_seconds: 0,
+  out_seconds: 5,
+}));
+const documentaryOpenStockAssets = documentaryOpenStockSelections.map((row) => ({
+  id: `asset_${row.slot_id ?? row.record?.clip_id ?? "slot"}`,
+  type: "video",
+  path: join(documentaryOpenStockCorpusDir, String(row.record?.local_path ?? "")),
+  source_tool: "corpus_builder",
+  scene_id: row.slot_id,
+  duration_seconds: row.duration_seconds ?? 5,
+  resolution: `${row.record?.width ?? 0}x${row.record?.height ?? 0}`,
+  format: "mp4",
+  provider: row.record?.source,
+  license: row.record?.license,
+  original_url: row.record?.source_url,
+  subtype: "open_stock_proof_surrogate",
+  generation_summary: `Selected by clip_search.select_slots for '${row.query_text}' at score ${Number(row.score ?? 0).toFixed(3)}.`,
+}));
+writeFileSync(documentaryOpenStockAssetPath, `${JSON.stringify({
+  version: "1.0",
+  assets: documentaryOpenStockAssets,
+  metadata: {
+    pipeline: "documentary-montage",
+    corpus_dir: documentaryOpenStockCorpusDir,
+    source_tool: "corpus_builder",
+    selector_operation: "clip_search.select_slots",
+    target_duration_seconds: 60,
+    validation_mode: "deterministic_open_stock_surrogate",
+    live_build_hint: "Run montara corpus build with no-key sources such as archive_org, wikimedia, nasa, noaa, nara, and loc for publication footage.",
+  },
+}, null, 2)}\n`);
+writeFileSync(documentaryOpenStockEditPath, `${JSON.stringify({
+  version: "1.0",
+  render_runtime: "ffmpeg",
+  renderer_family: "documentary-montage",
+  total_duration_seconds: 60,
+  metadata: {
+    pipeline: "documentary-montage",
+    corpus_dir: documentaryOpenStockCorpusDir,
+    asset_manifest: documentaryOpenStockAssetPath,
+    selection_trace: documentaryOpenStockSelectionPath,
+    target_duration_seconds: 60,
+    source: "open_stock_proof_surrogate",
+    retrieval_protocol: "seed-open-stock-proof -> clip_search.select_slots -> video_compose",
+  },
+  cuts: documentaryOpenStockCuts,
+}, null, 2)}\n`);
+const documentaryOpenStockComposeCli = spawnSync(npmBin, ["run", "montara", "--", "compose", documentaryOpenStockEditPath, documentaryOpenStockOut, "--operation", "compose", "--json"], {
+  encoding: "utf8",
+  timeout: 420000,
+  maxBuffer: 1 << 23,
+  shell: process.platform === "win32",
+});
+const documentaryOpenStockDuration = existsSync(documentaryOpenStockOut) ? probeDuration(documentaryOpenStockOut) : 0;
+const documentaryOpenStockIds = documentaryOpenStockSelections.map((row) => String(row.record?.clip_id ?? "")).filter(Boolean);
+const documentaryOpenStockSources = new Set(documentaryOpenStockSelections.map((row) => String(row.record?.source ?? "")).filter(Boolean));
+ok("documentary-montage selects non-reused open-stock corpus rows and composes a 60s MP4",
+  documentaryOpenStockSeedCli.status === 0 &&
+    documentaryOpenStockSelectCli.status === 0 &&
+    documentaryOpenStockSelection.success === true &&
+    documentaryOpenStockSelection.data?.slot_count === 12 &&
+    documentaryOpenStockSelection.data?.selected_count === 12 &&
+    documentaryOpenStockSelection.data?.missing_count === 0 &&
+    new Set(documentaryOpenStockIds).size === 12 &&
+    documentaryOpenStockSources.size >= 6 &&
+    documentaryOpenStockCuts.length === 12 &&
+    documentaryOpenStockCuts.every((cut) => existsSync(cut.source)) &&
+    documentaryOpenStockAssets.length === 12 &&
+    documentaryOpenStockComposeCli.status === 0 &&
+    existsSync(documentaryOpenStockOut) &&
+    existsSync(documentaryOpenStockReport) &&
+    documentaryOpenStockDuration >= 58 &&
+    documentaryOpenStockDuration <= 63,
+  `seed=${documentaryOpenStockSeedCli.status} select=${documentaryOpenStockSelectCli.status} compose=${documentaryOpenStockComposeCli.status} selected=${documentaryOpenStockSelection.data?.selected_count ?? 0} sources=${documentaryOpenStockSources.size} dur=${documentaryOpenStockDuration.toFixed(2)} selectErr=${(documentaryOpenStockSelectCli.stderr || documentaryOpenStockSelectCli.stdout || "").slice(-500)} composeErr=${(documentaryOpenStockComposeCli.stderr || documentaryOpenStockComposeCli.stdout || "").slice(-500)}`);
+
 const screenCaptureDir = join(outDir, "validate-screen-demo-captures");
 const screenCaptureSession = join(screenCaptureDir, "take-001", "output");
 const screenCaptureFixture = join(screenCaptureSession, "screen-demo-capture-source.mp4");

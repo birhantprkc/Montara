@@ -106,6 +106,23 @@ discovery. The rule is:
 - Agents read skills before using tools.
 - Every new tool needs dependency reporting, fallback behavior, and a validation path.
 
+## Documentary Corpus Path
+
+The documentary-montage path has two validated corpus modes:
+
+- `montara corpus seed-fixture`: tiny no-key fixture proof for fast smoke tests.
+- `montara corpus seed-open-stock-proof`: deterministic 12-slot, 60-second
+  provenance-aware proof. It writes `open-stock-proof.slots.json`, then
+  `clip_search.select_slots` selects one non-reused row per slot before
+  `montara compose` assembles the MP4.
+
+For publication footage, agents should replace the surrogate seed clips with a
+live `montara corpus build` run against open sources such as Archive.org,
+Wikimedia, NASA, NOAA, NARA, LOC, ESA, Mixkit/Coverr-style sources, or keyed
+Pexels/Pixabay when available. Keep per-file `source_url`, license, creator,
+selection trace, and asset manifest rows; do not collapse everything into an
+unattributed "stock" bucket.
+
 ## Screen Capture And Auth
 
 Desktop app trailers use free local capture:

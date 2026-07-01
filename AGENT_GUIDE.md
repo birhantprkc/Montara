@@ -116,6 +116,18 @@ For `screen-demo`, choose the capture route before editing:
 - only compose the screen-demo after the picked/recorded MP4 exists and has been
   probed.
 
+For `documentary-montage`, build or seed a corpus before selecting shots:
+
+- quick smoke: `montara corpus seed-fixture <corpus-dir> <clip...>`;
+- 60-second no-key proof: `montara corpus seed-open-stock-proof <corpus-dir> <clip...>`;
+- publication run: `montara corpus build <corpus-dir> "<query>" --source archive_org --source wikimedia --source nasa ...`;
+- slot selection: `montara corpus select-slots <corpus-dir> <slots.json> --kind video`.
+
+The selection artifact must show one primary clip per slot, accumulated
+exclusions, provider/source rows, license/source URL, and any rejected picks.
+Use the proof seed only as a deterministic validate path; live open-stock
+footage must keep per-file provenance from the source adapter.
+
 ## Stage Artifact Contract
 
 Each stage has a concrete artifact. If a stage cannot produce its artifact, do

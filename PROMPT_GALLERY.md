@@ -44,7 +44,9 @@ MP4 render, and editor exports.
 > "Make a 90-second documentary-style video about why a shipping chokepoint matters. Use source-backed claims, honest maps, intentional silences, and a measured narration style."
 
 Expected treatment: read `skills/meta/documentary-evidence-craft.md`; avoid fake
-precision; source every claim; cue music by scene; master once around `-14 LUFS`.
+precision; build a corpus from open sources, select non-reused slot footage with
+`clip_search.select_slots`, source every claim, cue music by scene, and master
+once around `-14 LUFS`.
 
 ### Desktop Software Trailer
 

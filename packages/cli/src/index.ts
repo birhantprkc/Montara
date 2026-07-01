@@ -1130,6 +1130,155 @@ interface SeededCorpusRecord {
   added_at: number;
 }
 
+interface OpenStockProofSpec {
+  clipId: string;
+  source: string;
+  sourceId: string;
+  sourceUrl: string;
+  query: string;
+  creator: string;
+  license: string;
+  sourceTags: string;
+  shotType: string;
+  timeOfDay?: string;
+}
+
+const OPEN_STOCK_PROOF_SPECS: OpenStockProofSpec[] = [
+  {
+    clipId: "open_stock_01_maritime_chokepoint",
+    source: "archive_org",
+    sourceId: "proof-prelinger-maritime-chokepoint",
+    sourceUrl: "https://archive.org/details/prelinger",
+    query: "public-domain archive footage of shipping chokepoint and maritime trade",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for Archive.org / Prelinger public-domain workflows; live builds must keep per-file licenses.",
+    sourceTags: "shipping chokepoint maritime trade archive public domain strait tanker",
+    shotType: "wide",
+  },
+  {
+    clipId: "open_stock_02_container_port",
+    source: "wikimedia",
+    sourceId: "proof-wikimedia-container-port",
+    sourceUrl: "https://commons.wikimedia.org/wiki/Category:Container_ports",
+    query: "commons footage of container port logistics cranes and shipping lanes",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for Wikimedia Commons workflows; verify the concrete file license in live builds.",
+    sourceTags: "container port logistics cranes shipping lanes commons cargo",
+    shotType: "wide",
+  },
+  {
+    clipId: "open_stock_03_earth_observation",
+    source: "nasa",
+    sourceId: "proof-nasa-earth-observation",
+    sourceUrl: "https://images.nasa.gov/",
+    query: "NASA earth observation view of trade routes from orbit",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for NASA public-domain media workflows; verify third-party caveats in live builds.",
+    sourceTags: "earth observation trade routes orbit ocean geography NASA",
+    shotType: "establishing",
+  },
+  {
+    clipId: "open_stock_04_weather_ocean",
+    source: "noaa",
+    sourceId: "proof-noaa-ocean-weather",
+    sourceUrl: "https://www.noaa.gov/multimedia",
+    query: "NOAA ocean weather satellite context for maritime risk",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for NOAA public-domain media workflows; verify concrete source terms in live builds.",
+    sourceTags: "ocean weather satellite storm maritime risk NOAA",
+    shotType: "establishing",
+  },
+  {
+    clipId: "open_stock_05_historic_fleet",
+    source: "nara",
+    sourceId: "proof-nara-historic-fleet",
+    sourceUrl: "https://catalog.archives.gov/",
+    query: "National Archives historical fleet and naval logistics footage",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for NARA public-domain workflows; verify concrete record terms in live builds.",
+    sourceTags: "historic fleet naval logistics archives shipping defense",
+    shotType: "medium",
+  },
+  {
+    clipId: "open_stock_06_coastline_infra",
+    source: "loc",
+    sourceId: "proof-loc-coastline-infrastructure",
+    sourceUrl: "https://www.loc.gov/collections/",
+    query: "Library of Congress coastline infrastructure and port history footage",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for Library of Congress collection workflows; verify rights statements in live builds.",
+    sourceTags: "coastline infrastructure port history public domain Library of Congress",
+    shotType: "detail",
+  },
+  {
+    clipId: "open_stock_07_satellite_map",
+    source: "esa",
+    sourceId: "proof-esa-satellite-map",
+    sourceUrl: "https://www.esa.int/ESA_Multimedia",
+    query: "ESA satellite map animation of shipping route bottlenecks",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for ESA multimedia workflows; verify concrete source terms in live builds.",
+    sourceTags: "satellite map shipping route bottleneck ESA observation",
+    shotType: "graphic",
+  },
+  {
+    clipId: "open_stock_08_port_night",
+    source: "coverr",
+    sourceId: "proof-coverr-port-night",
+    sourceUrl: "https://coverr.co/",
+    query: "open stock night port machinery and moving lights",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for Coverr-style open-stock workflows; verify concrete source terms in live builds.",
+    sourceTags: "night port machinery lights open stock cargo",
+    shotType: "detail",
+    timeOfDay: "night",
+  },
+  {
+    clipId: "open_stock_09_human_scale",
+    source: "mixkit",
+    sourceId: "proof-mixkit-human-scale",
+    sourceUrl: "https://mixkit.co/free-stock-video/",
+    query: "open stock human scale dock worker logistics visual",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for Mixkit open-stock workflows; verify concrete source terms in live builds.",
+    sourceTags: "dock worker logistics human scale open stock port",
+    shotType: "medium",
+  },
+  {
+    clipId: "open_stock_10_historic_map",
+    source: "wikimedia",
+    sourceId: "proof-wikimedia-historic-map",
+    sourceUrl: "https://commons.wikimedia.org/wiki/Category:Maps_of_trade_routes",
+    query: "commons map of historic trade routes and sea lanes",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for Wikimedia Commons workflows; verify the concrete file license in live builds.",
+    sourceTags: "historic map trade routes sea lanes commons geography",
+    shotType: "graphic",
+  },
+  {
+    clipId: "open_stock_11_industrial_motion",
+    source: "dareful",
+    sourceId: "proof-dareful-industrial-motion",
+    sourceUrl: "https://dareful.com/",
+    query: "open stock industrial motion machinery cargo containers",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for Dareful open-stock workflows; verify concrete source terms in live builds.",
+    sourceTags: "industrial motion machinery cargo containers open stock",
+    shotType: "detail",
+  },
+  {
+    clipId: "open_stock_12_closing_waterway",
+    source: "archive_org",
+    sourceId: "proof-archive-closing-waterway",
+    sourceUrl: "https://archive.org/details/opensource_movies",
+    query: "public-domain closing waterway shot for documentary montage",
+    creator: "Montara open-stock proof surrogate",
+    license: "Validation surrogate for Archive.org public-domain workflows; live builds must keep per-file licenses.",
+    sourceTags: "waterway closing shot documentary montage public domain archive",
+    shotType: "wide",
+  },
+];
+
 function writeNpyFloat32Matrix(outPath: string, rows: number[][]): void {
   const rowCount = rows.length;
   const headerBase = `{'descr': '<f4', 'fortran_order': False, 'shape': (${rowCount}, ${CLIP_EMBED_DIM}), }`;
@@ -1204,6 +1353,64 @@ function seedFixtureCorpus(corpusDir: string, clipPaths: string[], queries: stri
   return records;
 }
 
+function seedOpenStockProofCorpus(corpusDir: string, clipPaths: string[]): SeededCorpusRecord[] {
+  if (!clipPaths.length) throw new Error("seed-open-stock-proof requires at least one clip path");
+  const clipsDir = join(corpusDir, "clips");
+  const thumbsDir = join(corpusDir, "thumbnails");
+  mkdirSync(clipsDir, { recursive: true });
+  mkdirSync(thumbsDir, { recursive: true });
+  const records: SeededCorpusRecord[] = [];
+  const vectors: number[][] = [];
+  OPEN_STOCK_PROOF_SPECS.forEach((spec, index) => {
+    const clipPath = clipPaths[index % clipPaths.length]!;
+    if (!existsSync(clipPath)) throw new Error(`clip does not exist: ${clipPath}`);
+    const destName = `${spec.clipId}_${basename(clipPath).replace(/[^a-zA-Z0-9_.-]+/g, "_") || "clip.mp4"}`;
+    const localPath = `clips/${destName}`;
+    const destPath = join(clipsDir, destName);
+    copyFileSync(clipPath, destPath);
+    const duration = probeDuration(destPath);
+    const size = probeVideoSize(destPath);
+    const vector = embedTexts([spec.query])[0] ?? new Array<number>(CLIP_EMBED_DIM).fill(0);
+    vectors.push(vector);
+    records.push({
+      clip_id: spec.clipId,
+      source: spec.source,
+      source_id: spec.sourceId,
+      source_url: spec.sourceUrl,
+      local_path: localPath,
+      kind: "video",
+      thumb_dir: "",
+      query: spec.query,
+      creator: spec.creator,
+      license: spec.license,
+      duration,
+      width: size.width,
+      height: size.height,
+      motion_score: 2.5,
+      dominant_colors: [],
+      source_tags: spec.sourceTags,
+      shot_type: spec.shotType,
+      time_of_day: spec.timeOfDay ?? "",
+      added_at: Date.now() / 1000,
+    });
+  });
+  writeFileSync(join(corpusDir, "index.jsonl"), `${records.map((record) => JSON.stringify(record)).join("\n")}\n`);
+  writeNpyFloat32Matrix(join(corpusDir, "embeddings.npy"), vectors);
+  writeNpyFloat32Matrix(join(corpusDir, "tag_embeddings.npy"), vectors);
+  writeFileSync(join(corpusDir, "open-stock-proof.slots.json"), `${JSON.stringify({
+    version: "1.0",
+    note: "Deterministic no-key corpus proof. Replace surrogate clips with live corpus_builder downloads for publication.",
+    target_duration_seconds: 60,
+    slots: OPEN_STOCK_PROOF_SPECS.map((spec, index) => ({
+      slot_id: `slot_${String(index + 1).padStart(2, "0")}`,
+      query_text: spec.query,
+      duration_seconds: 5,
+      preferred_source: spec.source,
+    })),
+  }, null, 2)}\n`);
+  return records;
+}
+
 function runCorpusCommand(rest: string[]): number {
   const sub = rest[0] ?? "sources";
   const args = rest.slice(1);
@@ -1212,8 +1419,10 @@ function runCorpusCommand(rest: string[]): number {
   if (sub === "help" || sub === "--help") {
     console.log("usage: montara corpus sources [--json]");
     console.log("       montara corpus seed-fixture <corpus-dir> <clip.mp4> [clip2.mp4 ...] [--query TEXT]");
+    console.log("       montara corpus seed-open-stock-proof <corpus-dir> <clip.mp4> [clip2.mp4 ...]");
     console.log("       montara corpus build <corpus-dir> \"query\" [--query TEXT ...] [--source archive_org] [--max-new 20] [--per-source 10]");
     console.log("       montara corpus search <corpus-dir> \"slot description\" [--k 10] [--motion-min 0.2]");
+    console.log("       montara corpus select-slots <corpus-dir> <slots.json> [--k 12] [--motion-min 0.2]");
     console.log("       montara corpus stats <corpus-dir>");
     console.log("       montara corpus get <corpus-dir> <clip-id>");
     return 0;
@@ -1244,6 +1453,38 @@ function runCorpusCommand(rest: string[]): number {
       else {
         console.log(`seeded corpus -> ${corpusDir}`);
         console.log(`rows: ${records.length}`);
+      }
+      return 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
+  }
+
+  if (sub === "seed-open-stock-proof") {
+    const positional = positionalArgs(args);
+    const corpusDir = positional[0];
+    const clips = positional.slice(1).filter((value) => !value.startsWith("--"));
+    if (!corpusDir || clips.length === 0) {
+      console.error("usage: montara corpus seed-open-stock-proof <corpus-dir> <clip.mp4> [clip2.mp4 ...]");
+      return 1;
+    }
+    try {
+      const records = seedOpenStockProofCorpus(corpusDir, clips);
+      const payload = {
+        corpus_dir: corpusDir,
+        rows: records.length,
+        source: "open_stock_proof_surrogate",
+        target_duration_seconds: 60,
+        slots_path: join(corpusDir, "open-stock-proof.slots.json"),
+        records,
+        live_build_hint: "For publication, run `montara corpus build <corpus-dir> \"<slot query>\" --source archive_org --source wikimedia --source nasa --max-new 150` and keep the per-file source_url/license rows.",
+      };
+      if (json) console.log(JSON.stringify({ success: true, data: payload }, null, 2));
+      else {
+        console.log(`seeded open-stock proof corpus -> ${corpusDir}`);
+        console.log(`rows: ${records.length}`);
+        console.log(`slots: ${join(corpusDir, "open-stock-proof.slots.json")}`);
       }
       return 0;
     } catch (error) {
@@ -1322,6 +1563,8 @@ function runCorpusCommand(rest: string[]): number {
     if (motionMin !== undefined) payload.motion_min = motionMin;
     const kind = optionValue(args, "--kind");
     if (kind) payload.kind = kind;
+    const excludeIds = splitOptionList(optionValues(args, "--exclude"));
+    if (excludeIds.length) payload.exclude_ids = excludeIds;
     const result = runPythonTool("clip_search", payload, 180_000, CLIP_SEARCH_MODULE);
     if (json) {
       printPythonToolResult(result, true);
@@ -1336,6 +1579,51 @@ function runCorpusCommand(rest: string[]): number {
     for (const row of rows.slice(0, 10)) {
       const record = (row.record ?? {}) as Record<string, unknown>;
       console.log(`${Number(row.score ?? 0).toFixed(3)} ${String(record.clip_id ?? "")} ${String(record.local_path ?? "")}`);
+    }
+    return 0;
+  }
+
+  if (sub === "select-slots" || sub === "select") {
+    const positional = positionalArgs(args);
+    const corpusDir = positional[0];
+    const slotsPath = positional[1];
+    if (!corpusDir || !slotsPath || !existsSync(slotsPath)) {
+      console.error("usage: montara corpus select-slots <corpus-dir> <slots.json> [--k 12] [--motion-min 0.2]");
+      return 1;
+    }
+    let slots: unknown;
+    try {
+      const parsed = JSON.parse(readFileSync(slotsPath, "utf8"));
+      slots = Array.isArray(parsed) ? parsed : parsed.slots;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
+    const payload: Record<string, unknown> = {
+      operation: "select_slots",
+      corpus_dir: corpusDir,
+      slots,
+      k: numberOption(args, "--k", 12),
+      tag_weight: numberOption(args, "--tag-weight", 0.3),
+    };
+    const motionMin = maybeNumberOption(args, "--motion-min");
+    if (motionMin !== undefined) payload.motion_min = motionMin;
+    const kind = optionValue(args, "--kind");
+    if (kind) payload.kind = kind;
+    const result = runPythonTool("clip_search", payload, 180_000, CLIP_SEARCH_MODULE);
+    if (json) {
+      printPythonToolResult(result, true);
+      return result.success ? 0 : 1;
+    }
+    if (!result.success) {
+      console.error(result.error || "corpus select-slots failed");
+      return 1;
+    }
+    console.log(`selected ${String(result.data.selected_count ?? 0)} / ${String(result.data.slot_count ?? 0)} slot(s) from ${String(result.data.corpus_size ?? "?")} corpus rows`);
+    const selections = (result.data.selections as Array<Record<string, unknown>> | undefined) ?? [];
+    for (const row of selections.slice(0, 12)) {
+      const record = (row.record ?? {}) as Record<string, unknown>;
+      console.log(`${String(row.slot_id ?? "")}: ${Number(row.score ?? 0).toFixed(3)} ${String(record.clip_id ?? "")}`);
     }
     return 0;
   }
@@ -1370,7 +1658,7 @@ function runCorpusCommand(rest: string[]): number {
     return result.success ? 0 : 1;
   }
 
-  console.error("usage: montara corpus <sources|seed-fixture|build|search|stats|get|similar>");
+  console.error("usage: montara corpus <sources|seed-fixture|seed-open-stock-proof|build|search|select-slots|stats|get|similar>");
   return 1;
 }
 

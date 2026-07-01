@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 2.2 native Remotion Timeline routing.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 2.7 documentary open-stock corpus proof.
 
 This checklist tracks two things:
 
@@ -14,8 +14,8 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 305 passed, 0 failed.
-- `npm.cmd run validate` passed: 88 passed, 0 failed.
-- `python -m pytest tests` passed: 378 passed, 8 skipped.
+- `npm.cmd run validate` passed: 89 passed, 0 failed.
+- `python -m pytest tests` passed: 379 passed, 8 skipped.
 
 ## Snapshot
 
@@ -73,7 +73,7 @@ Latest local gates before this sync:
 | avatar-spokesperson | ☑ | Manifest + skills; runtime constraints documented. |
 | cinematic | ☑ | Manifest + skills. |
 | clip-factory | ☑ | Manifest + skills. |
-| documentary-montage | ☑ | Offline fixture corpus -> `clip_search` -> `video_compose` MP4 validate path green; longer open-stock montage remains Stage 2.7. |
+| documentary-montage | ☑ | Offline fixture corpus and 60s open-stock proof corpus -> `clip_search.select_slots` -> `video_compose` MP4 validate paths are green. Live downloads remain `corpus_builder`/source-runtime dependent. |
 | hybrid | ☑ | Manifest + skills. |
 | localization-dub | ☑ | Manifest + skills. |
 | podcast-repurpose | ☑ | Manifest + skills. |
@@ -131,4 +131,4 @@ Stage 1B pipeline MP4 coverage is now closed. Broader Stage 1 exits when:
 - Python compose/corpus tools are wired through CLI; (done in `0x32`)
 - screen-demo uses the capture CLI in a real offline MP4 flow. (done in `0x47`)
 
-Stage 2 exits when the documentary stock-footage validate case is green; native Remotion and HyperFrames validate proofs are now present.
+Stage 2 has native Remotion, HyperFrames, and the 60s documentary corpus proof green in `validate`; remaining Stage 2 items are runtime/package maturity work rather than the blocked exit proof.
