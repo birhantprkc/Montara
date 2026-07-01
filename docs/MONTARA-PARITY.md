@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1B.10 screen-demo capture validation.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 2.2 native Remotion Timeline routing.
 
 This checklist tracks two things:
 
@@ -13,8 +13,8 @@ Legend: `☑` done and gated, `◐` partial/runtime-gated, `☐` not done.
 Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
-- `npm.cmd run verify` passed: 303 passed, 0 failed.
-- `npm.cmd run validate` passed: 87 passed, 0 failed.
+- `npm.cmd run verify` passed: 305 passed, 0 failed.
+- `npm.cmd run validate` passed: 88 passed, 0 failed.
 - `python -m pytest tests` passed: 378 passed, 8 skipped.
 
 ## Snapshot
@@ -36,7 +36,7 @@ Latest local gates before this sync:
 | Compare report automation | ☑ | `montara status --json --out ...` emits local capability, latest documented gates, and Montara-vs-upstream categories. |
 | Playwright capture | ◐ | Tool/selector/skills, pytest coverage, and `montara capture` CLI exist; native browser runtime remains Playwright-gated. |
 | 9-engine registry | ☑ | Includes maturity labels: working, adapter, runtime-gated, planned. |
-| Native Remotion | ◐ | Native smoke MP4 validate-gated when composer deps are installed; default Timeline routing pending. |
+| Native Remotion | ☑ | Native smoke + Timeline IR render validate-gated; `REMOTION_ENABLED=1` routes `montara make/render` through native Remotion when composer deps are installed. |
 | HyperFrames | ◐ | Python `hyperframes_compose` strict kinetic smoke is validate-gated; kinetic-typography has pipeline skills; broader non-kinetic parity pending. |
 | Revideo / Motion Canvas | ☐ | Registered/runtime-gated; native package work pending. |
 | Three.js / Manim | ◐ | Adapters exist; native proof depends on installed runtimes. |
@@ -54,7 +54,7 @@ Latest local gates before this sync:
 | Engine | Status | Current truth |
 | --- | --- | --- |
 | FFmpeg | ☑ | Working local native renderer and fallback. |
-| Remotion | ◐ | Native smoke MP4 validate-gated; full Timeline default routing pending. |
+| Remotion | ☑ | Native smoke + Timeline IR render validate-gated; FFmpeg fallback remains visible when native is disabled/unavailable. |
 | Revideo | ☐ | Runtime-gated adapter target. |
 | Motion Canvas | ☐ | Runtime-gated adapter target. |
 | HyperFrames | ◐ | Strict kinetic smoke renders through `hyperframes_compose`; `montara compose` can route `video_compose` artifacts, native HyperFrames still runtime-gated. |
@@ -131,4 +131,4 @@ Stage 1B pipeline MP4 coverage is now closed. Broader Stage 1 exits when:
 - Python compose/corpus tools are wired through CLI; (done in `0x32`)
 - screen-demo uses the capture CLI in a real offline MP4 flow. (done in `0x47`)
 
-Stage 2 exits when native Remotion, HyperFrames, and documentary stock-footage validate cases are green.
+Stage 2 exits when the documentary stock-footage validate case is green; native Remotion and HyperFrames validate proofs are now present.

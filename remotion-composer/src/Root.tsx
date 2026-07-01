@@ -124,12 +124,15 @@ const calculateMetadata: CalculateMetadataFunction<ExplainerProps> = async ({
   props,
 }) => {
   const cuts = props.cuts || [];
+  const fps = Number(props.fps) > 0 ? Number(props.fps) : 30;
+  const width = Number(props.width) > 0 ? Number(props.width) : 1920;
+  const height = Number(props.height) > 0 ? Number(props.height) : 1080;
   if (cuts.length === 0) {
-    return { durationInFrames: 30 * 60 };
+    return { durationInFrames: fps * 60, fps, width, height };
   }
   const lastEnd = Math.max(...cuts.map((c) => c.out_seconds || 0));
   // Add 1 second padding for final fade
-  return { durationInFrames: Math.ceil((lastEnd + 1) * 30) };
+  return { durationInFrames: Math.ceil((lastEnd + 1) * fps), fps, width, height };
 };
 
 export const Root: React.FC = () => {

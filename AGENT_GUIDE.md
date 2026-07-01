@@ -335,7 +335,7 @@ The render stack is mixed maturity. Promise only what the machine can prove.
 | Runtime | Agent stance |
 | --- | --- |
 | FFmpeg | Reliable fallback. Good for assembly, trims, captions, audio, mastering, and simple composites. |
-| Remotion | Native smoke render is validate-gated when `remotion-composer` deps are installed. Full Timeline default routing still needs Stage 2.2. |
+| Remotion | Native smoke and Timeline IR rendering are validate-gated when `remotion-composer` deps are installed. Set `REMOTION_ENABLED=1` for `montara make/render` to prefer native Remotion; otherwise FFmpeg fallback is explicit. |
 | Revideo | Use when the local Revideo toolchain is installed and a validate case passes. |
 | Three.js | Use for WebGL/3D only after headless browser/asset checks pass. |
 | Manim | Use for math/science animation when Manim is installed; verify the generated MP4. |

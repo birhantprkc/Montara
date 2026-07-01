@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import type { ScenePlan } from "../packages/core/src/index";
 import { secondsToFrames, validateTimeline, pictureInPicture, collage } from "../packages/core/src/index";
-import { composeScenePlan, renderComposedTimeline, remotionNativeAvailable, renderNativeRemotionSmoke } from "../packages/render-remotion/src/index";
+import { composeScenePlan, renderComposedTimeline, renderComposedTimelineWithReport, remotionNativeAvailable, renderNativeRemotionSmoke, timelineToRemotionProps } from "../packages/render-remotion/src/index";
 import { probeDuration, compositeTimeline, mediaBin, masterAudio, generateThumbnails, cutShort, buildReel } from "../packages/render-ffmpeg/src/index";
 import { qaPlayback } from "../packages/hear/src/index";
 import { threeAvailable, renderThreeScene } from "../packages/render-three/src/index";
@@ -316,13 +316,28 @@ const engResult = renderWithEngine("motion-canvas", result.timeline, enginePath,
 ok("generic non-ffmpeg dispatch is honest fallback, not claimed native", existsSync(enginePath) && probeDuration(enginePath) > 1 && engResult.renderer === "degraded-ffmpeg" && engResult.note.includes("fallback"));
 
 const nativeRemotionPath = join(outDir, "validate-remotion-native.mp4");
+const nativeRemotionTimelinePath = join(outDir, "validate-remotion-timeline-native.mp4");
 try { rmSync(nativeRemotionPath, { force: true }); } catch { /* none */ }
+try { rmSync(nativeRemotionTimelinePath, { force: true }); } catch { /* none */ }
 if (remotionNativeAvailable()) {
   const nativeRemotion = renderNativeRemotionSmoke(nativeRemotionPath);
   const nativeDuration = nativeRemotion.ok && existsSync(nativeRemotionPath) ? probeDuration(nativeRemotionPath) : 0;
   ok("native Remotion renders a spring/caption MP4",
     nativeRemotion.ok && nativeDuration > 2.5,
     `dur=${nativeDuration.toFixed(2)}s err=${nativeRemotion.error ?? ""}`);
+  const remotionProps = timelineToRemotionProps(result.timeline);
+  const nativeTimeline = renderComposedTimelineWithReport(result.timeline, nativeRemotionTimelinePath, {
+    env: { ...process.env, REMOTION_ENABLED: "1" },
+    requireNative: true,
+  });
+  const nativeTimelineDuration = nativeTimeline.ok && existsSync(nativeRemotionTimelinePath) ? probeDuration(nativeRemotionTimelinePath) : 0;
+  ok("REMOTION_ENABLED routes Timeline IR through native Remotion",
+    remotionProps.cuts.length >= 1 &&
+      nativeTimeline.ok &&
+      nativeTimeline.renderer === "remotion-native" &&
+      nativeTimeline.native === true &&
+      nativeTimelineDuration > 2.5,
+    `renderer=${nativeTimeline.renderer} dur=${nativeTimelineDuration.toFixed(2)}s err=${nativeTimeline.error ?? ""}`);
 } else {
   ok("native Remotion reports unavailable honestly when composer deps are absent", remotionNativeAvailable() === false);
 }

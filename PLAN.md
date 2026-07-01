@@ -62,7 +62,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **PROMPT_GALLERY** | ☑ | Expanded beyond OpenMontage gallery coverage |
 | **Playwright capture** | ◐ | Tool + selector + Layer 2 skills + pytest + `montara capture`; runtime-gated on `playwright` npm |
 | **9-engine registry** | ☑ | Honest `maturity` labels (working / adapter / runtime-gated / planned) |
-| **Remotion native** | ◐ | Native smoke MP4 validate-gated when composer deps are installed; default Timeline routing pending |
+| **Remotion native** | ☑ | Native smoke + Timeline IR route validate-gated; `REMOTION_ENABLED=1` makes `montara make/render` prefer native when composer deps are installed |
 | **HyperFrames native** | ◐ | Strict kinetic smoke renders through `hyperframes_compose`; broader pipeline parity pending |
 | **Revideo / Motion Canvas native** | ☐ | Registered; packages not fully implemented |
 | **Three.js / Manim native** | ◐ | Adapters exist; often FFmpeg fallback proofs |
@@ -281,7 +281,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | Engine | Status | Next task |
 |--------|--------|-----------|
 | FFmpeg | ☑ working | Keep as universal floor |
-| Remotion | ◐ native smoke | Stage 2.2 — default Timeline routing |
+| Remotion | ☑ native Timeline route | `REMOTION_ENABLED=1` routes Timeline IR through native Remotion; FFmpeg remains visible fallback |
 | Revideo | ☐ runtime-gated | Implement `@montara/render-revideo` native entry |
 | Motion Canvas | ☐ runtime-gated | Implement `@montara/render-motioncanvas` native entry |
 | HyperFrames | ◐ native smoke | Strict kinetic smoke via `hyperframes_compose`; `montara compose` can call `video_compose` artifacts |
@@ -302,7 +302,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | ID | Task | Status | Acceptance |
 |----|------|--------|------------|
 | 2.1 | **Native Remotion render** in validate | ☑ | Real spring/caption MP4, not FFmpeg solids |
-| 2.2 | Remotion as default when `REMOTION_ENABLED` + composer installed | ☐ | `recommendEngine` + `montara make` use it |
+| 2.2 | Remotion as default when `REMOTION_ENABLED` + composer installed | ☑ | Timeline IR -> Remotion props -> native `Explainer` render; `montara make/render` use it when enabled |
 | 2.3 | **HyperFrames compose** E2E through Python `hyperframes_compose` | ☑ | validate case: kinetic typography MP4 |
 | 2.4 | `make setup` equivalent: `montara doctor --fix` + HyperFrames cache-warm | ☐ | npx hyperframes doctor |
 | 2.5 | Revideo MIT fallback auto-switch | ☐ | License-aware adapter selection |
@@ -453,11 +453,11 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 5.1B | Managed install/launch automation for ComfyUI/A1111 | done |
 | ✅ | 1B.06 | `documentary-montage` offline stock-footage MP4 validate path | done |
 | ✅ | 1B.10 | `screen-demo` offline MP4 validate path using capture artifacts | done |
-| 🎯 1 | 2.2 | Remotion default Timeline routing instead of smoke-only proof | Stage 2 gap |
-| 🎯 2 | 2.7 | 60s documentary open-stock corpus montage beyond fixture proof | Stage 2 gap |
-| 🎯 3 | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | Stage 3 gap |
-| 🎯 4 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
-| 🎯 5 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
+| ✅ | 2.2 | Remotion default Timeline routing instead of smoke-only proof | done |
+| 🎯 1 | 2.7 | 60s documentary open-stock corpus montage beyond fixture proof | Stage 2 gap |
+| 🎯 2 | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | Stage 3 gap |
+| 🎯 3 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
+| 🎯 4 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
 
 ---
 

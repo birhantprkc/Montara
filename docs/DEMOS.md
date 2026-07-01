@@ -32,6 +32,7 @@ Then inspect:
 | --- | --- | --- | --- | --- | --- |
 | Timeline IR explainer | "Frame one moves; explain the Timeline IR contract." | ScenePlan -> Timeline IR | Remotion IR composer + FFmpeg fallback render | `$0` | `out/validate-compose-core.mp4` |
 | Native Remotion smoke | "Render a spring/caption composition natively if the Remotion composer is installed." | native composition smoke | Remotion CLI; honest unavailable path when deps are absent | `$0` | `out/validate-remotion-native.mp4` |
+| Native Remotion Timeline | "Render the same Timeline IR through the native Remotion composer when explicitly enabled." | Timeline IR composition | `REMOTION_ENABLED=1` -> Timeline props -> Remotion `Explainer` | `$0` | `out/validate-remotion-timeline-native.mp4` |
 | Native HyperFrames smoke | "Render strict kinetic typography through HyperFrames when `npx hyperframes` resolves." | kinetic typography | Python `hyperframes_compose`, HyperFrames lint/validate/render | `$0` | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` |
 | Python compose CLI | "Render direct edit decisions through the public CLI." | compose stage | `montara compose` -> Python `video_compose` -> FFmpeg | `$0` | `out/validate-cli-video-compose.mp4` |
 | Documentary corpus montage | "Seed a local stock-footage corpus, retrieve by slot, and compose the selected clips." | documentary-montage | `montara corpus seed-fixture` -> Python `clip_search` -> `montara compose` | `$0` | `out/validate-documentary-montage.mp4` |

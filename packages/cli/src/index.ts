@@ -4,8 +4,8 @@ import { spawnSync } from "node:child_process";
 import { basename, dirname, join } from "node:path";
 import type { ScenePlan, Timeline } from "../../core/src/index";
 import { validateTimeline, scenePlanToTimeline, pictureInPicture, collage, type Corner, type MediaSpec } from "../../core/src/index";
-import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts, buildReel, type Caption, type ThumbConcept } from "../../render-ffmpeg/src/index";
-import { composeScenePlan, renderComposedScenePlan } from "../../render-remotion/src/index";
+import { compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts, buildReel, type Caption, type ThumbConcept } from "../../render-ffmpeg/src/index";
+import { composeScenePlan, renderComposedScenePlanWithReport, renderComposedTimeline } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
 import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable, buildProviderAuditReport, sanitizeProviderAuditReport, writeProviderAuditReport, runProviderSmoke, type MediaCategory } from "../../providers/src/index";
 import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, directScript, reviewSourceMedia, planReelTreatment, createReelArtifacts, type ReelInputKind, type ReelStyleMode, type SceneEmotion } from "../../quality/src/index";
@@ -117,8 +117,12 @@ function isScenePlan(value: unknown): value is ScenePlan {
 function renderFile(inputPath: string, outPath: string): string {
   const input = readJson(inputPath);
   mkdirSync(dirname(outPath), { recursive: true });
-  if (isTimeline(input)) return renderTimeline(input, outPath);
-  if (isScenePlan(input)) return renderScenePlan(input, outPath);
+  if (isTimeline(input)) return renderComposedTimeline(input, outPath);
+  if (isScenePlan(input)) {
+    const result = renderComposedScenePlanWithReport(input, outPath);
+    if (!result.ok) throw new Error(result.error ?? "render failed");
+    return result.path;
+  }
   throw new Error(`unsupported input JSON: ${inputPath}`);
 }
 
@@ -2300,10 +2304,16 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       const reportPath = join(process.cwd(), "out", `${base}.self-review.json`);
       mkdirSync(dirname(ir), { recursive: true });
       writeFileSync(ir, `${JSON.stringify(composed.timeline, null, 2)}\n`);
-      renderComposedScenePlan(plan, mp4);
+      const renderResult = renderComposedScenePlanWithReport(plan, mp4);
+      if (!renderResult.ok) {
+        console.error(`render failed: ${renderResult.error ?? "unknown Remotion/FFmpeg error"}`);
+        return 1;
+      }
       const review = postRenderSelfReview(mp4, { timeline: composed.timeline, targetDurationSec: promised });
       writeSelfReview(review, reportPath);
       console.log(mp4);
+      console.log(`renderer: ${renderResult.renderer}`);
+      if (renderResult.fallbackReason) console.log(`fallback: ${renderResult.fallbackReason}`);
       console.log(reportPath);
       return existsSync(mp4) && review.ok ? 0 : 1;
     }

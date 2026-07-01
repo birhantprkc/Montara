@@ -25,7 +25,7 @@ Montara should be honest with users and agents:
 | Blender / Manim | Real external-process adapters when the corresponding tools are installed. |
 | Three.js | Registered and partially implemented through a headless browser path; still runtime-gated. |
 | Revideo / Motion Canvas | Adapter surfaces exist and depend on the local toolchain. Validate before promising native output. |
-| Remotion | Native smoke render is validate-gated when `remotion-composer` deps are installed; full Timeline default routing is still being hardened. |
+| Remotion | Native smoke and Timeline IR rendering are validate-gated when `remotion-composer` deps are installed; set `REMOTION_ENABLED=1` for `montara make/render` to prefer native Remotion. |
 | HyperFrames | Native strict kinetic-typography smoke render is validate-gated when `npx hyperframes` is available; broader pipeline parity is still in progress. |
 | Video understanding | Current local path is FFmpeg/scene/audio signal analysis. Real CLIP/BLIP-style vision is a planned upgrade, not a shipped guarantee. |
 | Local LLM orchestration | The architecture supports local brains, but a fully shipped local orchestration loop is still being hardened. |
@@ -72,6 +72,7 @@ current reproducible demos to inspect before trusting a workflow:
 | --- | --- | --- | --- | --- |
 | Timeline IR explainer | `npm.cmd run validate` | `out/validate-compose-core.mp4` + `out/validate-compose-core.timeline.json` | ScenePlan -> Timeline IR -> FFmpeg MP4 | `$0` |
 | Native Remotion smoke | `npm.cmd run validate` | `out/validate-remotion-native.mp4` when deps are installed | Remotion native spring/caption proof, otherwise honest skip | `$0` |
+| Native Remotion Timeline | `npm.cmd run validate` | `out/validate-remotion-timeline-native.mp4` when deps are installed | Timeline IR -> Remotion props -> native `Explainer` render with `REMOTION_ENABLED=1` | `$0` |
 | Python compose CLI | `npm.cmd run validate` | `out/validate-cli-video-compose.mp4` + `.render-report.json` | `montara compose` -> Python `video_compose` -> FFmpeg | `$0` |
 | Smart reel proof | `npm.cmd run validate` | `out/validate-smart-reel.mp4` | Source-aware reel planner + caption/end-card treatment | `$0` |
 | Documentary corpus proof | `npm.cmd run validate` | `out/validate-documentary-montage.mp4` + `out/validate-documentary-corpus/` | `corpus seed-fixture` -> Python `clip_search` -> `video_compose` | `$0` |
@@ -94,13 +95,13 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 1B.10 screen-demo capture validation sync:
+Latest local gate snapshot from the Stage 2.2 native Remotion Timeline routing sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 303 passed, 0 failed |
-| `npm.cmd run validate` | 87 passed, 0 failed |
+| `npm.cmd run verify` | 305 passed, 0 failed |
+| `npm.cmd run validate` | 88 passed, 0 failed |
 | `python -m pytest tests` | 378 passed, 8 skipped |
 
 ## Agent Entry Points

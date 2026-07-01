@@ -38,8 +38,8 @@ Snapshot date: 2026-07-01.
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 303 passed, 0 failed |
-| `npm.cmd run validate` | 87 passed, 0 failed |
+| `npm.cmd run verify` | 305 passed, 0 failed |
+| `npm.cmd run validate` | 88 passed, 0 failed |
 | `python -m pytest tests` | 378 passed, 8 skipped |
 
 ## Example Outputs
@@ -50,6 +50,7 @@ Snapshot date: 2026-07-01.
 | Core validate IR | `out/validate-compose-core.timeline.json` | Timeline IR |
 | Python video compose CLI smoke | `out/validate-cli-video-compose.mp4` | `montara compose` -> Python `video_compose` |
 | Native Remotion smoke | `out/validate-remotion-native.mp4` | Remotion native spring/caption composition when composer deps are installed |
+| Native Remotion Timeline | `out/validate-remotion-timeline-native.mp4` | Timeline IR -> Remotion props -> native `Explainer` render when `REMOTION_ENABLED=1` |
 | Native HyperFrames smoke | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` | HyperFrames strict lint/validate/render kinetic typography when `npx hyperframes` is available |
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
@@ -68,7 +69,7 @@ expectations.
 
 | Tech | Current status |
 | --- | --- |
-| Remotion | Native smoke render validate-gated when `remotion-composer` deps are installed; full Timeline default routing pending. |
+| Remotion | Native smoke and Timeline IR render validate-gated when `remotion-composer` deps are installed; `REMOTION_ENABLED=1` makes `montara make/render` prefer native Remotion with FFmpeg fallback visible. |
 | Revideo | Registered runtime-gated MIT fallback target; native package work pending. |
 | Motion Canvas | Registered runtime-gated kinetic typography target; native package work pending. |
 | HyperFrames | Python `hyperframes_compose` strict kinetic smoke is validate-gated; kinetic typography now has a first-class pipeline; broader non-kinetic pipeline/runtime parity pending. |
@@ -114,7 +115,7 @@ Best current path:
 
 ## Next Best Engineering Steps
 
-1. Finish Remotion default routing for Timeline scenes.
-2. Extend the documentary proof from fixture corpus to a longer open-stock corpus montage.
-3. Add native package work for Revideo / Motion Canvas beyond registered adapters.
-4. Run live-key provider smoke confirmations where keys are available.
+1. Extend the documentary proof from fixture corpus to a longer open-stock corpus montage.
+2. Add native package work for Revideo / Motion Canvas beyond registered adapters.
+3. Run live-key provider smoke confirmations where keys are available.
+4. Continue local vision/CLIP-BLIP hardening beyond signal-only analysis.

@@ -42,7 +42,7 @@ that is what happened.
 | Engine | Native proof | Common blocker |
 | --- | --- | --- |
 | FFmpeg | `renderTimeline` or `montara render` produces MP4; ffprobe passes. | Missing FFmpeg binary. |
-| Remotion | `npm.cmd run validate` native Remotion smoke creates `out/validate-remotion-native.mp4` when composer deps are installed. | Composer package missing; Chromium timeout; audio props not passed. |
+| Remotion | `npm.cmd run validate` creates `out/validate-remotion-native.mp4` and `out/validate-remotion-timeline-native.mp4` when composer deps are installed; `REMOTION_ENABLED=1` is the default-routing gate. | Composer package missing; Chromium timeout; audio props not passed. |
 | Revideo | Revideo binary/package renders a tiny Timeline-derived scene, not just registry presence. | Adapter registered but no native runner. |
 | Motion Canvas | Motion Canvas CLI/package renders a kinetic scene; sampled frames show motion. | Registered target only; no project scaffold. |
 | HyperFrames | `npx hyperframes lint`, `validate`, and `render` pass for the workspace. | Node version, asset paths, contrast, or browser validation failure. |

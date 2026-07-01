@@ -43,6 +43,7 @@ import { directScene, directScript, resolveEmotion, planReelTreatment, createRee
 import { exportTimeline, timelineToEDL, timelineToOTIO, timelineToFCPXML, framesToTimecode, importTimeline, edlToTimeline, otioToTimeline, fcpxmlToTimeline, detectEditorFormat, videoClips } from "../packages/bridge/src/index";
 import { brainCatalogue, ollamaInstalled } from "../packages/llm/src/index";
 import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
+import { remotionDefaultEnabled, timelineToRemotionProps } from "../packages/render-remotion/src/index";
 import { listPipelines, planVideo } from "../packages/ai/src/index";
 import {
   listProviderTools,
@@ -433,6 +434,15 @@ if (timelineRendered && existsSync(timelineOut)) {
   const d = probeDuration(timelineOut);
   ok("Timeline render duration ~= 3.0s", Math.abs(d - 3.0) < 0.4, `got ${d.toFixed(2)}s`);
 }
+const remotionProps = timelineToRemotionProps(timeline);
+ok("Timeline IR compiles to Remotion Explainer props",
+  remotionProps.width === timeline.composition.width &&
+    remotionProps.height === timeline.composition.height &&
+    remotionProps.fps === timeline.composition.fps &&
+    remotionProps.cuts.length === plan.scenes.length &&
+    remotionProps.cuts.every((cut) => cut.type === "text_card" && cut.out_seconds > cut.in_seconds));
+ok("Remotion native default is explicit-env gated",
+  !remotionDefaultEnabled({}) && remotionDefaultEnabled({ REMOTION_ENABLED: "1" }));
 
 console.log("\n== pipelines ==");
 const pipes = listPipelines();
