@@ -511,6 +511,73 @@ ok("corpus CLI exposes corpus_builder source-provider discovery",
     /"source_provider_summary"/.test(corpusSourcesCli.stdout ?? ""),
   (corpusSourcesCli.error?.message || corpusSourcesCli.stderr || corpusSourcesCli.stdout || "").slice(-500));
 
+const documentaryCorpusDir = join(outDir, "validate-documentary-corpus");
+const documentaryEditPath = join(outDir, "validate-documentary-montage.edit-decisions.json");
+const documentaryOut = join(outDir, "validate-documentary-montage.mp4");
+const documentaryReport = join(outDir, "validate-documentary-montage.render-report.json");
+try { rmSync(documentaryCorpusDir, { recursive: true, force: true }); } catch { /* none */ }
+for (const p of [documentaryEditPath, documentaryOut, documentaryReport]) {
+  try { rmSync(p, { force: true }); } catch { /* none */ }
+}
+const documentarySeedCli = spawnSync(npmBin, ["run", "montara", "--", "corpus", "seed-fixture", documentaryCorpusDir, genVideoPath, clip2, "--query", "oil-tanker-shipping-through-a-narrow-strait", "--query", "stock-style-strait-b-roll", "--json"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+const documentaryStatsCli = spawnSync(npmBin, ["run", "montara", "--", "corpus", "stats", documentaryCorpusDir, "--json"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+const documentarySearchCli = spawnSync(npmBin, ["run", "montara", "--", "corpus", "search", documentaryCorpusDir, "--query", "oil-tanker-shipping-through-a-narrow-strait", "--k", "2", "--motion-min", "0.1", "--json"], {
+  encoding: "utf8",
+  timeout: 180000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+type CorpusSearchResult = { success?: boolean; data?: { results?: { score?: number; record?: { local_path?: string; clip_id?: string } }[]; corpus_size?: number } };
+let documentarySearch: CorpusSearchResult = {};
+try { documentarySearch = JSON.parse((documentarySearchCli.stdout || "").slice((documentarySearchCli.stdout || "").indexOf("{"))) as CorpusSearchResult; } catch { documentarySearch = {}; }
+const documentaryCuts = (documentarySearch.data?.results ?? []).slice(0, 2).map((row) => ({
+  source: join(documentaryCorpusDir, String(row.record?.local_path ?? "")),
+  in_seconds: 0,
+  out_seconds: 1.1,
+}));
+writeFileSync(documentaryEditPath, `${JSON.stringify({
+  version: "1.0",
+  render_runtime: "ffmpeg",
+  renderer_family: "documentary-montage",
+  metadata: {
+    pipeline: "documentary-montage",
+    corpus_dir: documentaryCorpusDir,
+    retrieval_query: "oil-tanker-shipping-through-a-narrow-strait",
+    source: "local_fixture_stock",
+  },
+  cuts: documentaryCuts,
+}, null, 2)}\n`);
+const documentaryComposeCli = spawnSync(npmBin, ["run", "montara", "--", "compose", documentaryEditPath, documentaryOut, "--operation", "compose", "--json"], {
+  encoding: "utf8",
+  timeout: 180000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+const documentaryDuration = existsSync(documentaryOut) ? probeDuration(documentaryOut) : 0;
+ok("documentary-montage corpus fixture search composes a real stock-footage MP4",
+  documentarySeedCli.status === 0 &&
+    documentaryStatsCli.status === 0 &&
+    documentarySearchCli.status === 0 &&
+    documentarySearch.success === true &&
+    (documentarySearch.data?.corpus_size ?? 0) >= 2 &&
+    documentaryCuts.length >= 2 &&
+    documentaryCuts.every((cut) => existsSync(cut.source)) &&
+    documentaryComposeCli.status === 0 &&
+    existsSync(documentaryOut) &&
+    existsSync(documentaryReport) &&
+    documentaryDuration > 1.8,
+  `seed=${documentarySeedCli.status} stats=${documentaryStatsCli.status} search=${documentarySearchCli.status} compose=${documentaryComposeCli.status} dur=${documentaryDuration.toFixed(2)} searchErr=${(documentarySearchCli.stderr || documentarySearchCli.stdout || "").slice(-500)} composeErr=${(documentaryComposeCli.stderr || documentaryComposeCli.stdout || "").slice(-500)}`);
+
 console.log("\n== style + output profiles (Phase 1.12 §J) ==");
 ok("3 styles + 6 output profiles registered", STYLE_PLAYBOOKS.length === 3 && OUTPUT_PROFILES.length === 6);
 const branded = applyOutputProfile(applyStyle(result.timeline, "clean-professional"), "shorts");

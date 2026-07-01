@@ -235,7 +235,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | 1A.1 | `engine_bridge.py` info + verify | ☑ | AST parse lib+tools |
 | 1A.2 | Timeline bridge (composition ↔ IR) | ☑ | `@montara/engine` tests green |
 | 1A.3 | CLI invokes bridge deliberately | ◐ | `montara` engine subcommands |
-| 1A.4 | Wire high-value Python tools from CLI | ☑ | `montara compose`; `montara corpus sources|build|search|stats|get` |
+| 1A.4 | Wire high-value Python tools from CLI | ☑ | `montara compose`; `montara corpus sources|seed-fixture|build|search|stats|get` |
 | 1A.5 | Contract tests (pytest) parity with upstream | ☑ | 34 test files |
 | 1A.6 | `playwright_recorder` in registry | ☑ | Auto-discovered via pkgutil |
 | 1A.7 | `playwright_recorder` pytest (mock or smoke) | ☑ | `tests/capture/test_playwright_recorder.py` |
@@ -250,7 +250,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | 1B.03 | avatar-spokesperson | ☑ | |
 | 1B.04 | cinematic | ☑ | |
 | 1B.05 | clip-factory | ☑ | |
-| 1B.06 | documentary-montage | ◐ | CLIP corpus path needs CLI E2E validate |
+| 1B.06 | documentary-montage | ☑ | Offline fixture corpus -> `clip_search` -> `video_compose` MP4 validate-gated |
 | 1B.07 | hybrid | ☑ | |
 | 1B.08 | localization-dub | ☑ | |
 | 1B.09 | podcast-repurpose | ☑ | |
@@ -307,7 +307,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 2.4 | `make setup` equivalent: `montara doctor --fix` + HyperFrames cache-warm | ☐ | npx hyperframes doctor |
 | 2.5 | Revideo MIT fallback auto-switch | ☐ | License-aware adapter selection |
 | 2.6 | Motion Canvas native package | ☐ | kinetic-typography pipeline default |
-| 2.7 | Documentary montage: CLIP corpus + real footage stitch | ☐ | validate: 60s stock-footage MP4, zero keys |
+| 2.7 | Documentary montage: CLIP corpus + real footage stitch | ◐ | Stage 1 offline fixture MP4 green; 60s open-stock corpus montage still pending |
 | 2.8 | Character animation: HyperFrames SVG rig → final MP4 | ☐ | match OpenMontage pipeline output |
 
 **Stage 2 exit criteria:** 2.1 + 2.3 + 2.7 green in `validate`; README embeds 3 native-composition demo videos.
@@ -451,9 +451,10 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 4.9 | Compare report automation (`montara status` vs upstream) | done |
 | ✅ | 5.1A | `packages/runtimes` ComfyUI/A1111 health + install guidance | done |
 | ✅ | 5.1B | Managed install/launch automation for ComfyUI/A1111 | done |
-| 🎯 1 | 1B.06 | `documentary-montage` offline stock-footage MP4 validate path | Stage 1 gap |
-| 🎯 2 | 1B.10 | `screen-demo` offline MP4 validate path using capture artifacts | Stage 1 gap |
-| 🎯 3 | 2.2 | Remotion default Timeline routing instead of smoke-only proof | Stage 2 gap |
+| ✅ | 1B.06 | `documentary-montage` offline stock-footage MP4 validate path | done |
+| 🎯 1 | 1B.10 | `screen-demo` offline MP4 validate path using capture artifacts | Stage 1 gap |
+| 🎯 2 | 2.2 | Remotion default Timeline routing instead of smoke-only proof | Stage 2 gap |
+| 🎯 3 | 2.7 | 60s documentary open-stock corpus montage beyond fixture proof | Stage 2 gap |
 | 🎯 4 | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | Stage 3 gap |
 | 🎯 5 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
 | 🎯 6 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |

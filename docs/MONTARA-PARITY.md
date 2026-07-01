@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 5.1B runtime manager.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1B.06 documentary corpus validation.
 
 This checklist tracks two things:
 
@@ -14,8 +14,8 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 303 passed, 0 failed.
-- `npm.cmd run validate` passed: 85 passed, 0 failed.
-- `python -m pytest tests` passed: 376 passed, 8 skipped.
+- `npm.cmd run validate` passed: 86 passed, 0 failed.
+- `python -m pytest tests` passed: 377 passed, 8 skipped.
 
 ## Snapshot
 
@@ -73,7 +73,7 @@ Latest local gates before this sync:
 | avatar-spokesperson | ☑ | Manifest + skills; runtime constraints documented. |
 | cinematic | ☑ | Manifest + skills. |
 | clip-factory | ☑ | Manifest + skills. |
-| documentary-montage | ◐ | Corpus build/search CLI exists; needs stock-footage MP4 E2E validate. |
+| documentary-montage | ☑ | Offline fixture corpus -> `clip_search` -> `video_compose` MP4 validate path green; longer open-stock montage remains Stage 2.7. |
 | hybrid | ☑ | Manifest + skills. |
 | localization-dub | ☑ | Manifest + skills. |
 | podcast-repurpose | ☑ | Manifest + skills. |
@@ -127,7 +127,7 @@ and the Stage 0 gate set passed before commit `0x26`.
 
 Stage 1 exits when:
 
-- all partial pipelines have offline validate MP4 cases;
+- all partial pipelines have offline validate MP4 cases except `screen-demo`;
 - Python compose/corpus tools are wired through CLI; (done in `0x32`)
 - screen-demo uses the capture CLI in a real offline MP4 flow.
 

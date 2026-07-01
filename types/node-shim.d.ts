@@ -36,6 +36,18 @@ declare module "node:child_process" {
   export function spawnSync(command: string, args?: string[], options?: Record<string, unknown>): SpawnSyncResult;
 }
 
+declare module "node:buffer" {
+  export class Buffer extends Uint8Array {
+    static alloc(size: number): Buffer;
+    static byteLength(value: string, encoding?: string): number;
+    static concat(list: Uint8Array[]): Buffer;
+    static from(value: string | number[] | Uint8Array, encoding?: string): Buffer;
+    write(value: string, offset?: number, encoding?: string): number;
+    writeFloatLE(value: number, offset: number): number;
+    writeUInt16LE(value: number, offset: number): number;
+  }
+}
+
 declare module "node:fs" {
   export interface Dirent {
     name: string;

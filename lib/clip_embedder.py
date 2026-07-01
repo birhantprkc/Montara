@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Iterable, Sequence, Union
 
 import numpy as np
+import re
 
 # Import heavy deps lazily inside methods so importing this module does
 # not pull torch/transformers unless someone actually uses it.
@@ -36,20 +37,32 @@ _MODEL = None
 _PROCESSOR = None
 _DEVICE: str = "cpu"
 _MODEL_ID = "openai/clip-vit-base-patch32"
+_FALLBACK = False
+_FALLBACK_REASON = ""
 
 
 def _load() -> None:
     """Load CLIP model and processor exactly once per process."""
-    global _MODEL, _PROCESSOR, _DEVICE
-    if _MODEL is not None:
+    global _MODEL, _PROCESSOR, _DEVICE, _FALLBACK, _FALLBACK_REASON
+    if _MODEL is not None or _FALLBACK:
         return
-    import torch  # type: ignore
-    from transformers import CLIPModel, CLIPProcessor  # type: ignore
+    try:
+        import torch  # type: ignore
+        from transformers import CLIPModel, CLIPProcessor  # type: ignore
 
-    _DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    _PROCESSOR = CLIPProcessor.from_pretrained(_MODEL_ID)
-    _MODEL = CLIPModel.from_pretrained(_MODEL_ID).to(_DEVICE)
-    _MODEL.eval()
+        _DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+        _PROCESSOR = CLIPProcessor.from_pretrained(_MODEL_ID)
+        _MODEL = CLIPModel.from_pretrained(_MODEL_ID).to(_DEVICE)
+        _MODEL.eval()
+    except Exception as exc:
+        # Local-first guarantee: corpus search should still work in a fresh
+        # checkout with no transformer weights. The fallback mirrors the TS
+        # CLIP-shaped embedder: deterministic 512-d token hashing.
+        _DEVICE = "cpu-fallback"
+        _MODEL = None
+        _PROCESSOR = None
+        _FALLBACK = True
+        _FALLBACK_REASON = f"{type(exc).__name__}: {exc}"
 
 
 def model_info() -> dict:
@@ -58,7 +71,62 @@ def model_info() -> dict:
         "model_id": _MODEL_ID,
         "device": _DEVICE,
         "dim": 512,
+        "fallback": _FALLBACK,
+        "fallback_reason": _FALLBACK_REASON,
     }
+
+
+def _fnv1a(text: str, seed: int = 2166136261) -> int:
+    h = seed & 0xFFFFFFFF
+    for ch in text:
+        h ^= ord(ch)
+        h = (h * 16777619) & 0xFFFFFFFF
+    return h
+
+
+def _tokenize(text: str) -> list[str]:
+    return [token for token in re.split(r"[^a-z0-9]+", text.lower()) if token]
+
+
+def _l2(vector: np.ndarray) -> np.ndarray:
+    norm = float(np.linalg.norm(vector))
+    if norm < 1e-8:
+        return np.zeros_like(vector, dtype=np.float32)
+    return (vector / norm).astype(np.float32, copy=False)
+
+
+def _embed_tokens(tokens: Sequence[str], salt: str) -> np.ndarray:
+    vector = np.zeros(512, dtype=np.float32)
+    for token in tokens:
+        h = _fnv1a(f"{salt}:{token}")
+        idx = h % 512
+        sign = 1.0 if (h & 1) == 0 else -1.0
+        vector[idx] += sign
+    return _l2(vector)
+
+
+def _fallback_texts(texts: Sequence[str]) -> np.ndarray:
+    rows = []
+    for text in texts:
+        safe = text if text and text.strip() else "untitled"
+        tokens = _tokenize(safe)[:77] or ["untitled"]
+        rows.append(_embed_tokens(tokens, "text"))
+    return np.vstack(rows).astype(np.float32, copy=False) if rows else np.zeros((0, 512), dtype=np.float32)
+
+
+def _fallback_images(image_paths: Sequence[Union[str, Path]]) -> np.ndarray:
+    rows = []
+    for path in image_paths:
+        p = Path(path)
+        chunks = [str(p)]
+        if p.is_file():
+            try:
+                data = p.read_bytes()
+                chunks.extend(data[i:i + 64].decode("latin-1", errors="ignore") for i in range(0, len(data), 64))
+            except Exception:
+                chunks.extend(_tokenize(str(p)))
+        rows.append(_embed_tokens(chunks, "image"))
+    return np.vstack(rows).astype(np.float32, copy=False) if rows else np.zeros((0, 512), dtype=np.float32)
 
 
 def embed_images(image_paths: Sequence[Union[str, Path]]) -> np.ndarray:
@@ -69,10 +137,13 @@ def embed_images(image_paths: Sequence[Union[str, Path]]) -> np.ndarray:
     if not image_paths:
         return np.zeros((0, 512), dtype=np.float32)
 
+    _load()
+    if _FALLBACK:
+        return _fallback_images(image_paths)
+
     import torch  # type: ignore
     from PIL import Image  # type: ignore
 
-    _load()
     assert _MODEL is not None and _PROCESSOR is not None
 
     images = []
@@ -99,9 +170,12 @@ def embed_texts(texts: Sequence[str]) -> np.ndarray:
     if not texts:
         return np.zeros((0, 512), dtype=np.float32)
 
+    _load()
+    if _FALLBACK:
+        return _fallback_texts(texts)
+
     import torch  # type: ignore
 
-    _load()
     assert _MODEL is not None and _PROCESSOR is not None
 
     # Empty strings break the processor — substitute a placeholder so

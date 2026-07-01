@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { Buffer } from "node:buffer";
 import { spawnSync } from "node:child_process";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { ScenePlan, Timeline } from "../../core/src/index";
 import { validateTimeline, scenePlanToTimeline, pictureInPicture, collage, type Corner, type MediaSpec } from "../../core/src/index";
 import { renderScenePlan, renderTimeline, compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts, buildReel, type Caption, type ThumbConcept } from "../../render-ffmpeg/src/index";
@@ -9,7 +10,7 @@ import { listPipelines, planVideo } from "../../ai/src/index";
 import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable, buildProviderAuditReport, sanitizeProviderAuditReport, writeProviderAuditReport, runProviderSmoke, type MediaCategory } from "../../providers/src/index";
 import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, directScript, reviewSourceMedia, planReelTreatment, createReelArtifacts, type ReelInputKind, type ReelStyleMode, type SceneEmotion } from "../../quality/src/index";
 import { TTSSelector } from "../../tools/src/audio/tts-selector";
-import { runResearch } from "../../research/src/index";
+import { CLIP_EMBED_DIM, embedTexts, runResearch } from "../../research/src/index";
 import { analyzeReferenceVideo, understandVideo, type VideoUnderstanding } from "../../understand/src/index";
 import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
@@ -234,8 +235,12 @@ function maybeNumberOption(args: string[], name: string): number | undefined {
 function splitOptionList(values: string[]): string[] {
   return values
     .flatMap((value) => value.split(","))
-    .map((value) => value.trim())
+    .map(cleanShellText)
     .filter(Boolean);
+}
+
+function cleanShellText(value: string): string {
+  return value.replace(/\^/g, "").trim();
 }
 
 type StatusLevel = "done" | "partial" | "planned";
@@ -517,9 +522,9 @@ function buildMontaraStatusReport(): MontaraStatusReport {
       },
     ],
     nextTasks: [
-      "Add documentary stock-footage validate case through corpus CLI.",
       "Complete the screen-demo offline MP4 validate flow with capture artifacts.",
       "Finish Remotion default Timeline routing.",
+      "Extend documentary montage from fixture corpus proof to a longer open-stock corpus montage.",
       "Turn Revideo and Motion Canvas from registered/runtime-gated adapters into native validate cases.",
       "Ship real local CLIP/BLIP understanding path.",
     ],
@@ -1094,6 +1099,102 @@ function printCorpusSources(result: PythonToolResult, json: boolean): number {
   return 0;
 }
 
+interface SeededCorpusRecord {
+  clip_id: string;
+  source: string;
+  source_id: string;
+  source_url: string;
+  local_path: string;
+  kind: string;
+  thumb_dir: string;
+  query: string;
+  creator: string;
+  license: string;
+  duration: number;
+  width: number;
+  height: number;
+  motion_score: number;
+  dominant_colors: number[][];
+  source_tags: string;
+  shot_type: string;
+  time_of_day: string;
+  added_at: number;
+}
+
+function writeNpyFloat32Matrix(outPath: string, rows: number[][]): void {
+  const rowCount = rows.length;
+  const headerBase = `{'descr': '<f4', 'fortran_order': False, 'shape': (${rowCount}, ${CLIP_EMBED_DIM}), }`;
+  const preambleBytes = 10;
+  const padding = (16 - ((preambleBytes + Buffer.byteLength(headerBase, "ascii") + 1) % 16)) % 16;
+  const header = `${headerBase}${" ".repeat(padding)}\n`;
+  const headerLength = Buffer.byteLength(header, "ascii");
+  const data = Buffer.alloc(rowCount * CLIP_EMBED_DIM * 4);
+  rows.forEach((row, rowIndex) => {
+    for (let col = 0; col < CLIP_EMBED_DIM; col++) {
+      data.writeFloatLE(Number(row[col] ?? 0), ((rowIndex * CLIP_EMBED_DIM) + col) * 4);
+    }
+  });
+  const prefix = Buffer.alloc(preambleBytes);
+  prefix.write("\x93NUMPY", 0, "binary");
+  prefix[6] = 1;
+  prefix[7] = 0;
+  prefix.writeUInt16LE(headerLength, 8);
+  writeFileSync(outPath, Buffer.concat([prefix, Buffer.from(header, "ascii"), data]));
+}
+
+function probeVideoSize(path: string): { width: number; height: number } {
+  const r = spawnSync(mediaBin("ffprobe"), ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x", path], { encoding: "utf8" });
+  const [width, height] = (r.stdout || "").trim().split("x").map((value) => Number(value) || 0);
+  return { width: width || 0, height: height || 0 };
+}
+
+function seedFixtureCorpus(corpusDir: string, clipPaths: string[], queries: string[]): SeededCorpusRecord[] {
+  const clipsDir = join(corpusDir, "clips");
+  const thumbsDir = join(corpusDir, "thumbnails");
+  mkdirSync(clipsDir, { recursive: true });
+  mkdirSync(thumbsDir, { recursive: true });
+  const records: SeededCorpusRecord[] = [];
+  const vectors: number[][] = [];
+  clipPaths.forEach((clipPath, index) => {
+    if (!existsSync(clipPath)) throw new Error(`clip does not exist: ${clipPath}`);
+    const clipId = `local_fixture_${String(index + 1).padStart(2, "0")}`;
+    const destName = `${clipId}_${basename(clipPath).replace(/[^a-zA-Z0-9_.-]+/g, "_") || "clip.mp4"}`;
+    const localPath = `clips/${destName}`;
+    const destPath = join(clipsDir, destName);
+    copyFileSync(clipPath, destPath);
+    const query = queries[index] ?? queries[0] ?? basename(clipPath);
+    const duration = probeDuration(destPath);
+    const size = probeVideoSize(destPath);
+    const vector = embedTexts([query])[0] ?? new Array<number>(CLIP_EMBED_DIM).fill(0);
+    vectors.push(vector);
+    records.push({
+      clip_id: clipId,
+      source: "local_fixture_stock",
+      source_id: clipId,
+      source_url: clipPath,
+      local_path: localPath,
+      kind: "video",
+      thumb_dir: "",
+      query,
+      creator: "Montara validate fixture",
+      license: "local validation fixture",
+      duration,
+      width: size.width,
+      height: size.height,
+      motion_score: 2.0,
+      dominant_colors: [],
+      source_tags: query,
+      shot_type: index === 0 ? "wide" : "detail",
+      time_of_day: "",
+      added_at: Date.now() / 1000,
+    });
+  });
+  writeFileSync(join(corpusDir, "index.jsonl"), `${records.map((record) => JSON.stringify(record)).join("\n")}\n`);
+  writeNpyFloat32Matrix(join(corpusDir, "embeddings.npy"), vectors);
+  writeNpyFloat32Matrix(join(corpusDir, "tag_embeddings.npy"), vectors);
+  return records;
+}
+
 function runCorpusCommand(rest: string[]): number {
   const sub = rest[0] ?? "sources";
   const args = rest.slice(1);
@@ -1101,6 +1202,7 @@ function runCorpusCommand(rest: string[]): number {
 
   if (sub === "help" || sub === "--help") {
     console.log("usage: montara corpus sources [--json]");
+    console.log("       montara corpus seed-fixture <corpus-dir> <clip.mp4> [clip2.mp4 ...] [--query TEXT]");
     console.log("       montara corpus build <corpus-dir> \"query\" [--query TEXT ...] [--source archive_org] [--max-new 20] [--per-source 10]");
     console.log("       montara corpus search <corpus-dir> \"slot description\" [--k 10] [--motion-min 0.2]");
     console.log("       montara corpus stats <corpus-dir>");
@@ -1112,10 +1214,39 @@ function runCorpusCommand(rest: string[]): number {
     return printCorpusSources(runPythonToolInfo("corpus_builder", CORPUS_BUILDER_MODULE), json);
   }
 
+  if (sub === "seed-fixture" || sub === "seed-demo") {
+    const positional = positionalArgs(args);
+    const corpusDir = positional[0];
+    const clips = positional.slice(1).filter((value) => !value.startsWith("--"));
+    const queries = splitOptionList(optionValues(args, "--query"));
+    if (!corpusDir || clips.length === 0) {
+      console.error("usage: montara corpus seed-fixture <corpus-dir> <clip.mp4> [clip2.mp4 ...] [--query TEXT]");
+      return 1;
+    }
+    try {
+      const records = seedFixtureCorpus(corpusDir, clips, queries);
+      const payload = {
+        corpus_dir: corpusDir,
+        rows: records.length,
+        source: "local_fixture_stock",
+        records,
+      };
+      if (json) console.log(JSON.stringify({ success: true, data: payload }, null, 2));
+      else {
+        console.log(`seeded corpus -> ${corpusDir}`);
+        console.log(`rows: ${records.length}`);
+      }
+      return 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
+  }
+
   if (sub === "build") {
     const positional = positionalArgs(args);
     const corpusDir = positional[0];
-    const inlineQuery = positional.slice(1).join(" ").trim();
+    const inlineQuery = cleanShellText(positional.slice(1).join(" "));
     const queryTexts = splitOptionList(optionValues(args, "--query"));
     if (inlineQuery) queryTexts.unshift(inlineQuery);
     if (!corpusDir || queryTexts.length === 0) {
@@ -1166,7 +1297,7 @@ function runCorpusCommand(rest: string[]): number {
   if (sub === "search") {
     const positional = positionalArgs(args);
     const corpusDir = positional[0];
-    const queryText = optionValue(args, "--query") ?? positional.slice(1).join(" ").trim();
+    const queryText = cleanShellText(optionValue(args, "--query") ?? positional.slice(1).join(" "));
     if (!corpusDir || !queryText) {
       console.error("usage: montara corpus search <corpus-dir> \"slot description\" [--k 10] [--motion-min 0.2]");
       return 1;
@@ -1230,7 +1361,7 @@ function runCorpusCommand(rest: string[]): number {
     return result.success ? 0 : 1;
   }
 
-  console.error("usage: montara corpus <sources|build|search|stats|get|similar>");
+  console.error("usage: montara corpus <sources|seed-fixture|build|search|stats|get|similar>");
   return 1;
 }
 
@@ -1595,7 +1726,8 @@ Commands:
   capture [--url URL] [out.mp4]    record/recommend screen capture; Playwright auth via capture login
   compose <edit-decisions.json> [out.mp4]
                                   run Python video_compose; pass --assets for high-level render artifacts
-  corpus <sources|build|search>    stock-footage corpus discovery, population, and retrieval
+  corpus <sources|seed-fixture|build|search>
+                                  stock-footage corpus discovery, fixture seeding, population, and retrieval
   reel <input.mp4> [out]           understand + smart-edit a source clip; writes MP4 + Timeline IR + edit decisions
   budget [show|estimate|reserve|reconcile|refund]
                                   preflight cost governance over cost_log.json (wraps tools/cost_tracker.py)

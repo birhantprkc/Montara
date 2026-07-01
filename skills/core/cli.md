@@ -22,7 +22,7 @@ generated outputs under `./out` unless the user gives an explicit path.
 | `import <file>` | Import EDL/OTIO/FCPXML back into Timeline IR where supported. |
 | `capture ...` | Record browser demos with Playwright guidance and login storageState support. |
 | `compose ...` | Route Python `video_compose` / HyperFrames-style artifacts into MP4. |
-| `corpus ...` | Discover, build, search, and inspect footage/source corpora. |
+| `corpus ...` | Discover, seed fixtures, build, search, and inspect footage/source corpora. |
 | `budget ...` | Check cost caps and provider spend decisions. |
 | `resume ...` | Inspect or continue a headless run checkpoint. |
 | `agent` | Regenerate pipeline manifests, JSON schemas, and per-assistant configs. |
@@ -56,6 +56,23 @@ Install and launch are dry-run by default. Only pass `--execute` when the user h
 explicitly asked to install or start external runtimes. Managed installs write
 outside the Montara repo by default: `MONTARA_RUNTIMES_DIR`, then
 `%LOCALAPPDATA%/Montara/runtimes` on Windows, otherwise `$HOME/.montara/runtimes`.
+
+## Corpus CLI
+
+Use corpus commands for documentary-montage and source-footage workflows.
+
+| Command | What it does |
+|---|---|
+| `corpus sources [--json]` | Show configured/unconfigured stock source providers through Python `corpus_builder.get_info()`. |
+| `corpus seed-fixture <corpus-dir> <clip.mp4> [clip2.mp4 ...] [--query TEXT]` | Create an offline Python-compatible fixture corpus from local clips for validation and smoke tests. |
+| `corpus build <corpus-dir> "query" [--query TEXT ...] [--source NAME]` | Populate a real source corpus through stock providers. This may require API keys or network opt-in. |
+| `corpus search <corpus-dir> "slot description" [--k 10] [--motion-min 0.2]` | Rank corpus clips for a documentary slot through Python `clip_search`. |
+| `corpus stats <corpus-dir>` | Summarize rows, source mix, media kinds, and motion/duration stats. |
+| `corpus get <corpus-dir> <clip-id>` | Inspect one corpus record with provenance. |
+
+`seed-fixture` is not a stock acquisition path. Use it only to validate the
+corpus/search/compose contract offline, then use `build` or user-supplied clips
+for real documentary work.
 
 ## Agent rule
 

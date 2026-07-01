@@ -5,6 +5,7 @@ from pathlib import Path
 from tools.base_tool import ToolStatus
 from tools.tool_registry import ToolRegistry
 from tools.video.corpus_builder import CorpusBuilder
+from tools.video.clip_search import ClipSearch
 from tools.video.video_compose import VideoCompose
 
 
@@ -106,6 +107,61 @@ def test_corpus_builder_rejects_unavailable_pinned_sources(monkeypatch, tmp_path
 
 def test_documentary_renderer_family_maps_to_remotion():
     assert VideoCompose._get_composition_id("documentary-montage") == "CinematicRenderer"
+
+
+def test_clip_search_fallback_ranks_local_fixture_corpus(monkeypatch, tmp_path):
+    import lib.clip_embedder as clip_embedder
+    from lib.corpus import ClipRecord, Corpus
+
+    monkeypatch.setattr(clip_embedder, "_FALLBACK", True)
+    monkeypatch.setattr(clip_embedder, "_FALLBACK_REASON", "test fallback")
+    monkeypatch.setattr(clip_embedder, "_MODEL", None)
+    monkeypatch.setattr(clip_embedder, "_PROCESSOR", None)
+
+    corpus = Corpus(tmp_path / "corpus")
+    vectors = clip_embedder.embed_texts([
+        "oil tanker shipping through a narrow strait",
+        "stock style strait b roll",
+    ])
+    corpus.add(
+        ClipRecord(
+            clip_id="local_fixture_01",
+            source="local_fixture_stock",
+            source_id="local_fixture_01",
+            source_url="fixture://one",
+            local_path="clips/one.mp4",
+            query="oil tanker shipping through a narrow strait",
+            motion_score=2.0,
+        ),
+        vectors[0],
+        vectors[0],
+    )
+    corpus.add(
+        ClipRecord(
+            clip_id="local_fixture_02",
+            source="local_fixture_stock",
+            source_id="local_fixture_02",
+            source_url="fixture://two",
+            local_path="clips/two.mp4",
+            query="stock style strait b roll",
+            motion_score=2.0,
+        ),
+        vectors[1],
+        vectors[1],
+    )
+    corpus.save()
+
+    result = ClipSearch().execute({
+        "operation": "rank_for_slot",
+        "corpus_dir": str(tmp_path / "corpus"),
+        "query_text": "oil tanker shipping through a narrow strait",
+        "k": 2,
+        "motion_min": 0.1,
+    })
+
+    assert result.success
+    rows = result.data["results"]
+    assert rows[0]["record"]["clip_id"] == "local_fixture_01"
 
 
 def test_video_compose_surfaces_all_three_runtimes():
