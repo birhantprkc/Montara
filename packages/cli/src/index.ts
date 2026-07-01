@@ -22,7 +22,17 @@ import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { exportTimeline, importTimeline, detectEditorFormat, type EditorFormat } from "../../bridge/src/index";
 import { brainCatalogue, ollamaInstalled, ollamaModelsSync, ollamaCompleteSync } from "../../llm/src/index";
 import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback, transcribeAvailable, localTranscribe, analyzeMusic, planSceneMappedMusic, speakerIntelligenceStatus, findDialogueByVoice } from "../../hear/src/index";
-import { listRuntimes, runtimeStatusReport, runtimeInstallPlan, type RuntimeId } from "../../runtimes/src/index";
+import {
+  installRuntime,
+  launchRuntime,
+  listRuntimes,
+  managedRuntimePlan,
+  runtimeStatusReport,
+  runtimeInstallPlan,
+  writeRuntimeEnv,
+  writeRuntimeScript,
+  type RuntimeId,
+} from "../../runtimes/src/index";
 
 interface MakeArgs {
   pipelineId: string;
@@ -449,8 +459,8 @@ function buildMontaraStatusReport(): MontaraStatusReport {
       id: "runtime-manager",
       label: "Runtime manager / web GUI",
       status: "partial",
-      evidence: [`${listRuntimes().length} local generation runtimes registered`, "health/install guidance exists; one-click install remains Stage 5 work"],
-      next: "Add managed install/launch automation after health probes are stable.",
+      evidence: [`${listRuntimes().length} local generation runtimes registered`, "managed install/launch recipes are available with explicit --execute"],
+      next: "Extend runtime manager to Piper/Whisper and model inventory after ComfyUI/A1111 recipes stabilize.",
     },
   ];
   const counts = statusCounts(capabilities);
@@ -507,11 +517,11 @@ function buildMontaraStatusReport(): MontaraStatusReport {
       },
     ],
     nextTasks: [
-      "Finish Remotion default Timeline routing.",
       "Add documentary stock-footage validate case through corpus CLI.",
+      "Complete the screen-demo offline MP4 validate flow with capture artifacts.",
+      "Finish Remotion default Timeline routing.",
       "Turn Revideo and Motion Canvas from registered/runtime-gated adapters into native validate cases.",
       "Ship real local CLIP/BLIP understanding path.",
-      "Build the Stage 5 runtime manager and web GUI.",
     ],
   };
 }
@@ -563,6 +573,8 @@ async function runRuntimesCommand(rest: string[]): Promise<number> {
   const sub = rest[0] ?? "status";
   const json = rest.includes("--json");
   const probe = !rest.includes("--no-probe");
+  const rootDir = optionValue(rest, "--root");
+  const execute = rest.includes("--execute");
   if (sub === "install-plan") {
     const id = positionalArgs(rest).slice(1)[0] as RuntimeId | undefined;
     if (!id) {
@@ -582,9 +594,60 @@ async function runRuntimesCommand(rest: string[]): Promise<number> {
     }
     return 0;
   }
+  if (sub === "plan" || sub === "install" || sub === "launch" || sub === "write-env" || sub === "write-script") {
+    const id = positionalArgs(rest).slice(1)[0] as RuntimeId | undefined;
+    if (!id) {
+      console.error("usage: montara runtimes <plan|install|launch|write-env|write-script> <comfyui|a1111> [--root dir] [--json] [--execute]");
+      return 1;
+    }
+    if (sub === "plan") {
+      const install = managedRuntimePlan(id, "install", { rootDir });
+      const launch = managedRuntimePlan(id, "launch", { rootDir });
+      const payload = { install, launch };
+      if (json) console.log(JSON.stringify(payload, null, 2));
+      else {
+        console.log(`${id} runtime plan`);
+        console.log(`  root: ${install.rootDir}`);
+        console.log("  install:");
+        install.commands.forEach((cmd) => console.log(`    ${cmd.command} ${cmd.args.join(" ")}`));
+        console.log("  launch:");
+        launch.commands.forEach((cmd) => console.log(`    ${cmd.command} ${cmd.args.join(" ")}`));
+      }
+      return 0;
+    }
+    if (sub === "write-env") {
+      const out = optionValue(rest, "--out") ?? join(process.cwd(), "out", `${id}.runtime.env`);
+      const plan = managedRuntimePlan(id, "install", { rootDir });
+      writeRuntimeEnv(plan, out);
+      if (json) console.log(JSON.stringify({ id, out, env: plan.env }, null, 2));
+      else console.log(`runtime env -> ${out}`);
+      return 0;
+    }
+    if (sub === "write-script") {
+      const mode = rest.includes("--launch") ? "launch" : "install";
+      const out = optionValue(rest, "--out") ?? join(process.cwd(), "out", `${id}-${mode}${process.platform === "win32" ? ".ps1" : ".sh"}`);
+      const plan = managedRuntimePlan(id, mode, { rootDir });
+      writeRuntimeScript(plan, out);
+      if (json) console.log(JSON.stringify({ id, mode, out, commands: plan.commands }, null, 2));
+      else console.log(`${mode} script -> ${out}`);
+      return 0;
+    }
+    const result = sub === "install"
+      ? installRuntime(id, { rootDir, execute })
+      : launchRuntime(id, { rootDir, execute });
+    if (json) {
+      console.log(JSON.stringify(result, null, 2));
+    } else {
+      console.log(`${sub} ${id}: ${result.ok ? "ok" : "failed"}${result.executed ? "" : " (dry-run; pass --execute to run)"}`);
+      console.log(`  root: ${result.plan.rootDir}`);
+      for (const cmd of result.plan.commands) console.log(`  ${cmd.command} ${cmd.args.join(" ")}`);
+      if (result.error) console.error(result.error);
+    }
+    return result.ok ? 0 : 1;
+  }
   if (sub !== "status" && sub !== "doctor" && sub !== "health") {
     console.error("usage: montara runtimes [status|doctor|health] [--json] [--out path] [--no-probe]");
-    console.error("       montara runtimes install-plan <comfyui|a1111>");
+    console.error("       montara runtimes <plan|install|launch|write-env|write-script|install-plan> <comfyui|a1111>");
     return 1;
   }
   const report = await runtimeStatusReport({ probe });
@@ -1492,7 +1555,11 @@ Commands:
   doctor [--fix]                  check local render prerequisites + Python engine; print setup guide with --fix
   status [--json] [--out path]     summarize local capability, gates, and upstream parity categories
   runtimes status [--json]         health check external ComfyUI/A1111 localhost runtimes
-  runtimes install-plan <id>       print safe external setup steps, without bundling runtimes
+  runtimes plan <id>               show managed install + launch recipes
+  runtimes install <id>            dry-run install recipe; pass --execute to run outside repo
+  runtimes launch <id>             dry-run launch recipe; pass --execute to start detached
+  runtimes write-env <id>          write runtime env hints for shell/CI setup
+  runtimes write-script <id>       write an install script; add --launch for a launch script
   render3d blender [out]          render the 3D intro via headless Blender + ffmpeg
   voiceid compare <test> ...      speaker-ID: classify a clip against labelled reference clips
   voiceid verify <a> <b>          speaker-ID: are two clips the same speaker?

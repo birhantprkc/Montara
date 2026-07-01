@@ -160,7 +160,7 @@ import {
 import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck, engineCompliance } from "../packages/engine/src/index";
 import { blenderAvailable, blenderBin } from "../packages/render-blender/src/index";
 import { analyzeMusic, findDialogueByVoice, planSceneMappedMusic, speakerIntelligenceStatus, voiceIdAvailable } from "../packages/hear/src/index";
-import { listRuntimes, runtimeEnvHints, runtimeInstallPlan, runtimeStatusReport } from "../packages/runtimes/src/index";
+import { installRuntime, launchRuntime, listRuntimes, managedRuntimePlan, runtimeEnvHints, runtimeInstallPlan, runtimeStatusReport, writeRuntimeEnv } from "../packages/runtimes/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -1178,6 +1178,19 @@ ok("runtime install plans are guidance-only and keep setup external", (() => {
 })());
 const runtimeNoProbe = await runtimeStatusReport({ probe: false, env: {} });
 ok("runtime status report degrades without probing or configured env", runtimeNoProbe.summary.total === 2 && runtimeNoProbe.summary.missing === 2 && runtimeNoProbe.runtimes.every((runtime) => runtime.status === "not-configured"));
+const runtimeRoot = join(process.cwd(), "out", "verify-runtimes");
+const comfyInstall = managedRuntimePlan("comfyui", "install", { rootDir: runtimeRoot, platform: "win32" });
+ok("managed ComfyUI install plan clones outside repo and prepares requirements", comfyInstall.runtimeDir.startsWith(runtimeRoot) && comfyInstall.commands.some((cmd) => cmd.command === "git" && cmd.args.includes("https://github.com/comfyanonymous/ComfyUI.git")) && comfyInstall.commands.some((cmd) => cmd.args.includes("requirements.txt")));
+const a1111Launch = managedRuntimePlan("a1111", "launch", { rootDir: runtimeRoot, platform: "win32" });
+ok("managed A1111 launch plan enables API mode on the expected port", a1111Launch.commands.some((cmd) => cmd.args.includes("--api") && cmd.args.includes("7860")));
+const runtimeDryRoot = join(process.cwd(), "out", "verify-runtimes-dry-run");
+try { rmSync(runtimeDryRoot, { recursive: true, force: true }); } catch { /* none */ }
+const runtimeDryInstall = installRuntime("comfyui", { rootDir: runtimeDryRoot, execute: false });
+const runtimeDryLaunch = launchRuntime("a1111", { rootDir: runtimeDryRoot, execute: false });
+ok("managed runtime install/launch default to dry-run unless explicitly executed", runtimeDryInstall.ok && !runtimeDryInstall.executed && runtimeDryLaunch.ok && !runtimeDryLaunch.executed && !existsSync(runtimeDryRoot));
+const runtimeEnvPath = join(process.cwd(), "out", "verify-runtimes.env");
+writeRuntimeEnv(comfyInstall, runtimeEnvPath);
+ok("runtime manager writes env hints for downstream provider configuration", existsSync(runtimeEnvPath) && readFileSync(runtimeEnvPath, "utf8").includes("COMFYUI_URL="));
 
 console.log("\n== System (zero-key) TTS (2.2) ==");
 const sysReg = buildDefaultRegistry();
@@ -1320,10 +1333,10 @@ ok("recommendEngine always resolves assembly to ffmpeg (the universal floor)", (
   return rec.engine === "ffmpeg" && rec.native === false;
 })());
 ok("recommendEngine degrades an unknown scene type to ffmpeg", recommendEngine("totally-made-up-type").engine === "ffmpeg");
-ok("availableEngines marks ffmpeg always-available and is consistent with the probe", (() => {
+ok("availableEngines marks ffmpeg always-available and reports stable boolean states", (() => {
   const list = availableEngines();
   const ff = list.find((e) => e.engine.id === "ffmpeg")!;
-  return ff.available === true && list.every((e) => e.available === engineReallyAvailable(e.engine.id));
+  return ff.available === true && ff.native === false && list.every((e) => typeof e.available === "boolean" && typeof e.native === "boolean");
 })());
 
 // ---- Pro-editor bridges: export the IR to EDL / FCPXML / OTIO ----

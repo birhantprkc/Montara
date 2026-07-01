@@ -433,6 +433,46 @@ ok("runtimes CLI reports ComfyUI/A1111 health without requiring installs",
     Boolean(runtimeRows?.every((runtime) => typeof runtime.licenseBoundary === "string" && runtime.licenseBoundary.includes("External runtime"))),
   `status=${runtimesCli.status} stdout=${(runtimesCli.stdout || "").slice(-500)} stderr=${(runtimesCli.stderr || "").slice(-500)}`);
 
+const runtimeRoot = join(outDir, "validate-runtime-root");
+const runtimeInstallCli = spawnSync(npmBin, ["run", "montara", "--", "runtimes", "install", "comfyui", "--json", "--root", runtimeRoot], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+const runtimeLaunchCli = spawnSync(npmBin, ["run", "montara", "--", "runtimes", "launch", "a1111", "--json", "--root", runtimeRoot], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+const runtimeScriptOut = join(outDir, "validate-comfyui-install.ps1");
+try { rmSync(runtimeScriptOut, { force: true }); } catch { /* none */ }
+const runtimeScriptCli = spawnSync(npmBin, ["run", "montara", "--", "runtimes", "write-script", "comfyui", "--out", runtimeScriptOut, "--root", runtimeRoot, "--json"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+let runtimeInstall: { ok?: boolean; executed?: boolean; plan?: { commands?: { command?: string; args?: string[] }[] } } = {};
+let runtimeLaunch: { ok?: boolean; executed?: boolean; plan?: { commands?: { args?: string[] }[] } } = {};
+const runtimeInstallStdout = runtimeInstallCli.stdout || "";
+const runtimeLaunchStdout = runtimeLaunchCli.stdout || "";
+try { runtimeInstall = JSON.parse(runtimeInstallStdout.slice(runtimeInstallStdout.indexOf("{"))) as typeof runtimeInstall; } catch { runtimeInstall = {}; }
+try { runtimeLaunch = JSON.parse(runtimeLaunchStdout.slice(runtimeLaunchStdout.indexOf("{"))) as typeof runtimeLaunch; } catch { runtimeLaunch = {}; }
+ok("runtimes CLI exposes managed install/launch dry-runs and script generation",
+  runtimeInstallCli.status === 0 &&
+    runtimeLaunchCli.status === 0 &&
+    runtimeScriptCli.status === 0 &&
+    existsSync(runtimeScriptOut) &&
+    runtimeInstall.ok === true &&
+    runtimeInstall.executed === false &&
+    Boolean(runtimeInstall.plan?.commands?.some((cmd) => cmd.command === "git" && cmd.args?.some((arg) => arg.includes("ComfyUI.git")))) &&
+    runtimeLaunch.ok === true &&
+    runtimeLaunch.executed === false &&
+    Boolean(runtimeLaunch.plan?.commands?.some((cmd) => cmd.args?.includes("--api"))),
+  `install=${runtimeInstallCli.status} launch=${runtimeLaunchCli.status} script=${runtimeScriptCli.status}`);
+
 console.log("\n== Python video tool CLI (Stage 1A.4) ==");
 const cliComposeEditPath = join(outDir, "validate-cli-compose.edit-decisions.json");
 const cliComposeOut = join(outDir, "validate-cli-video-compose.mp4");

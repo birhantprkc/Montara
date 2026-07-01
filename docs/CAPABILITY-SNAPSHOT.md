@@ -1,6 +1,6 @@
 # Montara Capability Snapshot
 
-Snapshot date: 2026-06-30.
+Snapshot date: 2026-07-01.
 
 ## What Works Now
 
@@ -23,17 +23,18 @@ Snapshot date: 2026-06-30.
   `skills/meta/documentary-evidence-craft.md`; `warfront-craft.md` is a compatibility alias.
 - **Layer 3 skills:** 69 installed `.agents/skills` packs covering GSAP, HyperFrames, Three.js,
   Manim, FFmpeg, video understanding, music, speech, Playwright, visual style, and character animation.
-- **Runtime health:** `@montara/runtimes` registers ComfyUI and A1111, reports localhost
-  health, and prints external install guidance without bundling GPL/AGPL runtimes or model weights.
+- **Runtime manager:** `@montara/runtimes` registers ComfyUI and A1111, reports localhost
+  health, emits managed install/launch dry-runs, writes env hints/scripts, and only executes
+  external setup when the caller passes `--execute`.
 
 ## Latest Gates
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 299 passed, 0 failed |
-| `npm.cmd run validate` | 84 passed, 0 failed |
-| `python -m pytest tests` | 375 passed, 9 skipped |
+| `npm.cmd run verify` | 303 passed, 0 failed |
+| `npm.cmd run validate` | 85 passed, 0 failed |
+| `python -m pytest tests` | 376 passed, 8 skipped |
 
 ## Example Outputs
 
@@ -48,6 +49,7 @@ Snapshot date: 2026-06-30.
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
 | Montara status report | `out/validate-montara-status.json` | CLI compare report for local capability and upstream parity |
 | Runtime health report | `out/validate-runtimes-status.json` | CLI report for ComfyUI/A1111 external runtime health |
+| Runtime manager script | `out/validate-comfyui-install.ps1` | Generated safe install script from the dry-run manager |
 
 Generated outputs live under `out/` and are not committed.
 The README demo gallery and [docs/DEMOS.md](./DEMOS.md) now map these artifacts
@@ -68,7 +70,7 @@ expectations.
 | Spline | Planned registry entry only. |
 | FFmpeg | Fully working native renderer and fallback. |
 | Playwright | Browser capture with `montara capture`, login/storageState workflow; runtime-gated on Node Playwright install. |
-| ComfyUI / A1111 | Health/install guidance exists in `@montara/runtimes`; managed install/launch pending. |
+| ComfyUI / A1111 | Health/status, install/launch dry-runs, env writers, and generated scripts exist in `@montara/runtimes`; real setup is opt-in with `--execute`. |
 
 ## Provider Executor Status
 
@@ -107,4 +109,4 @@ Best current path:
 1. Finish Remotion default routing for Timeline scenes.
 2. Add documentary stock-footage validate case using the new corpus CLI surface.
 3. Add native package work for Revideo / Motion Canvas beyond registered adapters.
-4. Complete managed install/launch automation for ComfyUI/A1111 after the health layer.
+4. Add the screen-demo offline MP4 validate path using capture artifacts.

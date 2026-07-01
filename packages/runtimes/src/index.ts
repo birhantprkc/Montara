@@ -1,10 +1,16 @@
-// @montara/runtimes - external local runtime health and setup guidance.
+// @montara/runtimes - external local runtime health, install recipes, and launch guidance.
 //
 // These runtimes are invoked over localhost APIs. Montara does not vendor their
 // source or model weights; this package only reports health and safe setup steps.
 
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { spawnSync } from "node:child_process";
+
 export type RuntimeId = "comfyui" | "a1111";
 export type RuntimeStatus = "reachable" | "configured" | "not-configured" | "unreachable";
+export type RuntimePlanMode = "install" | "launch";
+export type RuntimePlatform = string;
 
 export interface RuntimeDefinition {
   id: RuntimeId;
@@ -17,6 +23,8 @@ export interface RuntimeDefinition {
   licenseBoundary: string;
   unlocks: string[];
   installSteps: string[];
+  repoUrl: string;
+  defaultPort: number;
 }
 
 export interface RuntimeHealth {
@@ -54,6 +62,42 @@ export interface RuntimeStatusOptions {
   fetchImpl?: typeof fetch;
 }
 
+export interface RuntimeCommand {
+  label: string;
+  command: string;
+  args: string[];
+  cwd?: string;
+}
+
+export interface ManagedRuntimePlan {
+  id: RuntimeId;
+  name: string;
+  mode: RuntimePlanMode;
+  rootDir: string;
+  runtimeDir: string;
+  url: string;
+  env: Record<string, string>;
+  commands: RuntimeCommand[];
+  executed: boolean;
+  notes: string[];
+}
+
+export interface RuntimeManagerOptions {
+  env?: Record<string, string | undefined>;
+  rootDir?: string;
+  execute?: boolean;
+  detached?: boolean;
+  logDir?: string;
+  platform?: RuntimePlatform;
+}
+
+export interface RuntimeManagerResult {
+  ok: boolean;
+  plan: ManagedRuntimePlan;
+  executed: boolean;
+  error?: string;
+}
+
 export const RUNTIMES: RuntimeDefinition[] = [
   {
     id: "comfyui",
@@ -71,6 +115,8 @@ export const RUNTIMES: RuntimeDefinition[] = [
       "Set COMFYUI_URL=http://127.0.0.1:8188 if you use a non-default port.",
       "Run montara runtimes status to confirm Montara can reach /system_stats.",
     ],
+    repoUrl: "https://github.com/comfyanonymous/ComfyUI.git",
+    defaultPort: 8188,
   },
   {
     id: "a1111",
@@ -88,6 +134,8 @@ export const RUNTIMES: RuntimeDefinition[] = [
       "Set A1111_URL=http://127.0.0.1:7860 if you use a non-default port.",
       "Run montara runtimes status to confirm Montara can reach /sdapi/v1/options.",
     ],
+    repoUrl: "https://github.com/AUTOMATIC1111/stable-diffusion-webui.git",
+    defaultPort: 7860,
   },
 ];
 
@@ -110,6 +158,166 @@ export function runtimeInstallPlan(id: RuntimeId): string[] {
 
 export function runtimeEnvHints(env: Record<string, string | undefined> = process.env): Record<RuntimeId, string> {
   return Object.fromEntries(RUNTIMES.map((runtime) => [runtime.id, runtimeUrl(runtime, env)])) as Record<RuntimeId, string>;
+}
+
+export function runtimeWorkspaceRoot(env: Record<string, string | undefined> = process.env): string {
+  if (env.MONTARA_RUNTIMES_DIR) return env.MONTARA_RUNTIMES_DIR;
+  if (process.platform === "win32" && env.LOCALAPPDATA) return join(env.LOCALAPPDATA, "Montara", "runtimes");
+  return join(env.HOME || env.USERPROFILE || process.cwd(), ".montara", "runtimes");
+}
+
+function shellCommand(command: string, args: string[] = [], cwd?: string): RuntimeCommand {
+  return { label: command, command, args, cwd };
+}
+
+function pythonBin(runtimeDir: string, platform: RuntimePlatform): string {
+  return platform === "win32"
+    ? join(runtimeDir, ".venv", "Scripts", "python.exe")
+    : join(runtimeDir, ".venv", "bin", "python");
+}
+
+function psQuote(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function shQuote(value: string): string {
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function psLine(cmd: RuntimeCommand): string {
+  return `& ${[cmd.command, ...cmd.args].map(psQuote).join(" ")}`;
+}
+
+function shLine(cmd: RuntimeCommand): string {
+  return [cmd.command, ...cmd.args].map(shQuote).join(" ");
+}
+
+function installCommands(runtime: RuntimeDefinition, runtimeDir: string, platform: RuntimePlatform): RuntimeCommand[] {
+  const py = pythonBin(runtimeDir, platform);
+  const commands: RuntimeCommand[] = [];
+  if (!existsSync(runtimeDir)) {
+    commands.push({ label: `clone ${runtime.name}`, command: "git", args: ["clone", "--depth=1", runtime.repoUrl, runtimeDir] });
+  }
+  commands.push(shellCommand("python", ["-m", "venv", ".venv"], runtimeDir));
+  if (runtime.id === "comfyui") {
+    commands.push(shellCommand(py, ["-m", "pip", "install", "-r", "requirements.txt"], runtimeDir));
+  } else {
+    commands.push(shellCommand(py, ["-m", "pip", "install", "-r", "requirements_versions.txt"], runtimeDir));
+  }
+  return commands;
+}
+
+function launchCommands(runtime: RuntimeDefinition, runtimeDir: string, platform: RuntimePlatform): RuntimeCommand[] {
+  if (runtime.id === "a1111") {
+    return platform === "win32"
+      ? [shellCommand("cmd", ["/c", "webui.bat", "--api", "--listen", "--port", String(runtime.defaultPort)], runtimeDir)]
+      : [shellCommand("./webui.sh", ["--api", "--listen", "--port", String(runtime.defaultPort)], runtimeDir)];
+  }
+  return [shellCommand(pythonBin(runtimeDir, platform), ["main.py", "--listen", "127.0.0.1", "--port", String(runtime.defaultPort)], runtimeDir)];
+}
+
+export function managedRuntimePlan(
+  id: RuntimeId,
+  mode: RuntimePlanMode,
+  opts: RuntimeManagerOptions = {},
+): ManagedRuntimePlan {
+  const runtime = getRuntime(id);
+  if (!runtime) throw new Error(`unknown runtime: ${id}`);
+  const env = opts.env ?? process.env;
+  const rootDir = opts.rootDir ?? runtimeWorkspaceRoot(env);
+  const runtimeDir = join(rootDir, id);
+  const url = runtimeUrl(runtime, { ...env, [runtime.envVar]: env[runtime.envVar] ?? runtime.defaultUrl });
+  const platform = opts.platform ?? process.platform;
+  const commands = mode === "install" ? installCommands(runtime, runtimeDir, platform) : launchCommands(runtime, runtimeDir, platform);
+  return {
+    id,
+    name: runtime.name,
+    mode,
+    rootDir,
+    runtimeDir,
+    url,
+    env: {
+      [runtime.envVar]: url,
+      MONTARA_RUNTIMES_DIR: rootDir,
+    },
+    commands,
+    executed: false,
+    notes: [
+      runtime.licenseBoundary,
+      "Managed install/launch writes outside the Montara repository by default.",
+      "Model downloads remain user-controlled; install recipes only prepare the runtime shell.",
+    ],
+  };
+}
+
+export function writeRuntimeEnv(plan: ManagedRuntimePlan, outPath: string): string {
+  mkdirSync(dirname(outPath), { recursive: true });
+  const body = Object.entries(plan.env).map(([key, value]) => `${key}=${value}`).join("\n");
+  writeFileSync(outPath, `${body}\n`);
+  return outPath;
+}
+
+export function writeRuntimeScript(plan: ManagedRuntimePlan, outPath: string): string {
+  mkdirSync(dirname(outPath), { recursive: true });
+  const isPs1 = /\.ps1$/i.test(outPath);
+  const lines = isPs1
+    ? [
+        "$ErrorActionPreference = 'Stop'",
+        `New-Item -ItemType Directory -Force -Path ${psQuote(plan.rootDir)} | Out-Null`,
+        ...plan.commands.map((cmd) => cmd.cwd ? `Push-Location ${psQuote(cmd.cwd)}; try { ${psLine(cmd)} } finally { Pop-Location }` : psLine(cmd)),
+      ]
+    : [
+        "#!/usr/bin/env bash",
+        "set -euo pipefail",
+        `mkdir -p ${shQuote(plan.rootDir)}`,
+        ...plan.commands.map((cmd) => cmd.cwd ? `(cd ${shQuote(cmd.cwd)} && ${shLine(cmd)})` : shLine(cmd)),
+      ];
+  writeFileSync(outPath, `${lines.join("\n")}\n`);
+  return outPath;
+}
+
+function runCommand(cmd: RuntimeCommand): { ok: boolean; error?: string } {
+  const result = spawnSync(cmd.command, cmd.args, {
+    cwd: cmd.cwd,
+    encoding: "utf8",
+    stdio: "pipe",
+    shell: process.platform === "win32" && !cmd.command.toLowerCase().endsWith(".exe"),
+  });
+  if (result.status === 0) return { ok: true };
+  return { ok: false, error: (result.stderr || result.stdout || result.error?.message || `exit ${result.status}`).trim().slice(-1000) };
+}
+
+export function installRuntime(id: RuntimeId, opts: RuntimeManagerOptions = {}): RuntimeManagerResult {
+  const plan = managedRuntimePlan(id, "install", opts);
+  if (!opts.execute) return { ok: true, plan, executed: false };
+  mkdirSync(plan.rootDir, { recursive: true });
+  for (const command of plan.commands) {
+    const result = runCommand(command);
+    if (!result.ok) return { ok: false, plan: { ...plan, executed: true }, executed: true, error: result.error };
+  }
+  return { ok: true, plan: { ...plan, executed: true }, executed: true };
+}
+
+export function launchRuntime(id: RuntimeId, opts: RuntimeManagerOptions = {}): RuntimeManagerResult {
+  const plan = managedRuntimePlan(id, "launch", opts);
+  if (!opts.execute) return { ok: true, plan, executed: false };
+  mkdirSync(opts.logDir ?? join(plan.rootDir, "logs"), { recursive: true });
+  const cmd = plan.commands[0];
+  if (!cmd) return { ok: false, plan, executed: false, error: "no launch command" };
+  const launch = process.platform === "win32"
+    ? spawnSync("powershell", [
+        "-NoProfile",
+        "-Command",
+        `Start-Process -WorkingDirectory '${cmd.cwd ?? plan.runtimeDir}' -FilePath '${cmd.command}' -ArgumentList ${cmd.args.map((arg) => `'${arg.replace(/'/g, "''")}'`).join(",")}`,
+      ], { encoding: "utf8" })
+    : spawnSync("sh", ["-c", `cd ${shQuote(cmd.cwd ?? plan.runtimeDir)} && nohup ${shLine(cmd)} >/dev/null 2>&1 &`], { encoding: "utf8" });
+  if (launch.status === 0) return { ok: true, plan: { ...plan, executed: true }, executed: true };
+  return {
+    ok: false,
+    plan: { ...plan, executed: true },
+    executed: true,
+    error: (launch.stderr || launch.stdout || launch.error?.message || `exit ${launch.status}`).trim().slice(-1000),
+  };
 }
 
 async function probeUrl(

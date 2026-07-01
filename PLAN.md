@@ -74,7 +74,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **LICENSE / NOTICE** | ☑ | Root AGPL-3.0 LICENSE + NOTICE + docs/ATTRIBUTION.md |
 | **Web GUI** | ☐ | `packages/web` scaffold only |
 | **WARCUT desktop** | ☐ | Not started |
-| **`runtimes` manager** | ◐ | ComfyUI/A1111 health + install guidance shipped; managed install pending |
+| **`runtimes` manager** | ◐ | ComfyUI/A1111 health, safe install/launch dry-runs, env writers, and script generation shipped; Piper/Whisper/model inventory pending |
 | **Public demo gallery** | ☑ | README + `docs/DEMOS.md` + curated `assets/` proofs |
 
 ### Competitive score vs OpenMontage (today)
@@ -135,7 +135,7 @@ Complete these to **win everywhere**, not just tie:
 | M3 | **Pro-editor import** (round-trip edit in Premiere/DaVinci/FCP) | ☑ | No |
 | M4 | **`montara` CLI** as first-class entry (not agent-only) | ◐ | No |
 | M5 | **Local LLM orchestrator** (`montara make` via Ollama/LM Studio) | ◐ | No (planned upstream) |
-| M6 | **`runtimes` manager** (one-click ComfyUI/A1111/Piper/Whisper) | ◐ | Health/install guidance shipped; managed install pending |
+| M6 | **`runtimes` manager** (one-click ComfyUI/A1111/Piper/Whisper) | ◐ | ComfyUI/A1111 manager shipped; Piper/Whisper/model inventory pending |
 | M7 | **Web GUI** (`montara serve`) | ☐ | No |
 | M8 | **WARCUT desktop GUI** on same IR | ☐ | No |
 | M9 | **Runtime honesty layer** (maturity labels, ARCHITECTURE truth) | ☑ | No |
@@ -357,7 +357,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 
 | ID | Task | Status | Acceptance |
 |----|------|--------|------------|
-| 5.1 | `packages/runtimes` — ComfyUI/A1111 install/health | ◐ | Health/status + external install guidance shipped; managed install/launch pending |
+| 5.1 | `packages/runtimes` — ComfyUI/A1111 install/health | ☑ | Health/status, install/launch dry-runs, opt-in `--execute`, env writers, and script generation shipped |
 | 5.2 | `packages/sdk` public API | ☐ | Same as CLI capabilities |
 | 5.3 | `packages/web` — `montara serve` timeline editor | ☐ | Edits IR, triggers render |
 | 5.4 | WARCUT desktop GUI on IR | ☐ | Separate repo or monorepo package |
@@ -420,7 +420,7 @@ See [BRANDING-PROVENANCE-PLAN.md](./BRANDING-PROVENANCE-PLAN.md).
 
 - Native render paths are the main quality gap vs OpenMontage.
 - Cloud APIs drift — PROVIDER-AUDIT must stay current.
-- `runtimes` automation is hard; degrade to cloud BYOK never blocks.
+- Runtime automation stays opt-in and external; no model weights are bundled, and dry-runs remain the default.
 - Stars/community are not guaranteed; **runnable demos + honesty** are controllable.
 
 ---
@@ -450,7 +450,13 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 4.8 | YouTube/community launch plan | done |
 | ✅ | 4.9 | Compare report automation (`montara status` vs upstream) | done |
 | ✅ | 5.1A | `packages/runtimes` ComfyUI/A1111 health + install guidance | done |
-| 🎯 1 | 5.1B | Managed install/launch automation for ComfyUI/A1111 | long-term |
+| ✅ | 5.1B | Managed install/launch automation for ComfyUI/A1111 | done |
+| 🎯 1 | 1B.06 | `documentary-montage` offline stock-footage MP4 validate path | Stage 1 gap |
+| 🎯 2 | 1B.10 | `screen-demo` offline MP4 validate path using capture artifacts | Stage 1 gap |
+| 🎯 3 | 2.2 | Remotion default Timeline routing instead of smoke-only proof | Stage 2 gap |
+| 🎯 4 | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | Stage 3 gap |
+| 🎯 5 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
+| 🎯 6 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
 
 ---
 
