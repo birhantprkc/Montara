@@ -51,8 +51,8 @@ request shape or running a live smoke.
 | --- | --- |
 | OpenAI Images / TTS | Model id, endpoint, response encoding, audio/image format fields. |
 | Black Forest Labs | FLUX endpoint name, `x-key` auth, async `polling_url`, result asset field. |
-| Google Gemini / Veo | model path, key placement, `instances`/`parameters`, operation polling. |
-| Runway | API version header, task endpoint, `promptText`, duration/ratio constraints. |
+| Google Gemini / Veo | Interactions API or model path, header-based `x-goog-api-key`, image `response_format`, `instances`/`parameters`, operation polling. |
+| Runway | API version header, current `image_to_video` task endpoint, `promptText`, optional `promptImage`, duration/ratio constraints. |
 | ElevenLabs TTS/Music/SFX | `xi-api-key` auth, voice/music endpoint, duration and output fields. |
 | Recraft / xAI / Kling / MiniMax / HeyGen / Suno | endpoint, auth style, task creation body, polling/status response, output asset URL. |
 

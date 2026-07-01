@@ -3,7 +3,7 @@ declared `model.default`.
 
 Bug: runway_video and higgsfield_video hardcoded stale model defaults in
 estimate_cost/estimate_runtime/execute (`gen4_turbo` / `kling_3.0`) while the
-schema advertised `seedance_2.0` as the premium default. Omitting `model` then
+schema advertised a different default. Omitting `model` then
 quoted the wrong (cheap) model's cost and silently generated a different model
 than the schema promised — a Decision-Communication / cost-accuracy violation.
 """
@@ -46,6 +46,22 @@ def test_estimate_default_model_matches_schema(tool_cls):
         f"{tool.name}.estimate_runtime default model diverges from schema default "
         f"{schema_default!r}"
     )
+
+
+def test_runway_video_build_request_uses_current_gen45_task_shape():
+    req = RunwayVideo().build_request(
+        {"prompt": "cinematic software trailer", "duration": 5, "ratio": "16:9"},
+        api_key="RUNWAY_TEST",
+    )
+
+    assert runway_video._DEFAULT_MODEL == "gen4.5"
+    assert req["method"] == "POST"
+    assert req["url"] == "https://api.dev.runwayml.com/v1/image_to_video"
+    assert req["headers"]["Authorization"] == "Bearer RUNWAY_TEST"
+    assert req["headers"]["X-Runway-Version"] == "2024-11-06"
+    assert req["json"]["model"] == "gen4.5"
+    assert req["json"]["promptText"] == "cinematic software trailer"
+    assert "promptImage" not in req["json"]
 
 
 def test_openai_image_default_model_matches_schema():

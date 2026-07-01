@@ -1,7 +1,7 @@
-"""Runway Gen-4 video generation via Runway API.
+"""Runway Gen-4.5 video generation via Runway API.
 
 Highest Elo-rated video generation model — professional quality and control.
-Supports Gen-3 Alpha Turbo, Gen-4 Turbo, and Gen-4 Aleph (highest fidelity).
+Supports current Gen-4.5 plus older Gen-3/Gen-4 compatibility model ids.
 """
 
 from __future__ import annotations
@@ -31,6 +31,7 @@ _RATIO_MAP = {
 }
 
 _COST_PER_SECOND = {
+    "gen4.5": 0.05,
     "gen3a_turbo": 0.05,
     "gen4_turbo": 0.05,
     "gen4_aleph": 0.15,
@@ -40,6 +41,7 @@ _COST_PER_SECOND = {
 }
 
 _RUNTIME_SECONDS = {
+    "gen4.5": 30.0,
     "gen3a_turbo": 25.0,
     "gen4_turbo": 30.0,
     "gen4_aleph": 60.0,
@@ -50,7 +52,9 @@ _RUNTIME_SECONDS = {
 # Single source of truth for the default model. Referenced by both the input
 # schema and every code path that reads `model`, so estimate_cost / estimate_runtime
 # / execute can never silently diverge from the advertised default again.
-_DEFAULT_MODEL = "seedance_2.0"
+_DEFAULT_MODEL = "gen4.5"
+_RUNWAY_API_VERSION = "2024-11-06"
+_RUNWAY_TASK_ENDPOINT = "https://api.dev.runwayml.com/v1/image_to_video"
 
 
 class RunwayVideo(BaseTool):
@@ -83,10 +87,9 @@ class RunwayVideo(BaseTool):
         "multi_shot": True,
     }
     best_for = [
-        "preferred premium video gen on Runway when Seedance 2.0 model is selected",
-        "cinematic trailers, teasers, and high-fidelity clips with native synchronized audio (Seedance 2.0 path)",
-        "director-level camera control and multi-shot editing (Seedance 2.0) or Runway Gen-4 professional control",
-        "lip-sync from quoted dialogue in prompts (Seedance 2.0)",
+        "current Runway Gen-4.5 task API",
+        "cinematic trailers, teasers, and high-fidelity clips",
+        "director-level camera control and Runway Gen-4 professional control",
         "professional video production",
     ]
     not_good_for = ["budget projects", "offline generation", "very long clips"]
@@ -105,15 +108,12 @@ class RunwayVideo(BaseTool):
             },
             "model": {
                 "type": "string",
-                "enum": ["seedance_2.0", "seedance_2.0_fast", "gen4_turbo", "gen4_aleph", "gen3a_turbo"],
+                "enum": ["gen4.5", "gen4_turbo", "gen4_aleph", "gen3a_turbo", "seedance_2.0", "seedance_2.0_fast"],
                 "default": _DEFAULT_MODEL,
                 "description": (
-                    "seedance_2.0 = preferred premium default (single-pass synced audio, multi-shot, lip-sync — "
-                    "Runway Unlimited/Enterprise plan, non-US only). "
-                    "seedance_2.0_fast = lower-cost Seedance variant. "
-                    "gen4_aleph = Runway's highest-fidelity native model. "
-                    "gen4_turbo = balanced Runway native. "
-                    "gen3a_turbo = cheapest Runway native."
+                    "gen4.5 = current official Runway task API default. "
+                    "gen4_aleph/gen4_turbo/gen3a_turbo remain compatibility choices. "
+                    "seedance_2.0 variants may require special Runway plan/region access."
                 ),
             },
             "duration": {
@@ -162,17 +162,7 @@ class RunwayVideo(BaseTool):
         model = inputs.get("model", _DEFAULT_MODEL)
         return _RUNTIME_SECONDS.get(model, 30.0)
 
-    def execute(self, inputs: dict[str, Any]) -> ToolResult:
-        api_key = self._get_api_key()
-        if not api_key:
-            return ToolResult(
-                success=False,
-                error="RUNWAY_API_KEY not set. " + self.install_instructions,
-            )
-
-        import requests
-
-        start = time.time()
+    def build_request(self, inputs: dict[str, Any], api_key: str) -> dict[str, Any]:
         model = inputs.get("model", _DEFAULT_MODEL)
         operation = inputs.get("operation", "text_to_video")
         ratio_friendly = inputs.get("ratio", "16:9")
@@ -188,25 +178,40 @@ class RunwayVideo(BaseTool):
         if operation == "image_to_video" and inputs.get("image_url"):
             task_payload["promptImage"] = inputs["image_url"]
 
-        # Choose endpoint based on operation
-        endpoint = (
-            "https://api.dev.runwayml.com/v1/image_to_video"
-            if operation == "image_to_video"
-            else "https://api.dev.runwayml.com/v1/text_to_video"
-        )
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "X-Runway-Version": "2024-11-06",
+        return {
+            "method": "POST",
+            "url": _RUNWAY_TASK_ENDPOINT,
+            "headers": {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "X-Runway-Version": _RUNWAY_API_VERSION,
+            },
+            "json": task_payload,
         }
+
+    def execute(self, inputs: dict[str, Any]) -> ToolResult:
+        api_key = self._get_api_key()
+        if not api_key:
+            return ToolResult(
+                success=False,
+                error="RUNWAY_API_KEY not set. " + self.install_instructions,
+            )
+
+        import requests
+
+        start = time.time()
+        operation = inputs.get("operation", "text_to_video")
+        ratio_friendly = inputs.get("ratio", "16:9")
+        model = inputs.get("model", _DEFAULT_MODEL)
+        request = self.build_request(inputs, api_key)
+        headers = request["headers"]
 
         try:
             # Submit generation task
             submit_response = requests.post(
-                endpoint,
+                request["url"],
                 headers=headers,
-                json=task_payload,
+                json=request["json"],
                 timeout=30,
             )
             submit_response.raise_for_status()

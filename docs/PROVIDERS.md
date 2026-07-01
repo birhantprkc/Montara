@@ -312,9 +312,11 @@ page before spending production budget.
 
 ---
 
-### Runway — Gen-3/Gen-4 Video
+### Runway — Gen-4.5 Video
 
-> **Highest-rated AI video quality.** #1 on Elo rankings. Professional-grade video generation with Gen-3 Alpha Turbo, Gen-4 Turbo, and Gen-4 Aleph models.
+> **Premium AI video generation.** Montara's current TypeScript and Python
+> request builders default to Runway's Gen-4.5 `image_to_video` task API. Text-only
+> prompts omit `promptImage`; image-to-video prompts include it when supplied.
 
 **Tools unlocked:** `runway_video`
 **Env var:** `RUNWAY_API_KEY`
@@ -335,10 +337,11 @@ page before spending production budget.
 | Pro | $28/mo | 2,250 | ~90 seconds Gen-4 |
 | Unlimited | $76/mo | Unlimited (Explore Mode) | Unlimited Gen-4 Turbo |
 
-**API pricing (approximate):**
+**API pricing (approximate; check Runway's live pricing page before spending):**
 
 | Model | Price per second |
 |-------|-----------------|
+| Gen-4.5 | check current Runway pricing |
 | Gen-3 Alpha Turbo | ~$0.05 |
 | Gen-4 Turbo | ~$0.05 |
 | Gen-4 Aleph | ~$0.15 |

@@ -48,7 +48,7 @@ export interface VideoGenInput {
 export const VIDEO_PROVIDERS: MediaProvider[] = [
   // cloud (7)
   { id: "kling", name: "Kling", vendor: "Kuaishou", category: "video", tier: "cloud", authEnv: "KLING_API_KEY", endpoint: "https://api.klingai.com/v1/videos/text2video", notes: "Text/image-to-video, strong motion." },
-  { id: "runway-gen3", name: "Runway Gen-3/4", vendor: "Runway", category: "video", tier: "cloud", authEnv: "RUNWAY_API_KEY", endpoint: "https://api.dev.runwayml.com/v1/text_to_video", notes: "Cinematic text/image-to-video; request spec uses versioned Runway task API." },
+  { id: "runway-gen3", name: "Runway Gen-4.5", vendor: "Runway", category: "video", tier: "cloud", authEnv: "RUNWAY_API_KEY", endpoint: "https://api.dev.runwayml.com/v1/image_to_video", notes: "Cinematic text/image-to-video; request spec uses current Gen-4.5 image_to_video task API with promptImage omitted for text-only." },
   { id: "google-veo3", name: "Google Veo 3.1", vendor: "Google", category: "video", tier: "cloud", authEnv: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning", notes: "High-fidelity text-to-video with audio through Gemini long-running operations." },
   { id: "grok-video", name: "Grok Imagine Video", vendor: "xAI", category: "video", tier: "cloud", authEnv: "XAI_API_KEY", endpoint: "https://api.x.ai/v1/video/generations", notes: "Fast stylised text-to-video." },
   { id: "higgsfield", name: "Higgsfield (Soul ID)", vendor: "Higgsfield", category: "video", tier: "cloud", authEnv: "HIGGSFIELD_API_KEY", endpoint: "https://platform.higgsfield.ai/v1/text2video", notes: "Character-consistent motion (Soul ID)." },
@@ -149,7 +149,7 @@ export function buildVideoRequest(
         "X-Runway-Version": "2024-11-06",
       },
       body: JSON.stringify({
-        model: "gen4_turbo",
+        model: "gen4.5",
         promptText: prompt,
         duration,
         ratio: `${input.width ?? 1280}:${input.height ?? 720}`,
@@ -161,8 +161,8 @@ export function buildVideoRequest(
   if (provider.id === "google-veo3") {
     return {
       method: "POST",
-      url: `${endpoint}?key=${encodeURIComponent(key)}`,
-      headers: { "Content-Type": "application/json" },
+      url: endpoint,
+      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
       body: JSON.stringify({
         instances: [{ prompt }],
         parameters: {
@@ -249,7 +249,7 @@ export interface ImageGenInput {
 export const IMAGE_PROVIDERS: MediaProvider[] = [
   // cloud (5)
   { id: "flux", name: "FLUX.2 Pro", vendor: "Black Forest Labs", category: "image", tier: "cloud", authEnv: "BFL_API_KEY", endpoint: "https://api.bfl.ai/v1/flux-2-pro-preview", notes: "High-quality text-to-image/editing with async polling_url and x-key auth." },
-  { id: "imagen", name: "Google Gemini Image", vendor: "Google", category: "image", tier: "cloud", authEnv: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent", notes: "Gemini image generation request shape with image response modality." },
+  { id: "imagen", name: "Google Gemini Image", vendor: "Google", category: "image", tier: "cloud", authEnv: "GEMINI_API_KEY", endpoint: "https://generativelanguage.googleapis.com/v1beta/interactions", notes: "Gemini 3.1 Flash Image request shape through the Interactions API." },
   { id: "grok-image", name: "Grok Imagine Image", vendor: "xAI", category: "image", tier: "cloud", authEnv: "XAI_API_KEY", endpoint: "https://api.x.ai/v1/images/generations", notes: "Stylised text-to-image." },
   { id: "dalle3", name: "OpenAI Images", vendor: "OpenAI", category: "image", tier: "cloud", authEnv: "OPENAI_API_KEY", endpoint: "https://api.openai.com/v1/images/generations", notes: "Legacy id kept for compatibility; request defaults to GPT Image." },
   { id: "recraft", name: "Recraft", vendor: "Recraft", category: "image", tier: "cloud", authEnv: "RECRAFT_API_KEY", endpoint: "https://external.api.recraft.ai/v1/images/generations", notes: "Vector / brand-style image generation." },
@@ -337,11 +337,12 @@ export function buildImageRequest(
   if (provider.id === "imagen") {
     return {
       method: "POST",
-      url: `${endpoint}?key=${encodeURIComponent(key)}`,
-      headers: { "Content-Type": "application/json" },
+      url: endpoint,
+      headers: { "x-goog-api-key": key, "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { responseModalities: ["IMAGE"] },
+        model: "gemini-3.1-flash-image",
+        input: [{ type: "text", text: prompt }],
+        response_format: { type: "image", aspect_ratio: aspectRatio(input.width, input.height) },
       }),
     };
   }

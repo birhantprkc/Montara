@@ -584,14 +584,19 @@ ok("OpenAI image request is a Bearer POST with GPT Image 2 model + prompt", dall
 const fluxReq = buildImageRequest(getImageProvider("flux")!, iInput, { BFL_API_KEY: "bk-secret" });
 ok("BFL FLUX.2 request uses x-key auth and async polling_url", fluxReq.method === "POST" && fluxReq.url.endsWith("/flux-2-pro-preview") && fluxReq.headers["x-key"] === "bk-secret" && fluxReq.poll?.field === "polling_url");
 const imagenReq = buildImageRequest(getImageProvider("imagen")!, iInput, { GEMINI_API_KEY: "gk" });
-ok("Google image request uses Gemini image model + key query + image modality", imagenReq.url.includes("gemini-3.1-flash-image") && imagenReq.url.includes("key=gk") && !("Authorization" in imagenReq.headers) && Boolean(imagenReq.body?.includes("responseModalities")));
+ok("Google image request uses Gemini Interactions API + x-goog-api-key + response_format",
+  imagenReq.url.endsWith("/v1beta/interactions") &&
+  imagenReq.headers["x-goog-api-key"] === "gk" &&
+  !imagenReq.url.includes("key=") &&
+  Boolean(imagenReq.body?.includes("gemini-3.1-flash-image")) &&
+  Boolean(imagenReq.body?.includes("response_format")));
 const unsplashReq = buildImageRequest(getImageProvider("unsplash")!, iInput, { UNSPLASH_ACCESS_KEY: "uk" });
 ok("Unsplash request is a GET with Client-ID auth", unsplashReq.method === "GET" && unsplashReq.headers.Authorization === "Client-ID uk");
 
 const runwayReq = buildVideoRequest(getVideoProvider("runway-gen3")!, vInput, { RUNWAY_API_KEY: "rk-secret" });
-ok("Runway request uses versioned task API with promptText", runwayReq.url.endsWith("/text_to_video") && runwayReq.headers["X-Runway-Version"] === "2024-11-06" && Boolean(runwayReq.body?.includes("promptText")));
+ok("Runway request uses current Gen-4.5 image_to_video task API with promptText", runwayReq.url.endsWith("/image_to_video") && runwayReq.headers["X-Runway-Version"] === "2024-11-06" && Boolean(runwayReq.body?.includes("gen4.5")) && Boolean(runwayReq.body?.includes("promptText")));
 const veoReq = buildVideoRequest(getVideoProvider("google-veo3")!, vInput, { GEMINI_API_KEY: "gk" });
-ok("Veo request uses 3.1 long-running endpoint and typed parameters", veoReq.url.includes("veo-3.1-generate-preview:predictLongRunning") && veoReq.url.includes("key=gk") && Boolean(veoReq.body?.includes("durationSeconds")));
+ok("Veo request uses 3.1 long-running endpoint, x-goog-api-key, and typed parameters", veoReq.url.includes("veo-3.1-generate-preview:predictLongRunning") && veoReq.headers["x-goog-api-key"] === "gk" && !veoReq.url.includes("key=") && Boolean(veoReq.body?.includes("durationSeconds")));
 const redactedFlux = redactProviderRequest(fluxReq);
 ok("provider request redaction removes secrets from headers and URLs", redactedFlux.headers["x-key"] === "[REDACTED]" && !redactedFlux.url.includes("bk-secret"));
 

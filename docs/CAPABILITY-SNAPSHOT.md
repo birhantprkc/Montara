@@ -100,7 +100,8 @@ The TypeScript provider registry now includes an injectable BYOK executor and
 redaction helper. `verify` and `validate` replay sanitized fixtures for BFL-style
 async submit/poll/download without live keys or network calls. First-wave request
 shape coverage includes OpenAI Images (`gpt-image-2`), BFL FLUX.2, Google Gemini
-image, Google Veo 3.1, and Runway versioned task requests. The Python image
+image through the Interactions API, Google Veo 3.1 with header-based
+`x-goog-api-key`, and Runway Gen-4.5 `image_to_video` requests. The Python image
 provider tools now also expose testable OpenAI/BFL request builders; `flux_image`
 prefers direct BFL and keeps fal.ai as a compatibility fallback.
 

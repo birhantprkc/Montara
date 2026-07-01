@@ -30,7 +30,7 @@ Montara should be honest with users and agents:
 | Video understanding | `montara understand` produces scene/frame/audio-signal JSON by default; optional Transformers.js CLIP frame classification is available with `MONTARA_VISION_MODELS=1` or `--vision require`. BLIP/caption-model validation remains runtime-gated. |
 | Local LLM orchestration | The architecture supports local brains, but a fully shipped local orchestration loop is still being hardened. |
 | Screen recording | FFmpeg desktop capture, Cap pickup, deterministic capture-artifact pickup, and `montara capture` Playwright browser recording with user-login storageState. |
-| Cloud providers | Request builders exist for BYOK use. Keep them audited against official provider docs before live execution. |
+| Cloud providers | Request builders exist for BYOK use; OpenAI/BFL/Google/Runway shapes are fixture-gated against current official docs. Keep them audited before live execution. |
 | Status reporting | `montara status --json --out out/montara-status.json` summarizes local capability, latest documented gates, and upstream parity categories. |
 | Local generation runtimes | `montara runtimes status` reports ComfyUI/A1111/Piper/Faster Whisper/Transformers.js health; `runtimes inventory` reports model/cache paths; plan/install/launch/write-env/write-script stay dry-run unless `--execute` is passed. |
 
@@ -101,7 +101,7 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 1 runtime-manager expansion:
+Latest local gate snapshot from the Stage 1 provider request-shape refresh:
 
 | Gate | Result |
 | --- | --- |

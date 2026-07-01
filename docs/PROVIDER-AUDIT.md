@@ -5,15 +5,15 @@ network-free by design: it builds request specs and falls back locally when no
 credential is present. That makes tests deterministic, but it does not replace a
 live BYOK executor audit before spending user money.
 
-Last checked: 2026-06-30.
+Last checked: 2026-07-01.
 
 ## Checked References
 
 - OpenAI image generation: https://platform.openai.com/docs/guides/image-generation
 - OpenAI audio speech: https://platform.openai.com/docs/api-reference/audio/createSpeech
 - Google Gemini image generation: https://ai.google.dev/gemini-api/docs/image-generation
-- Google Gemini video generation: https://ai.google.dev/gemini-api/docs/video
-- Runway API: https://docs.dev.runwayml.com/api/
+- Google Gemini video generation / Veo: https://ai.google.dev/gemini-api/docs/video
+- Runway API guide: https://docs.dev.runwayml.com/guides/using-the-api/
 - Black Forest Labs API docs: https://docs.bfl.ai/
 - ElevenLabs text-to-speech: https://www.elevenlabs.io/docs/api-reference/text-to-speech/convert
 - Skills discovery reference: https://www.skills.sh/
@@ -25,12 +25,14 @@ Last checked: 2026-06-30.
 - OpenAI TTS now defaults request specs to `gpt-4o-mini-tts`.
 - Black Forest Labs FLUX moved from the older FLUX 1.1 endpoint to
   `flux-2-pro-preview`, with `x-key` auth and `polling_url` in the request spec.
-- Google image generation moved to a Gemini image model request shape with
-  `responseModalities: ["IMAGE"]`.
+- Google image generation now targets the Gemini Interactions API
+  (`/v1beta/interactions`) with `x-goog-api-key` auth and an explicit
+  `response_format` image request.
 - Google Veo moved to the Veo 3.1 long-running model path with typed
-  `instances` / `parameters`.
-- Runway now emits a versioned `text_to_video` task request with
-  `X-Runway-Version` and `promptText`.
+  `instances` / `parameters` and header-based `x-goog-api-key` auth.
+- Runway now emits a current Gen-4.5 `image_to_video` task request with
+  `X-Runway-Version`, `model: "gen4.5"`, and `promptText`; Montara omits
+  `promptImage` for text-only generations per the official API pattern.
 - `packages/providers/src/executor.ts` now provides an injectable BYOK executor
   plus request redaction, so CI can replay sanitized HTTP fixtures without live
   keys, network calls, or provider spend.

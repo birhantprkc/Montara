@@ -98,8 +98,9 @@ Cloud providers change faster than Montara releases. Provider code must be check
 against official docs before live execution. Current audit anchors:
 
 - OpenAI image generation and audio speech API docs.
-- Google Gemini API docs for Imagen and Veo.
-- Runway API docs.
+- Google Gemini API docs for image generation / Veo, including header-based
+  `x-goog-api-key` flows.
+- Runway API docs for current task endpoints and version headers.
 - Black Forest Labs API docs.
 - ElevenLabs TTS, music, and sound generation docs.
 

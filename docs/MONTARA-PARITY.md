@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1 runtime-manager expansion.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1 provider request-shape refresh.
 
 This checklist tracks two things:
 
@@ -86,8 +86,8 @@ Latest local gates before this sync:
 
 | Category | Status | Notes |
 | --- | --- | --- |
-| C Video providers | ◐ | 14 registered; cloud request fixtures cover Kling/Runway/Veo/xAI/Higgsfield/MiniMax/HeyGen; real-key confirmations pending. |
-| D Image providers | ◐ | 10 registered; OpenAI/BFL/Google TS request shapes, Python OpenAI/BFL image request builders, and all-cloud fixture report gated. |
+| C Video providers | ◐ | 14 registered; cloud request fixtures cover Kling/Runway Gen-4.5/Veo/xAI/Higgsfield/MiniMax/HeyGen; Google/Runway request shapes refreshed against current official docs; real-key confirmations pending. |
+| D Image providers | ◐ | 10 registered; OpenAI/BFL/Google Interactions API TS request shapes, Python OpenAI/BFL image request builders, and all-cloud fixture report gated. |
 | E Audio/TTS/music | ◐ | Local/offline fallbacks and analysis exist; TTS/music cloud fixtures covered; premium providers BYOK/runtime-gated. |
 | F Post/enhancement | ◐ | Core FFmpeg operations work; model enhancers runtime-gated. |
 | G Analysis/understanding | ◐ | Reference analysis, signalstats fallback, optional Transformers.js CLIP path, and `montara understand` CLI proof work; BLIP/default cached-weight validation pending. |
