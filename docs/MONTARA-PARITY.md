@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1G model-aware understanding.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1 runtime-manager expansion.
 
 This checklist tracks two things:
 
@@ -13,8 +13,8 @@ Legend: `☑` done and gated, `◐` partial/runtime-gated, `☐` not done.
 Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
-- `npm.cmd run verify` passed: 307 passed, 0 failed.
-- `npm.cmd run validate` passed: 91 passed, 0 failed.
+- `npm.cmd run verify` passed: 310 passed, 0 failed.
+- `npm.cmd run validate` passed: 92 passed, 0 failed.
 - `python -m pytest tests` passed: 379 passed, 8 skipped.
 
 ## Snapshot
@@ -47,7 +47,7 @@ Latest local gates before this sync:
 | Cloud live executors | ◐ | TS executor + redaction + all-cloud sanitized fixtures + dry-run/live smoke harness; real-key confirmations pending. |
 | Legal/notice | ☑ | Root AGPL-3.0 LICENSE, NOTICE, and docs/ATTRIBUTION.md are present. |
 | Web GUI / WARCUT | ☐ | Long-term product surface. |
-| Runtimes manager | ◐ | ComfyUI/A1111 health, install/launch dry-runs, env writers, and generated scripts exist; Piper/Whisper/model inventory pending. |
+| Runtimes manager | ◐ | ComfyUI/A1111/Piper/Faster Whisper/Transformers.js health, dry-run install/launch plans, env writers, generated scripts, and model/cache inventory exist; web GUI integration pending. |
 
 ## A. Composition And Render Engines
 

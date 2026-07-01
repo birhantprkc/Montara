@@ -30,6 +30,7 @@ import {
   managedRuntimePlan,
   runtimeStatusReport,
   runtimeInstallPlan,
+  runtimeModelInventory,
   writeRuntimeEnv,
   writeRuntimeScript,
   type RuntimeId,
@@ -505,8 +506,8 @@ function buildMontaraStatusReport(): MontaraStatusReport {
       id: "runtime-manager",
       label: "Runtime manager / web GUI",
       status: "partial",
-      evidence: [`${listRuntimes().length} local generation runtimes registered`, "managed install/launch recipes are available with explicit --execute"],
-      next: "Extend runtime manager to Piper/Whisper and model inventory after ComfyUI/A1111 recipes stabilize.",
+      evidence: [`${listRuntimes().length} local runtimes registered`, "managed install/launch recipes and model/cache inventory are available without bundling weights"],
+      next: "Surface runtime health and inventory in the future web GUI; keep live installs opt-in with --execute.",
     },
   ];
   const counts = statusCounts(capabilities);
@@ -653,10 +654,29 @@ async function runRuntimesCommand(rest: string[]): Promise<number> {
   const probe = !rest.includes("--no-probe");
   const rootDir = optionValue(rest, "--root");
   const execute = rest.includes("--execute");
+  const runtimeIds = "comfyui|a1111|piper|faster-whisper|transformersjs";
+  if (sub === "inventory" || sub === "models") {
+    const inventory = runtimeModelInventory();
+    const out = optionValue(rest, "--out");
+    if (out) {
+      mkdirSync(dirname(out), { recursive: true });
+      writeFileSync(out, `${JSON.stringify(inventory, null, 2)}\n`);
+    }
+    if (json) {
+      console.log(JSON.stringify(inventory, null, 2));
+    } else {
+      console.log(`runtime model inventory: ${inventory.items.filter((item) => item.configured).length}/${inventory.items.length} configured`);
+      for (const item of inventory.items) {
+        console.log(`  ${item.runtimeId.padEnd(16)} ${item.id.padEnd(28)} ${item.configured ? item.path : "not configured"}`);
+      }
+      if (out) console.log(`inventory -> ${out}`);
+    }
+    return 0;
+  }
   if (sub === "install-plan") {
     const id = positionalArgs(rest).slice(1)[0] as RuntimeId | undefined;
     if (!id) {
-      console.error("usage: montara runtimes install-plan <comfyui|a1111>");
+      console.error(`usage: montara runtimes install-plan <${runtimeIds}>`);
       return 1;
     }
     const steps = runtimeInstallPlan(id);
@@ -675,7 +695,7 @@ async function runRuntimesCommand(rest: string[]): Promise<number> {
   if (sub === "plan" || sub === "install" || sub === "launch" || sub === "write-env" || sub === "write-script") {
     const id = positionalArgs(rest).slice(1)[0] as RuntimeId | undefined;
     if (!id) {
-      console.error("usage: montara runtimes <plan|install|launch|write-env|write-script> <comfyui|a1111> [--root dir] [--json] [--execute]");
+      console.error(`usage: montara runtimes <plan|install|launch|write-env|write-script> <${runtimeIds}> [--root dir] [--json] [--execute]`);
       return 1;
     }
     if (sub === "plan") {
@@ -724,8 +744,8 @@ async function runRuntimesCommand(rest: string[]): Promise<number> {
     return result.ok ? 0 : 1;
   }
   if (sub !== "status" && sub !== "doctor" && sub !== "health") {
-    console.error("usage: montara runtimes [status|doctor|health] [--json] [--out path] [--no-probe]");
-    console.error("       montara runtimes <plan|install|launch|write-env|write-script|install-plan> <comfyui|a1111>");
+    console.error("usage: montara runtimes [status|doctor|health|inventory] [--json] [--out path] [--no-probe]");
+    console.error(`       montara runtimes <plan|install|launch|write-env|write-script|install-plan> <${runtimeIds}>`);
     return 1;
   }
   const report = await runtimeStatusReport({ probe });
@@ -739,7 +759,7 @@ async function runRuntimesCommand(rest: string[]): Promise<number> {
   } else {
     console.log(`runtimes: ${report.summary.reachable}/${report.summary.total} reachable, ${report.summary.configured} configured`);
     for (const runtime of report.runtimes) {
-      console.log(`  ${runtime.id.padEnd(8)} ${runtime.status.padEnd(14)} ${runtime.url}`);
+      console.log(`  ${runtime.id.padEnd(16)} ${runtime.status.padEnd(14)} ${runtime.url}`);
       if (runtime.error) console.log(`           ${runtime.error}`);
     }
     if (out) console.log(`report -> ${out}`);
@@ -2049,7 +2069,8 @@ function printHelp(): void {
 Commands:
   doctor [--fix]                  check local render prerequisites + Python engine; print setup guide with --fix
   status [--json] [--out path]     summarize local capability, gates, and upstream parity categories
-  runtimes status [--json]         health check external ComfyUI/A1111 localhost runtimes
+  runtimes status [--json]         health check external ComfyUI/A1111/Piper/Whisper/Transformers.js runtimes
+  runtimes inventory [--json]      report configured model/cache paths without scanning or downloading
   runtimes plan <id>               show managed install + launch recipes
   runtimes install <id>            dry-run install recipe; pass --execute to run outside repo
   runtimes launch <id>             dry-run launch recipe; pass --execute to start detached

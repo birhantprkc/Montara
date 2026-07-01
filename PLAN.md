@@ -36,8 +36,8 @@ and quality gates that block broken delivery — **without** needing OpenMontage
 
 ```bash
 pnpm typecheck
-pnpm verify      # contract tests (~307+ assertions; see scripts/verify.ts)
-pnpm validate    # end-to-end flows (~91 assertions; real MP4 on disk)
+pnpm verify      # contract tests (~310+ assertions; see scripts/verify.ts)
+pnpm validate    # end-to-end flows (~92 assertions; real MP4 on disk)
 python -m pytest tests
 ```
 
@@ -74,7 +74,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **LICENSE / NOTICE** | ☑ | Root AGPL-3.0 LICENSE + NOTICE + docs/ATTRIBUTION.md |
 | **Web GUI** | ☐ | `packages/web` scaffold only |
 | **WARCUT desktop** | ☐ | Not started |
-| **`runtimes` manager** | ◐ | ComfyUI/A1111 health, safe install/launch dry-runs, env writers, and script generation shipped; Piper/Whisper/model inventory pending |
+| **`runtimes` manager** | ◐ | ComfyUI/A1111/Piper/Faster Whisper/Transformers.js health, safe install/launch dry-runs, env writers, scripts, and model/cache inventory shipped; web GUI integration pending |
 | **Public demo gallery** | ☑ | README + `docs/DEMOS.md` + curated `assets/` proofs |
 
 ### Competitive score vs OpenMontage (today)
@@ -135,7 +135,7 @@ Complete these to **win everywhere**, not just tie:
 | M3 | **Pro-editor import** (round-trip edit in Premiere/DaVinci/FCP) | ☑ | No |
 | M4 | **`montara` CLI** as first-class entry (not agent-only) | ◐ | No |
 | M5 | **Local LLM orchestrator** (`montara make` via Ollama/LM Studio) | ◐ | No (planned upstream) |
-| M6 | **`runtimes` manager** (one-click ComfyUI/A1111/Piper/Whisper) | ◐ | ComfyUI/A1111 manager shipped; Piper/Whisper/model inventory pending |
+| M6 | **`runtimes` manager** (one-click ComfyUI/A1111/Piper/Whisper) | ◐ | ComfyUI/A1111/Piper/Faster Whisper/Transformers.js dry-run manager + model inventory shipped; GUI integration pending |
 | M7 | **Web GUI** (`montara serve`) | ☐ | No |
 | M8 | **WARCUT desktop GUI** on same IR | ☐ | No |
 | M9 | **Runtime honesty layer** (maturity labels, ARCHITECTURE truth) | ☑ | No |
@@ -357,7 +357,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 
 | ID | Task | Status | Acceptance |
 |----|------|--------|------------|
-| 5.1 | `packages/runtimes` — ComfyUI/A1111 install/health | ☑ | Health/status, install/launch dry-runs, opt-in `--execute`, env writers, and script generation shipped |
+| 5.1 | `packages/runtimes` — ComfyUI/A1111/Piper/Whisper/Transformers.js install/health | ☑ | Health/status, install/launch dry-runs, opt-in `--execute`, env writers, script generation, and model/cache inventory shipped |
 | 5.2 | `packages/sdk` public API | ☐ | Same as CLI capabilities |
 | 5.3 | `packages/web` — `montara serve` timeline editor | ☐ | Edits IR, triggers render |
 | 5.4 | WARCUT desktop GUI on IR | ☐ | Separate repo or monorepo package |
@@ -451,6 +451,7 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 4.9 | Compare report automation (`montara status` vs upstream) | done |
 | ✅ | 5.1A | `packages/runtimes` ComfyUI/A1111 health + install guidance | done |
 | ✅ | 5.1B | Managed install/launch automation for ComfyUI/A1111 | done |
+| ✅ | 5.1C | Add Piper, Faster Whisper, Transformers.js runtime plans + model/cache inventory | done |
 | ✅ | 1B.06 | `documentary-montage` offline stock-footage MP4 validate path | done |
 | ✅ | 1B.10 | `screen-demo` offline MP4 validate path using capture artifacts | done |
 | ✅ | 2.2 | Remotion default Timeline routing instead of smoke-only proof | done |

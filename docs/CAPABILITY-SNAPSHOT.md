@@ -36,17 +36,19 @@ Snapshot date: 2026-07-01.
   `skills/meta/documentary-evidence-craft.md`; `warfront-craft.md` is a compatibility alias.
 - **Layer 3 skills:** 69 installed `.agents/skills` packs covering GSAP, HyperFrames, Three.js,
   Manim, FFmpeg, video understanding, music, speech, Playwright, visual style, and character animation.
-- **Runtime manager:** `@montara/runtimes` registers ComfyUI and A1111, reports localhost
-  health, emits managed install/launch dry-runs, writes env hints/scripts, and only executes
-  external setup when the caller passes `--execute`.
+- **Runtime manager:** `@montara/runtimes` registers ComfyUI, A1111, Piper,
+  Faster Whisper, and Transformers.js, reports health, emits managed
+  install/launch dry-runs, writes env hints/scripts, inventories configured
+  model/cache paths, and only executes external setup when the caller passes
+  `--execute`.
 
 ## Latest Gates
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 307 passed, 0 failed |
-| `npm.cmd run validate` | 91 passed, 0 failed |
+| `npm.cmd run verify` | 310 passed, 0 failed |
+| `npm.cmd run validate` | 92 passed, 0 failed |
 | `python -m pytest tests` | 379 passed, 8 skipped |
 
 ## Example Outputs
@@ -64,7 +66,8 @@ Snapshot date: 2026-07-01.
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
 | Montara status report | `out/validate-montara-status.json` | CLI compare report for local capability and upstream parity |
-| Runtime health report | `out/validate-runtimes-status.json` | CLI report for ComfyUI/A1111 external runtime health |
+| Runtime health report | `out/validate-runtimes-status.json` | CLI report for ComfyUI/A1111/Piper/Faster Whisper/Transformers.js external runtime health |
+| Runtime model inventory | `out/validate-runtime-inventory.json` | Configured model/cache path inventory; no directory scan or model download |
 | Runtime manager script | `out/validate-comfyui-install.ps1` | Generated safe install script from the dry-run manager |
 | Documentary corpus montage | `out/validate-documentary-montage.mp4` | Offline fixture corpus -> Python `clip_search` -> `video_compose` |
 | 60s documentary open-stock proof | `out/validate-documentary-open-stock-60s.mp4` | `seed-open-stock-proof` -> `clip_search.select_slots` -> `video_compose` |
@@ -89,7 +92,7 @@ expectations.
 | Spline | Planned registry entry only. |
 | FFmpeg | Fully working native renderer and fallback. |
 | Playwright | Browser capture with `montara capture`, login/storageState workflow, and deterministic completed-recording pickup; runtime-gated on Node Playwright install for live browser recording. |
-| ComfyUI / A1111 | Health/status, install/launch dry-runs, env writers, and generated scripts exist in `@montara/runtimes`; real setup is opt-in with `--execute`. |
+| ComfyUI / A1111 / Piper / Faster Whisper / Transformers.js | Health/status, install/launch dry-runs, env writers, generated scripts, and model/cache inventory exist in `@montara/runtimes`; real setup is opt-in with `--execute`. |
 
 ## Provider Executor Status
 

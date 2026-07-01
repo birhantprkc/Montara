@@ -487,13 +487,38 @@ try {
   runtimesReport = {};
 }
 const runtimeRows = runtimesReport.runtimes as { id?: string; status?: string; licenseBoundary?: string }[] | undefined;
-ok("runtimes CLI reports ComfyUI/A1111 health without requiring installs",
+ok("runtimes CLI reports ComfyUI/A1111/Piper/Whisper/Transformers.js health without requiring installs",
   runtimesCli.status === 0 &&
     existsSync(runtimesReportOut) &&
     Boolean(runtimeRows?.some((runtime) => runtime.id === "comfyui")) &&
     Boolean(runtimeRows?.some((runtime) => runtime.id === "a1111")) &&
-    Boolean(runtimeRows?.every((runtime) => typeof runtime.licenseBoundary === "string" && runtime.licenseBoundary.includes("External runtime"))),
+    Boolean(runtimeRows?.some((runtime) => runtime.id === "piper")) &&
+    Boolean(runtimeRows?.some((runtime) => runtime.id === "faster-whisper")) &&
+    Boolean(runtimeRows?.some((runtime) => runtime.id === "transformersjs")) &&
+    Boolean(runtimeRows?.every((runtime) => typeof runtime.licenseBoundary === "string" && runtime.licenseBoundary.includes("External"))),
   `status=${runtimesCli.status} stdout=${(runtimesCli.stdout || "").slice(-500)} stderr=${(runtimesCli.stderr || "").slice(-500)}`);
+
+const runtimeInventoryOut = join(outDir, "validate-runtime-inventory.json");
+try { rmSync(runtimeInventoryOut, { force: true }); } catch { /* none */ }
+const runtimeInventoryCli = spawnSync(npmBin, ["run", "montara", "--", "runtimes", "inventory", "--json", "--out", runtimeInventoryOut], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+let runtimeInventory: { items?: { id?: string; runtimeId?: string; configured?: boolean }[]; notes?: string[] } = {};
+try {
+  runtimeInventory = JSON.parse(readFileSync(runtimeInventoryOut, "utf8")) as typeof runtimeInventory;
+} catch {
+  runtimeInventory = {};
+}
+ok("runtimes CLI writes a model/cache inventory without scanning or downloading weights",
+  runtimeInventoryCli.status === 0 &&
+    existsSync(runtimeInventoryOut) &&
+    Boolean(runtimeInventory.items?.some((item) => item.id === "piper-voice" && item.runtimeId === "piper")) &&
+    Boolean(runtimeInventory.items?.some((item) => item.id === "transformers-cache" && item.runtimeId === "transformersjs")) &&
+    Boolean(runtimeInventory.notes?.some((note) => note.includes("does not scan"))),
+  `status=${runtimeInventoryCli.status} stdout=${(runtimeInventoryCli.stdout || "").slice(-500)} stderr=${(runtimeInventoryCli.stderr || "").slice(-500)}`);
 
 const runtimeRoot = join(outDir, "validate-runtime-root");
 const runtimeInstallCli = spawnSync(npmBin, ["run", "montara", "--", "runtimes", "install", "comfyui", "--json", "--root", runtimeRoot], {

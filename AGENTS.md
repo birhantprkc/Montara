@@ -33,6 +33,7 @@ montara plan "<idea>"          # just produce the EditPlan (inspect before rende
 montara render <ir.json>       # compile an IR to MP4 (pick --engine ffmpeg|revideo|three|...)
 montara hear <audio>           # voice/music analysis (loudness, warmth, pace) → scores JSON
 montara understand <video>     # frame/scene signalstats + optional local CLIP vision → understanding JSON
+montara runtimes inventory     # configured external model/cache paths; no downloads or scans
 montara serve                  # local web GUI
 montara export <ir.json> --to otio|fcpxml|edl   # bridge to Premiere/DaVinci/Final Cut
 pnpm verify                    # contract tests (must be green)
@@ -62,10 +63,11 @@ Text reasoning routes to: **llama.cpp** (in-process GGUF), **Ollama** (:11434), 
 ## Generation is pluggable (`runtimes/` — the Pinokio layer)
 
 Image/video models do **not** run on llama.cpp. `runtimes/` installs/launches **ComfyUI** (GPL)
-and **A1111** (AGPL) as external local servers and talks to them over **localhost APIs** →
-**offline** SD/SDXL/FLUX + WAN/Hunyuan/CogVideo/LTX. Cloud (FLUX/Runway/Veo) is the same
-`providers` interface. Never block a run on local setup — fall back to cloud or to a designed
-caption/typography scene.
+and **A1111** (AGPL) as external local servers and also tracks command/package runtimes such as
+**Piper**, **Faster Whisper**, and **Transformers.js**. Model weights and voice files stay outside
+this repo; `montara runtimes inventory` only reports configured paths. Cloud (FLUX/Runway/Veo) is
+the same `providers` interface. Never block a run on local setup — fall back to cloud or to a
+designed caption/typography scene.
 
 ## Render adapters
 

@@ -32,7 +32,7 @@ Montara should be honest with users and agents:
 | Screen recording | FFmpeg desktop capture, Cap pickup, deterministic capture-artifact pickup, and `montara capture` Playwright browser recording with user-login storageState. |
 | Cloud providers | Request builders exist for BYOK use. Keep them audited against official provider docs before live execution. |
 | Status reporting | `montara status --json --out out/montara-status.json` summarizes local capability, latest documented gates, and upstream parity categories. |
-| Local generation runtimes | `montara runtimes status` reports ComfyUI/A1111 health; `montara runtimes plan/install/launch/write-env/write-script` provides safe dry-runs, env hints, scripts, and opt-in `--execute` outside the repo. |
+| Local generation runtimes | `montara runtimes status` reports ComfyUI/A1111/Piper/Faster Whisper/Transformers.js health; `runtimes inventory` reports model/cache paths; plan/install/launch/write-env/write-script stay dry-run unless `--execute` is passed. |
 
 For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
 [docs/MONTARA-PARITY.md](./docs/MONTARA-PARITY.md).
@@ -43,6 +43,7 @@ For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
 montara doctor
 montara status --out out/montara-status.json
 montara runtimes status --json --out out/runtimes-status.json
+montara runtimes inventory --json --out out/runtime-inventory.json
 montara runtimes plan comfyui
 montara plan "Make a 45-second explainer about why the sky is blue"
 montara make "Make a 45-second explainer about why the sky is blue"
@@ -81,6 +82,7 @@ current reproducible demos to inspect before trusting a workflow:
 | Screen-demo capture proof | `npm.cmd run validate` | `out/validate-screen-demo.mp4` + `out/validate-screen-demo-capture.mp4` | `capture pick-latest --recordings-dir` -> `video_compose` | `$0` |
 | Render auto handoff | `npm.cmd run montara -- render out/validate-compose-core.timeline.json out/validate-render-cli.mp4` | `out/validate-render-cli.mp4` + `.edl/.otio/.fcpxml` | One Timeline IR -> MP4 + editor bridge by default | `$0` |
 | Source understanding | `npm.cmd run montara -- understand out/validate-compose-core.mp4 --vision off --out out/validate-understanding.json --json` | `out/validate-understanding.json` | Model-aware understanding JSON with signalstats fallback; CLIP when opt-in runtime is installed | `$0` |
+| Runtime model inventory | `npm.cmd run montara -- runtimes inventory --json --out out/validate-runtime-inventory.json` | `out/validate-runtime-inventory.json` | External model/cache path inventory without scanning or downloading weights | `$0` |
 | Editor handoff | `npm.cmd run montara -- export out/validate-compose-core.timeline.json --to otio out/validate-compose-core.otio` | OTIO/EDL/FCPXML files on demand | Explicit one-format export for pro-editor handoff | `$0` |
 | Corpus/source discovery | `npm.cmd run montara -- corpus sources` | source-provider menu in stdout | Python `corpus_builder` discovery, no download required | `$0` |
 | Auth browser capture | `npm.cmd run montara -- capture login --url https://example.com` then `capture --url ...` | `out/browser-capture.mp4` | Playwright recording with user-owned storageState | `$0`, runtime-gated |
@@ -99,13 +101,13 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 1G model-aware understanding sync:
+Latest local gate snapshot from the Stage 1 runtime-manager expansion:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 307 passed, 0 failed |
-| `npm.cmd run validate` | 91 passed, 0 failed |
+| `npm.cmd run verify` | 310 passed, 0 failed |
+| `npm.cmd run validate` | 92 passed, 0 failed |
 | `python -m pytest tests` | 379 passed, 8 skipped |
 
 ## Agent Entry Points

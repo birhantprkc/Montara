@@ -7,15 +7,18 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-export type RuntimeId = "comfyui" | "a1111";
+export type RuntimeId = "comfyui" | "a1111" | "piper" | "faster-whisper" | "transformersjs";
 export type RuntimeStatus = "reachable" | "configured" | "not-configured" | "unreachable";
 export type RuntimePlanMode = "install" | "launch";
 export type RuntimePlatform = string;
+export type RuntimeProbeKind = "http" | "command" | "python-package" | "node-package";
+export type RuntimeKind = "image-video" | "image" | "audio-tts" | "transcription" | "vision-models";
 
 export interface RuntimeDefinition {
   id: RuntimeId;
   name: string;
-  kind: "image-video" | "image";
+  kind: RuntimeKind;
+  probeKind: RuntimeProbeKind;
   defaultUrl: string;
   envVar: string;
   providerEnv: string;
@@ -25,6 +28,8 @@ export interface RuntimeDefinition {
   installSteps: string[];
   repoUrl: string;
   defaultPort: number;
+  packageName?: string;
+  command?: string;
 }
 
 export interface RuntimeHealth {
@@ -52,6 +57,23 @@ export interface RuntimeStatusReport {
     missing: number;
   };
   runtimes: RuntimeHealth[];
+  notes: string[];
+}
+
+export interface RuntimeModelInventoryItem {
+  id: string;
+  runtimeId: RuntimeId;
+  kind: "model-directory" | "model-file" | "cache-directory" | "voice-model" | "package-cache";
+  envVar: string;
+  path?: string;
+  configured: boolean;
+  purpose: string;
+  installHint: string;
+}
+
+export interface RuntimeModelInventory {
+  generatedAt: string;
+  items: RuntimeModelInventoryItem[];
   notes: string[];
 }
 
@@ -103,6 +125,7 @@ export const RUNTIMES: RuntimeDefinition[] = [
     id: "comfyui",
     name: "ComfyUI",
     kind: "image-video",
+    probeKind: "http",
     defaultUrl: "http://127.0.0.1:8188",
     envVar: "COMFYUI_URL",
     providerEnv: "COMFYUI_URL",
@@ -122,6 +145,7 @@ export const RUNTIMES: RuntimeDefinition[] = [
     id: "a1111",
     name: "AUTOMATIC1111 Stable Diffusion WebUI",
     kind: "image",
+    probeKind: "http",
     defaultUrl: "http://127.0.0.1:7860",
     envVar: "A1111_URL",
     providerEnv: "A1111_URL",
@@ -136,6 +160,72 @@ export const RUNTIMES: RuntimeDefinition[] = [
     ],
     repoUrl: "https://github.com/AUTOMATIC1111/stable-diffusion-webui.git",
     defaultPort: 7860,
+  },
+  {
+    id: "piper",
+    name: "Piper TTS",
+    kind: "audio-tts",
+    probeKind: "command",
+    defaultUrl: "piper",
+    envVar: "PIPER_BIN",
+    providerEnv: "PIPER_BIN",
+    healthPath: "",
+    licenseBoundary: "External command runtime. Keep Piper binaries and voice models outside this repo.",
+    unlocks: ["local offline narration", "zero-key voice placeholders with real TTS when voices are installed"],
+    installSteps: [
+      "Install Piper externally with pipx, uv, a binary release, or a dedicated venv.",
+      "Download voice model files separately and keep their licenses with the project assets.",
+      "Set PIPER_BIN to the piper executable path when it is not on PATH.",
+      "Run montara runtimes status to confirm the command is available.",
+    ],
+    repoUrl: "https://github.com/rhasspy/piper.git",
+    defaultPort: 0,
+    packageName: "piper-tts",
+    command: "piper",
+  },
+  {
+    id: "faster-whisper",
+    name: "Faster Whisper",
+    kind: "transcription",
+    probeKind: "python-package",
+    defaultUrl: "python:faster_whisper",
+    envVar: "MONTARA_WHISPER_PYTHON",
+    providerEnv: "MONTARA_WHISPER_PYTHON",
+    healthPath: "",
+    licenseBoundary: "External Python package and model cache. Do not commit downloaded Whisper weights.",
+    unlocks: ["local transcription", "transcript-timed Shorts cuts", "source-media understanding with speech timing"],
+    installSteps: [
+      "Create a Python environment outside the Montara repo.",
+      "Install faster-whisper into that environment.",
+      "Set MONTARA_WHISPER_PYTHON to the Python executable when it is not the default python.",
+      "Keep model caches outside git and record model/license choices per project.",
+    ],
+    repoUrl: "https://github.com/SYSTRAN/faster-whisper.git",
+    defaultPort: 0,
+    packageName: "faster_whisper",
+    command: "python",
+  },
+  {
+    id: "transformersjs",
+    name: "Transformers.js Vision Models",
+    kind: "vision-models",
+    probeKind: "node-package",
+    defaultUrl: "node:@huggingface/transformers",
+    envVar: "MONTARA_VISION_MODELS",
+    providerEnv: "MONTARA_VISION_MODELS",
+    healthPath: "",
+    licenseBoundary: "External npm package and Hugging Face model cache. Do not commit model weights.",
+    unlocks: ["local CLIP frame classification", "optional BLIP/image-to-text captions", "model-aware source understanding"],
+    installSteps: [
+      "Install @huggingface/transformers or @xenova/transformers in the local toolchain.",
+      "Set MONTARA_VISION_MODELS=1 only when model downloads/cache access are allowed.",
+      "Set MONTARA_CLIP_MODEL and MONTARA_CAPTION_MODEL when using specific cached weights.",
+      "Keep Hugging Face caches outside git and record model cards for publication workflows.",
+    ],
+    repoUrl: "https://github.com/huggingface/transformers.js.git",
+    defaultPort: 0,
+    packageName: "@huggingface/transformers",
+    command: "node",
   },
 ];
 
@@ -195,6 +285,21 @@ function shLine(cmd: RuntimeCommand): string {
 function installCommands(runtime: RuntimeDefinition, runtimeDir: string, platform: RuntimePlatform): RuntimeCommand[] {
   const py = pythonBin(runtimeDir, platform);
   const commands: RuntimeCommand[] = [];
+  if (runtime.id === "piper") {
+    commands.push(shellCommand("python", ["-m", "venv", ".venv"], runtimeDir));
+    commands.push(shellCommand(py, ["-m", "pip", "install", "piper-tts"], runtimeDir));
+    return commands;
+  }
+  if (runtime.id === "faster-whisper") {
+    commands.push(shellCommand("python", ["-m", "venv", ".venv"], runtimeDir));
+    commands.push(shellCommand(py, ["-m", "pip", "install", "faster-whisper"], runtimeDir));
+    return commands;
+  }
+  if (runtime.id === "transformersjs") {
+    commands.push(shellCommand("npm", ["init", "-y"], runtimeDir));
+    commands.push(shellCommand("npm", ["install", "@huggingface/transformers"], runtimeDir));
+    return commands;
+  }
   if (!existsSync(runtimeDir)) {
     commands.push({ label: `clone ${runtime.name}`, command: "git", args: ["clone", "--depth=1", runtime.repoUrl, runtimeDir] });
   }
@@ -208,12 +313,41 @@ function installCommands(runtime: RuntimeDefinition, runtimeDir: string, platfor
 }
 
 function launchCommands(runtime: RuntimeDefinition, runtimeDir: string, platform: RuntimePlatform): RuntimeCommand[] {
+  if (runtime.probeKind !== "http") return [];
   if (runtime.id === "a1111") {
     return platform === "win32"
       ? [shellCommand("cmd", ["/c", "webui.bat", "--api", "--listen", "--port", String(runtime.defaultPort)], runtimeDir)]
       : [shellCommand("./webui.sh", ["--api", "--listen", "--port", String(runtime.defaultPort)], runtimeDir)];
   }
   return [shellCommand(pythonBin(runtimeDir, platform), ["main.py", "--listen", "127.0.0.1", "--port", String(runtime.defaultPort)], runtimeDir)];
+}
+
+function probeCommand(command: string): { ok: boolean; error?: string } {
+  const result = spawnSync(command, ["--help"], {
+    encoding: "utf8",
+    stdio: "pipe",
+    shell: process.platform === "win32" && !command.toLowerCase().endsWith(".exe"),
+  });
+  if (result.status === 0) return { ok: true };
+  return { ok: false, error: (result.stderr || result.stdout || result.error?.message || `exit ${result.status}`).trim().slice(-600) };
+}
+
+function probePythonPackage(python: string, packageName: string): { ok: boolean; error?: string } {
+  const result = spawnSync(python, [
+    "-c",
+    `import importlib.util, sys; sys.exit(0 if importlib.util.find_spec(${JSON.stringify(packageName)}) else 1)`,
+  ], { encoding: "utf8", stdio: "pipe" });
+  if (result.status === 0) return { ok: true };
+  return { ok: false, error: (result.stderr || result.stdout || result.error?.message || `${packageName} not importable`).trim().slice(-600) };
+}
+
+function probeNodePackage(packageName: string): { ok: boolean; error?: string } {
+  const result = spawnSync("node", [
+    "-e",
+    `try { require.resolve(${JSON.stringify(packageName)}); process.exit(0); } catch (e) { process.exit(1); }`,
+  ], { encoding: "utf8", stdio: "pipe", cwd: process.cwd() });
+  if (result.status === 0) return { ok: true };
+  return { ok: false, error: (result.stderr || result.stdout || result.error?.message || `${packageName} not resolvable`).trim().slice(-600) };
 }
 
 export function managedRuntimePlan(
@@ -260,16 +394,19 @@ export function writeRuntimeEnv(plan: ManagedRuntimePlan, outPath: string): stri
 export function writeRuntimeScript(plan: ManagedRuntimePlan, outPath: string): string {
   mkdirSync(dirname(outPath), { recursive: true });
   const isPs1 = /\.ps1$/i.test(outPath);
+  const needsRuntimeDir = plan.id === "piper" || plan.id === "faster-whisper" || plan.id === "transformersjs";
   const lines = isPs1
     ? [
         "$ErrorActionPreference = 'Stop'",
         `New-Item -ItemType Directory -Force -Path ${psQuote(plan.rootDir)} | Out-Null`,
+        ...(needsRuntimeDir ? [`New-Item -ItemType Directory -Force -Path ${psQuote(plan.runtimeDir)} | Out-Null`] : []),
         ...plan.commands.map((cmd) => cmd.cwd ? `Push-Location ${psQuote(cmd.cwd)}; try { ${psLine(cmd)} } finally { Pop-Location }` : psLine(cmd)),
       ]
     : [
         "#!/usr/bin/env bash",
         "set -euo pipefail",
         `mkdir -p ${shQuote(plan.rootDir)}`,
+        ...(needsRuntimeDir ? [`mkdir -p ${shQuote(plan.runtimeDir)}`] : []),
         ...plan.commands.map((cmd) => cmd.cwd ? `(cd ${shQuote(cmd.cwd)} && ${shLine(cmd)})` : shLine(cmd)),
       ];
   writeFileSync(outPath, `${lines.join("\n")}\n`);
@@ -291,6 +428,9 @@ export function installRuntime(id: RuntimeId, opts: RuntimeManagerOptions = {}):
   const plan = managedRuntimePlan(id, "install", opts);
   if (!opts.execute) return { ok: true, plan, executed: false };
   mkdirSync(plan.rootDir, { recursive: true });
+  if (plan.id === "piper" || plan.id === "faster-whisper" || plan.id === "transformersjs") {
+    mkdirSync(plan.runtimeDir, { recursive: true });
+  }
   for (const command of plan.commands) {
     const result = runCommand(command);
     if (!result.ok) return { ok: false, plan: { ...plan, executed: true }, executed: true, error: result.error };
@@ -360,11 +500,105 @@ export async function probeRuntime(
     licenseBoundary: runtime.licenseBoundary,
   };
   if (!opts.probe) return base;
+  if (runtime.probeKind === "command") {
+    const command = env[runtime.envVar] || runtime.command || runtime.defaultUrl;
+    const result = probeCommand(command);
+    if (result.ok) return { ...base, status: "reachable", reachable: true, url: command };
+    return { ...base, status: configured ? "unreachable" : "not-configured", url: command, error: result.error };
+  }
+  if (runtime.probeKind === "python-package") {
+    const python = env[runtime.envVar] || "python";
+    const result = probePythonPackage(python, runtime.packageName ?? runtime.id);
+    if (result.ok) return { ...base, status: "reachable", reachable: true, url: python };
+    return { ...base, status: configured ? "unreachable" : "not-configured", url: python, error: result.error };
+  }
+  if (runtime.probeKind === "node-package") {
+    const packages = runtime.id === "transformersjs"
+      ? ["@huggingface/transformers", "@xenova/transformers"]
+      : [runtime.packageName ?? runtime.id];
+    const result = packages.map((packageName) => probeNodePackage(packageName)).find((probe) => probe.ok) ??
+      { ok: false, error: `${packages.join(" or ")} not resolvable` };
+    if (result.ok) return { ...base, status: "reachable", reachable: true };
+    return { ...base, status: configured ? "unreachable" : "not-configured", error: result.error };
+  }
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
   if (!fetchImpl) return { ...base, status: configured ? "configured" : "not-configured", error: "fetch unavailable in this Node runtime" };
   const result = await probeUrl(`${url}${runtime.healthPath}`, opts.timeoutMs ?? 1200, fetchImpl);
   if (result.ok) return { ...base, status: "reachable", reachable: true };
   return { ...base, status: configured ? "unreachable" : "not-configured", error: result.error };
+}
+
+function inventoryItem(
+  env: Record<string, string | undefined>,
+  item: Omit<RuntimeModelInventoryItem, "path" | "configured">,
+): RuntimeModelInventoryItem {
+  const path = env[item.envVar];
+  return {
+    ...item,
+    path,
+    configured: Boolean(path),
+  };
+}
+
+export function runtimeModelInventory(env: Record<string, string | undefined> = process.env): RuntimeModelInventory {
+  return {
+    generatedAt: new Date().toISOString(),
+    items: [
+      inventoryItem(env, {
+        id: "comfyui-models",
+        runtimeId: "comfyui",
+        kind: "model-directory",
+        envVar: "COMFYUI_MODEL_DIR",
+        purpose: "ComfyUI checkpoints, LoRAs, VAE, ControlNet, and video model folders.",
+        installHint: "Keep ComfyUI models under the external runtime directory or set COMFYUI_MODEL_DIR to the active models folder.",
+      }),
+      inventoryItem(env, {
+        id: "a1111-models",
+        runtimeId: "a1111",
+        kind: "model-directory",
+        envVar: "A1111_MODEL_DIR",
+        purpose: "AUTOMATIC1111 Stable Diffusion checkpoint and extension model folders.",
+        installHint: "Keep A1111 models outside git and set A1111_MODEL_DIR when the WebUI uses a non-default models folder.",
+      }),
+      inventoryItem(env, {
+        id: "piper-voice",
+        runtimeId: "piper",
+        kind: "voice-model",
+        envVar: "PIPER_VOICE",
+        purpose: "Local Piper voice model selected for zero-key narration.",
+        installHint: "Download a Piper voice .onnx and matching config externally, then set PIPER_VOICE to the model path.",
+      }),
+      inventoryItem(env, {
+        id: "whisper-model-cache",
+        runtimeId: "faster-whisper",
+        kind: "cache-directory",
+        envVar: "WHISPER_CACHE_DIR",
+        purpose: "Faster Whisper model cache for local transcription and sentence-safe shorts cuts.",
+        installHint: "Set WHISPER_CACHE_DIR or HF_HOME to a user cache path; never commit downloaded speech models.",
+      }),
+      inventoryItem(env, {
+        id: "transformers-cache",
+        runtimeId: "transformersjs",
+        kind: "package-cache",
+        envVar: "HF_HOME",
+        purpose: "Transformers.js CLIP/BLIP model cache for model-aware source understanding.",
+        installHint: "Set HF_HOME or TRANSFORMERS_CACHE to an external cache path before enabling MONTARA_VISION_MODELS=1.",
+      }),
+      inventoryItem(env, {
+        id: "transformers-cache-legacy",
+        runtimeId: "transformersjs",
+        kind: "package-cache",
+        envVar: "TRANSFORMERS_CACHE",
+        purpose: "Alternate Transformers.js cache location used by some local setups.",
+        installHint: "Prefer HF_HOME for new setups; keep all model cache paths outside the repo.",
+      }),
+    ],
+    notes: [
+      "This inventory reports configured paths only; it does not scan large model directories.",
+      "Model files and voice weights remain external assets with their own licenses.",
+      "Generated projects should record concrete model names and license/source cards beside final renders.",
+    ],
+  };
 }
 
 export async function runtimeStatusReport(opts: RuntimeStatusOptions = {}): Promise<RuntimeStatusReport> {
@@ -383,7 +617,7 @@ export async function runtimeStatusReport(opts: RuntimeStatusOptions = {}): Prom
     },
     runtimes,
     notes: [
-      "Montara invokes local generation runtimes over localhost APIs.",
+      "Montara invokes local generation runtimes over localhost APIs or external local commands/packages.",
       "No runtime source, model weights, or secrets are bundled in this repo.",
       "Unavailable runtimes must not block a video; fall back to local FFmpeg/design scenes or BYOK providers.",
     ],

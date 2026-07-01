@@ -57,6 +57,8 @@ path first:
 - `montara hear <audio>` for loudness, pace, energy, and voice/music cues.
 - scene detection, transcript timing, source review, and frame sampling when available.
 - `skills/meta/video-reference-analyst.md` for "make something like this" requests.
+- `montara runtimes inventory --json` before enabling local model-dependent
+  paths, so model/cache locations and licensing notes are explicit.
 
 Distinguish carefully:
 
@@ -551,6 +553,7 @@ Agents should prefer the public CLI when it exists:
 | Python compose artifact render | `montara compose <edit-decisions.json> [out.mp4] [--assets asset-manifest.json]` |
 | stock/corpus discovery and retrieval | `montara corpus sources|build|search|stats|get` |
 | provider audit / smoke | `montara providers audit` and `montara providers smoke <provider-id> [--live]` |
+| runtime model/cache inventory | `montara runtimes inventory --json` |
 | editor handoff | `montara export <timeline.json> --to otio|fcpxml|edl [out]` |
 | engine inventory | `montara engines` |
 | Python engine bridge | `montara engine info|smoke|providers|timeline|render` |

@@ -161,7 +161,7 @@ import {
 import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck, engineCompliance } from "../packages/engine/src/index";
 import { blenderAvailable, blenderBin } from "../packages/render-blender/src/index";
 import { analyzeMusic, findDialogueByVoice, planSceneMappedMusic, speakerIntelligenceStatus, voiceIdAvailable } from "../packages/hear/src/index";
-import { installRuntime, launchRuntime, listRuntimes, managedRuntimePlan, runtimeEnvHints, runtimeInstallPlan, runtimeStatusReport, writeRuntimeEnv } from "../packages/runtimes/src/index";
+import { installRuntime, launchRuntime, listRuntimes, managedRuntimePlan, runtimeEnvHints, runtimeInstallPlan, runtimeModelInventory, runtimeStatusReport, writeRuntimeEnv, writeRuntimeScript } from "../packages/runtimes/src/index";
 import {
   renderPipelineManifest,
   validateJson,
@@ -1181,28 +1181,44 @@ ok("blenderBin resolves a concrete binary when installed", blenderAvailable() ? 
 
 console.log("\n== Local generation runtimes (5.1) ==");
 const localRuntimes = listRuntimes();
-ok("runtime registry includes ComfyUI and A1111 without bundling them", (() => {
+ok("runtime registry includes ComfyUI, A1111, Piper, Faster Whisper, and Transformers.js without bundling them", (() => {
   const ids = localRuntimes.map((runtime) => runtime.id);
   return ids.includes("comfyui") &&
     ids.includes("a1111") &&
-    localRuntimes.every((runtime) => /External runtime/.test(runtime.licenseBoundary));
+    ids.includes("piper") &&
+    ids.includes("faster-whisper") &&
+    ids.includes("transformersjs") &&
+    localRuntimes.every((runtime) => /External/.test(runtime.licenseBoundary));
 })());
 ok("runtime env hints map local APIs to provider env vars", (() => {
-  const hints = runtimeEnvHints({ COMFYUI_URL: "http://127.0.0.1:8188", A1111_URL: "http://127.0.0.1:7860" });
-  return hints.comfyui === "http://127.0.0.1:8188" && hints.a1111 === "http://127.0.0.1:7860";
+  const hints = runtimeEnvHints({ COMFYUI_URL: "http://127.0.0.1:8188", A1111_URL: "http://127.0.0.1:7860", PIPER_BIN: "piper.exe" });
+  return hints.comfyui === "http://127.0.0.1:8188" && hints.a1111 === "http://127.0.0.1:7860" && hints.piper === "piper.exe";
 })());
 ok("runtime install plans are guidance-only and keep setup external", (() => {
   const comfy = runtimeInstallPlan("comfyui").join(" ");
   const a1111 = runtimeInstallPlan("a1111").join(" ");
-  return comfy.includes("Install ComfyUI externally") && a1111.includes("Install AUTOMATIC1111 externally");
+  const piper = runtimeInstallPlan("piper").join(" ");
+  const whisper = runtimeInstallPlan("faster-whisper").join(" ");
+  return comfy.includes("Install ComfyUI externally") &&
+    a1111.includes("Install AUTOMATIC1111 externally") &&
+    piper.includes("Install Piper externally") &&
+    whisper.includes("faster-whisper");
 })());
 const runtimeNoProbe = await runtimeStatusReport({ probe: false, env: {} });
-ok("runtime status report degrades without probing or configured env", runtimeNoProbe.summary.total === 2 && runtimeNoProbe.summary.missing === 2 && runtimeNoProbe.runtimes.every((runtime) => runtime.status === "not-configured"));
+ok("runtime status report degrades without probing or configured env", runtimeNoProbe.summary.total === 5 && runtimeNoProbe.summary.missing === 5 && runtimeNoProbe.runtimes.every((runtime) => runtime.status === "not-configured"));
 const runtimeRoot = join(process.cwd(), "out", "verify-runtimes");
 const comfyInstall = managedRuntimePlan("comfyui", "install", { rootDir: runtimeRoot, platform: "win32" });
 ok("managed ComfyUI install plan clones outside repo and prepares requirements", comfyInstall.runtimeDir.startsWith(runtimeRoot) && comfyInstall.commands.some((cmd) => cmd.command === "git" && cmd.args.includes("https://github.com/comfyanonymous/ComfyUI.git")) && comfyInstall.commands.some((cmd) => cmd.args.includes("requirements.txt")));
 const a1111Launch = managedRuntimePlan("a1111", "launch", { rootDir: runtimeRoot, platform: "win32" });
 ok("managed A1111 launch plan enables API mode on the expected port", a1111Launch.commands.some((cmd) => cmd.args.includes("--api") && cmd.args.includes("7860")));
+const piperInstall = managedRuntimePlan("piper", "install", { rootDir: runtimeRoot, platform: "win32" });
+const whisperInstall = managedRuntimePlan("faster-whisper", "install", { rootDir: runtimeRoot, platform: "win32" });
+const transformersInstall = managedRuntimePlan("transformersjs", "install", { rootDir: runtimeRoot, platform: "win32" });
+ok("managed Piper/Whisper/Transformers.js install plans stay external and package-based",
+  piperInstall.commands.some((cmd) => cmd.args.includes("piper-tts")) &&
+  whisperInstall.commands.some((cmd) => cmd.args.includes("faster-whisper")) &&
+  transformersInstall.commands.some((cmd) => cmd.args.includes("@huggingface/transformers")) &&
+  [piperInstall, whisperInstall, transformersInstall].every((plan) => plan.runtimeDir.startsWith(runtimeRoot) && plan.notes.some((note) => note.includes("Model downloads remain user-controlled"))));
 const runtimeDryRoot = join(process.cwd(), "out", "verify-runtimes-dry-run");
 try { rmSync(runtimeDryRoot, { recursive: true, force: true }); } catch { /* none */ }
 const runtimeDryInstall = installRuntime("comfyui", { rootDir: runtimeDryRoot, execute: false });
@@ -1211,6 +1227,17 @@ ok("managed runtime install/launch default to dry-run unless explicitly executed
 const runtimeEnvPath = join(process.cwd(), "out", "verify-runtimes.env");
 writeRuntimeEnv(comfyInstall, runtimeEnvPath);
 ok("runtime manager writes env hints for downstream provider configuration", existsSync(runtimeEnvPath) && readFileSync(runtimeEnvPath, "utf8").includes("COMFYUI_URL="));
+const piperScriptPath = join(process.cwd(), "out", "verify-piper-install.ps1");
+writeRuntimeScript(piperInstall, piperScriptPath);
+ok("runtime manager scripts create package-runtime directories before install commands",
+  existsSync(piperScriptPath) &&
+  readFileSync(piperScriptPath, "utf8").includes(piperInstall.runtimeDir) &&
+  readFileSync(piperScriptPath, "utf8").includes("piper-tts"));
+const runtimeInventory = runtimeModelInventory({ PIPER_VOICE: "voice.onnx", HF_HOME: "C:/models/hf" });
+ok("runtime model inventory records configured voice/model caches without scanning weights",
+  runtimeInventory.items.some((item) => item.id === "piper-voice" && item.configured) &&
+  runtimeInventory.items.some((item) => item.id === "transformers-cache" && item.path === "C:/models/hf") &&
+  runtimeInventory.notes.some((note) => note.includes("does not scan")));
 
 console.log("\n== System (zero-key) TTS (2.2) ==");
 const sysReg = buildDefaultRegistry();
