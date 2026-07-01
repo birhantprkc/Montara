@@ -133,7 +133,7 @@ import {
   EMBED_DIM,
 } from "../packages/research/src/index";
 import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
-import { detectScenes, sampleKeyFrames, transcribe, understandVideo, analyzeReferenceVideo } from "../packages/understand/src/index";
+import { detectScenes, sampleKeyFrames, transcribe, understandVideo, understandVideoWithVision, visionModelStatus, analyzeReferenceVideo } from "../packages/understand/src/index";
 import { listEngines, getEngine, engineAvailable, preferredEngine, renderWithEngine, recommendEngine, engineReallyAvailable, availableEngines } from "../packages/render-engines/src/index";
 import { threeAvailable } from "../packages/render-three/src/index";
 import {
@@ -742,10 +742,20 @@ ok("transcriber degrades to an empty transcript with no runtime", transcript.eng
 const understanding = understandVideo(sceneClip, { maxFrames: 3 });
 ok("video understanding emits frame descriptors, tags, and five-aspect shot breakdowns",
   understanding.frames.length >= 2 &&
+  understanding.mode === "signalstats" &&
   understanding.tags.length >= 5 &&
   understanding.sceneCount >= 2 &&
   understanding.aspectBreakdown.length >= 1 &&
   understanding.aspectBreakdown.every((shot) => Boolean(shot.subject && shot.subjectMotion && shot.scene && shot.spatialFraming && shot.camera)));
+
+const visionOff = visionModelStatus({ mode: "off", env: {} });
+ok("vision model status reports optional Transformers.js without downloading weights",
+  visionOff.backend === "transformers.js" && typeof visionOff.available === "boolean" && visionOff.enabled === false);
+const understandingNoVision = await understandVideoWithVision(sceneClip, { maxFrames: 3, vision: "off", env: {} });
+ok("model-aware understanding keeps signalstats fallback when vision is disabled",
+  understandingNoVision.mode === "signalstats" &&
+  understandingNoVision.visionStatus?.enabled === false &&
+  understandingNoVision.frames.length >= 2);
 
 const refAnalysis = analyzeReferenceVideo(sceneClip, {});
 ok("reference analysis proposes concepts, capability-aware needs, and a cost estimate",

@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 3.1 render auto-export.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 1G model-aware understanding.
 
 This checklist tracks two things:
 
@@ -13,8 +13,8 @@ Legend: `☑` done and gated, `◐` partial/runtime-gated, `☐` not done.
 Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
-- `npm.cmd run verify` passed: 305 passed, 0 failed.
-- `npm.cmd run validate` passed: 90 passed, 0 failed.
+- `npm.cmd run verify` passed: 307 passed, 0 failed.
+- `npm.cmd run validate` passed: 91 passed, 0 failed.
 - `python -m pytest tests` passed: 379 passed, 8 skipped.
 
 ## Snapshot
@@ -43,7 +43,7 @@ Latest local gates before this sync:
 | Blender | ◐ | Real headless adapter; documented as runtime-gated. |
 | Spline | ☐ | Planned registry entry only. |
 | Local LLM orchestrator | ◐ | Backend catalogue/probes; full local brain not shipped. |
-| CLIP/BLIP vision default | ☐ | Current default is FFmpeg/frame/audio signal analysis. |
+| CLIP/BLIP vision default | ◐ | Current default is FFmpeg/frame/audio signal analysis; optional Transformers.js CLIP classification is exposed through `montara understand --vision` when local model runtime is installed/enabled. |
 | Cloud live executors | ◐ | TS executor + redaction + all-cloud sanitized fixtures + dry-run/live smoke harness; real-key confirmations pending. |
 | Legal/notice | ☑ | Root AGPL-3.0 LICENSE, NOTICE, and docs/ATTRIBUTION.md are present. |
 | Web GUI / WARCUT | ☐ | Long-term product surface. |
@@ -90,7 +90,7 @@ Latest local gates before this sync:
 | D Image providers | ◐ | 10 registered; OpenAI/BFL/Google TS request shapes, Python OpenAI/BFL image request builders, and all-cloud fixture report gated. |
 | E Audio/TTS/music | ◐ | Local/offline fallbacks and analysis exist; TTS/music cloud fixtures covered; premium providers BYOK/runtime-gated. |
 | F Post/enhancement | ◐ | Core FFmpeg operations work; model enhancers runtime-gated. |
-| G Analysis/understanding | ◐ | Reference analysis and signalstats work; full CLIP/BLIP default pending. |
+| G Analysis/understanding | ◐ | Reference analysis, signalstats fallback, optional Transformers.js CLIP path, and `montara understand` CLI proof work; BLIP/default cached-weight validation pending. |
 | H Intelligence | ◐ | Research/corpus/scoring ports exist; Python corpus has CLI source/build/search/status surface. |
 | I Governance | ◐ | Quality gates exist; budget CLI wraps CostTracker and is pytest/CLI-smoke covered. |
 | J Styles/output profiles | ☑ | 3 styles and 6 output profiles verified. |

@@ -58,15 +58,20 @@ exports.
 
 ## Understanding Status
 
-Current local understanding is useful but not yet full multimodal vision:
+Current local understanding is useful, with model vision available only when the
+local runtime is explicitly installed and enabled:
 
-- real: FFmpeg probes, frame extraction, scene/signal statistics, audio pacing,
-  loudness, basic visual variety;
+- real by default: FFmpeg probes, frame extraction, scene/signal statistics,
+  audio pacing, loudness, basic visual variety;
 - partial: transcript/Whisper paths where installed;
-- planned: first-class CLIP/BLIP/video-language model captioning and semantic
-  retrieval as a default local path.
+- optional: Transformers.js CLIP frame classification through
+  `montara understand --vision auto|require` when `@huggingface/transformers`
+  or `@xenova/transformers` is installed and model downloads are allowed;
+- planned/hardening: cached-weight validation, BLIP/image-to-text captions, and
+  video-language semantic retrieval as a default local path.
 
-Agents must not describe current signalstats as "real CLIP/BLIP vision."
+Agents must not describe signalstats-only output as "real CLIP/BLIP vision."
+Only claim CLIP when the understanding JSON reports `mode: "vision-models"`.
 
 ## Reel Generator Direction
 

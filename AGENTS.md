@@ -32,7 +32,7 @@ montara make "<idea>" [opts]   # full pipeline: plan→script→populate→rende
 montara plan "<idea>"          # just produce the EditPlan (inspect before rendering)
 montara render <ir.json>       # compile an IR to MP4 (pick --engine ffmpeg|revideo|three|...)
 montara hear <audio>           # voice/music analysis (loudness, warmth, pace) → scores JSON
-montara understand <video>     # frames + captions + transcript → understanding JSON
+montara understand <video>     # frame/scene signalstats + optional local CLIP vision → understanding JSON
 montara serve                  # local web GUI
 montara export <ir.json> --to otio|fcpxml|edl   # bridge to Premiere/DaVinci/Final Cut
 pnpm verify                    # contract tests (must be green)
@@ -48,7 +48,7 @@ pnpm validate                  # end-to-end flow tests (must be green)
 | research | `research/` | live web + reference-video; optional |
 | plan / script / populate | `ai/` (+ Montara's orchestrator) | idea → EditPlan → Timeline IR |
 | enrich (audio) | `hear/` | data-driven voice selection; music QA |
-| enrich (vision) | `understand/` | CLIP/BLIP/Whisper via transformers.js (no Python) |
+| enrich (vision) | `understand/` | FFmpeg scene/frame signalstats by default; optional Transformers.js CLIP/BLIP-style models when installed/enabled |
 | generate pixels | `runtimes/` + `providers/` | local ComfyUI/A1111 (offline) or cloud |
 | render | `render-*` | **Remotion = default composition** (auto-fallback Revideo MIT); ffmpeg = assembly + universal fallback; motioncanvas/three/manim/blender |
 | QA + master | `quality/` | slideshow-risk, self-review, −14 LUFS |

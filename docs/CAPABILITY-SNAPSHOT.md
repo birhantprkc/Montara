@@ -6,7 +6,7 @@ Snapshot date: 2026-07-01.
 
 - **Python engine bridge:** ready. Current bridge reports 116 tools, 18 lib modules, and 14 pipeline manifests.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
-- **CLI:** `doctor`, `status`, `runtimes`, `make`, `plan`, `render`, `review`, `analyze`, `capture`, `compose`,
+- **CLI:** `doctor`, `status`, `runtimes`, `make`, `plan`, `render`, `review`, `analyze`, `understand`, `capture`, `compose`,
   `corpus`, `reel`, `music`, `voiceid`, provider listing, engine bridge commands,
   and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
@@ -27,6 +27,9 @@ Snapshot date: 2026-07-01.
 - **Screen-demo capture proof:** `montara capture pick-latest --recordings-dir`
   materializes a completed local recording artifact, then `montara compose` renders it
   through the screen-demo edit-decision path to MP4.
+- **Source understanding:** `montara understand` writes model-aware source JSON. The
+  default path stays FFmpeg/signalstats; optional Transformers.js CLIP frame
+  classification runs only when the package and model opt-in are present.
 - **Voice similarity:** `voice_id.py` and `@montara/hear` expose optional Resemblyzer/SpeechBrain/
   pyannote status without hard-failing.
 - **Documentary evidence craft:** generalized Montara skill at
@@ -42,8 +45,8 @@ Snapshot date: 2026-07-01.
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 305 passed, 0 failed |
-| `npm.cmd run validate` | 90 passed, 0 failed |
+| `npm.cmd run verify` | 307 passed, 0 failed |
+| `npm.cmd run validate` | 91 passed, 0 failed |
 | `python -m pytest tests` | 379 passed, 8 skipped |
 
 ## Example Outputs
@@ -53,6 +56,7 @@ Snapshot date: 2026-07-01.
 | Core validate render | `out/validate-compose-core.mp4` | FFmpeg fallback from Timeline IR |
 | Core validate IR | `out/validate-compose-core.timeline.json` | Timeline IR |
 | Render CLI auto exports | `out/validate-render-cli.mp4` + `.edl/.otio/.fcpxml` | `montara render` -> MP4 + editor bridge |
+| Source understanding JSON | `out/validate-understanding.json` | `montara understand --vision off` -> signalstats fallback JSON; CLIP path is opt-in |
 | Python video compose CLI smoke | `out/validate-cli-video-compose.mp4` | `montara compose` -> Python `video_compose` |
 | Native Remotion smoke | `out/validate-remotion-native.mp4` | Remotion native spring/caption composition when composer deps are installed |
 | Native Remotion Timeline | `out/validate-remotion-timeline-native.mp4` | Timeline IR -> Remotion props -> native `Explainer` render when `REMOTION_ENABLED=1` |
@@ -124,4 +128,4 @@ Best current path:
 1. Extend the documentary proof from fixture corpus to a longer open-stock corpus montage.
 2. Add native package work for Revideo / Motion Canvas beyond registered adapters.
 3. Run live-key provider smoke confirmations where keys are available.
-4. Continue local vision/CLIP-BLIP hardening beyond signal-only analysis.
+4. Continue local vision hardening with cached CLIP model validation and BLIP/caption coverage.

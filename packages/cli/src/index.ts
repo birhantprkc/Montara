@@ -11,7 +11,7 @@ import { listProviderTools, listVideoProviders, listImageProviders, listTtsProvi
 import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, directScript, reviewSourceMedia, planReelTreatment, createReelArtifacts, type ReelInputKind, type ReelStyleMode, type SceneEmotion } from "../../quality/src/index";
 import { TTSSelector } from "../../tools/src/audio/tts-selector";
 import { CLIP_EMBED_DIM, embedTexts, runResearch } from "../../research/src/index";
-import { analyzeReferenceVideo, understandVideo, type VideoUnderstanding } from "../../understand/src/index";
+import { analyzeReferenceVideo, understandVideoWithVision, visionModelStatus, type VideoUnderstanding, type VisionMode } from "../../understand/src/index";
 import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY, listSkills, findSkills } from "../../agent/src/index";
@@ -191,6 +191,8 @@ const VALUE_FLAGS = new Set([
   "--auth",
   "--duration",
   "--seconds",
+  "--vision",
+  "--frames",
   "--width",
   "--height",
   "--fps",
@@ -387,6 +389,7 @@ function buildMontaraStatusReport(): MontaraStatusReport {
   const pipelineCount = listPipelines().length;
   const python = engineReady();
   const brainBackends = brainCatalogue();
+  const vision = visionModelStatus();
   const docsReady = ["README.md", "AGENT_GUIDE.md", "docs/DEMOS.md", "PROMPT_GALLERY.md", "docs/LAUNCH-PLAN.md"].every(docExists);
   const providerAuditReady = buildProviderAuditReport().invalid === 0;
   const ffmpeg = engines.find((engine) => engine.id === "ffmpeg");
@@ -469,8 +472,15 @@ function buildMontaraStatusReport(): MontaraStatusReport {
       id: "understanding",
       label: "Video understanding",
       status: "partial",
-      evidence: ["FFmpeg scene/audio/frame analysis works", "CLIP/BLIP local vision is still planned"],
-      next: "Replace signal-only default with real local vision model path.",
+      evidence: [
+        "FFmpeg scene/audio/frame analysis works",
+        vision.available
+          ? `Transformers.js CLIP path is installed${vision.enabled ? " and enabled" : " but model downloads are opt-in"}`
+          : "optional Transformers.js CLIP path is shipped; runtime package not installed here",
+      ],
+      next: vision.available
+        ? "Set MONTARA_VISION_MODELS=1 or pass --vision require for local CLIP frame classification; add a caption model for BLIP-style captions."
+        : "Install @huggingface/transformers or @xenova/transformers to enable local CLIP frame classification.",
     },
     {
       id: "local-brain",
@@ -556,7 +566,7 @@ function buildMontaraStatusReport(): MontaraStatusReport {
       "Finish Remotion default Timeline routing.",
       "Extend documentary montage from fixture corpus proof to a longer open-stock corpus montage.",
       "Turn Revideo and Motion Canvas from registered/runtime-gated adapters into native validate cases.",
-      "Ship real local CLIP/BLIP understanding path.",
+      "Harden local vision understanding with cached model-weight validate and BLIP/caption model coverage.",
     ],
   };
 }
@@ -586,6 +596,39 @@ function printStatusReport(report: MontaraStatusReport): void {
   }
   console.log("\nNext:");
   for (const task of report.nextTasks.slice(0, 3)) console.log(`  - ${task}`);
+}
+
+function parseVisionMode(value: string | undefined): VisionMode {
+  if (!value || value === "auto" || value === "off" || value === "require") return (value ?? "auto") as VisionMode;
+  throw new Error(`invalid --vision '${value}' (expected off, auto, or require)`);
+}
+
+async function runUnderstandCommand(args: string[]): Promise<number> {
+  const input = positionalArgs(args)[0];
+  if (!input) {
+    console.error("usage: montara understand <mp4> [--vision off|auto|require] [--frames n] [--out path] [--json]");
+    return 1;
+  }
+  const vision = parseVisionMode(optionValue(args, "--vision"));
+  const maxFrames = numberOption(args, "--frames", 5);
+  const result = await understandVideoWithVision(input, { maxFrames, vision });
+  const out = optionValue(args, "--out") ?? join(process.cwd(), "out", `${slug(input.replace(/\.[a-z0-9]+$/i, ""))}.understanding.json`);
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(out, `${JSON.stringify(result, null, 2)}\n`);
+
+  if (args.includes("--json")) {
+    console.log(JSON.stringify(result, null, 2));
+    return 0;
+  }
+
+  console.log(`${result.durationSec.toFixed(2)}s | ${result.sceneCount} scene(s) | ${result.mode}`);
+  console.log(`tags: ${result.tags.join(", ")}`);
+  if (result.visionStatus) {
+    const status = result.visionStatus;
+    console.log(`vision: ${status.available ? status.packageName ?? "installed" : "not installed"} | ${status.enabled ? "enabled" : "disabled"}${status.reason ? ` | ${status.reason}` : ""}`);
+  }
+  console.log(out);
+  return 0;
 }
 
 function runStatusCommand(rest: string[]): number {
@@ -1696,10 +1739,10 @@ function thumbnailConcepts(args: string[], durationSec: number): ThumbConcept[] 
   }));
 }
 
-function runReelCommand(rest: string[]): number {
+async function runReelCommand(rest: string[]): Promise<number> {
   const input = rest[0];
   if (!input || !existsSync(input)) {
-    console.error("usage: montara reel <input.mp4> [out] [--prompt TEXT] [--style cinematic|warfront-documentary|minimal|kinetic-typography] [--hook TEXT] [--cta TEXT] [--no-captions] [--model base] [--simple]");
+    console.error("usage: montara reel <input.mp4> [out] [--prompt TEXT] [--style cinematic|warfront-documentary|minimal|kinetic-typography] [--vision off|auto|require] [--hook TEXT] [--cta TEXT] [--no-captions] [--model base] [--simple]");
     return 1;
   }
 
@@ -1710,6 +1753,7 @@ function runReelCommand(rest: string[]): number {
   const requestedCta = rest.includes("--no-cta") ? "" : optionValue(rest, "--cta");
   const requestedStyle = optionValue(rest, "--style") as ReelStyleMode | undefined;
   const inputKind = optionValue(rest, "--input-kind") as ReelInputKind | undefined;
+  const vision = parseVisionMode(optionValue(rest, "--vision"));
   const simple = rest.includes("--simple");
   const noCaptions = rest.includes("--no-captions");
 
@@ -1720,8 +1764,8 @@ function runReelCommand(rest: string[]): number {
   if (!rest.includes("--no-understand")) {
     console.log("understanding source (frames + pacing)...");
     try {
-      understanding = understandVideo(input, { maxFrames: 5 });
-      console.log(`  ${understanding.durationSec.toFixed(1)}s | ${understanding.sceneCount} scene(s) | tags ${understanding.tags.join(", ")}`);
+      understanding = await understandVideoWithVision(input, { maxFrames: 5, vision });
+      console.log(`  ${understanding.durationSec.toFixed(1)}s | ${understanding.sceneCount} scene(s) | ${understanding.mode} | tags ${understanding.tags.join(", ")}`);
     } catch (err) {
       console.log(`  understanding unavailable; using playback QA fallback (${err instanceof Error ? err.message : String(err)})`);
     }
@@ -1730,6 +1774,7 @@ function runReelCommand(rest: string[]): number {
   const qaBefore = qaPlayback(input);
   if (!understanding) {
     understanding = {
+      mode: "signalstats",
       durationSec: qaBefore.durationSec,
       sceneCount: Math.max(1, qaBefore.sceneChanges + 1),
       frames: [],
@@ -2042,12 +2087,13 @@ Commands:
                                   round-trip a pro-editor cut back into Timeline IR (auto-detects format)
   review <mp4>                    post-render self-review report for an MP4
   analyze <mp4>                   scene/understanding analysis + concept variants for a video
+  understand <mp4>                write model-aware source understanding JSON (--vision off|auto|require)
   capture [--url URL] [out.mp4]    record/recommend/pick screen captures; Playwright auth via capture login
   compose <edit-decisions.json> [out.mp4]
                                   run Python video_compose; pass --assets for high-level render artifacts
   corpus <sources|seed-fixture|build|search>
                                   stock-footage corpus discovery, fixture seeding, population, and retrieval
-  reel <input.mp4> [out]           understand + smart-edit a source clip; writes MP4 + Timeline IR + edit decisions
+  reel <input.mp4> [out]           understand + smart-edit a source clip; writes MP4 + Timeline IR + edit decisions (--vision off|auto|require)
   budget [show|estimate|reserve|reconcile|refund]
                                   preflight cost governance over cost_log.json (wraps tools/cost_tracker.py)
   resume <project-dir>             report completed stages + the next stage to run from checkpoints
@@ -2076,6 +2122,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     if (command === "corpus") return runCorpusCommand(rest);
     if (command === "budget") return runBudgetCommand(rest);
     if (command === "resume") return runResumeCommand(rest);
+    if (command === "understand") return runUnderstandCommand(rest);
 
     if (command === "voiceid") {
       const sub = rest[0];

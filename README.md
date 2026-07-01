@@ -27,7 +27,7 @@ Montara should be honest with users and agents:
 | Revideo / Motion Canvas | Adapter surfaces exist and depend on the local toolchain. Validate before promising native output. |
 | Remotion | Native smoke and Timeline IR rendering are validate-gated when `remotion-composer` deps are installed; set `REMOTION_ENABLED=1` for `montara make/render` to prefer native Remotion. |
 | HyperFrames | Native strict kinetic-typography smoke render is validate-gated when `npx hyperframes` is available; broader pipeline parity is still in progress. |
-| Video understanding | Current local path is FFmpeg/scene/audio signal analysis. Real CLIP/BLIP-style vision is a planned upgrade, not a shipped guarantee. |
+| Video understanding | `montara understand` produces scene/frame/audio-signal JSON by default; optional Transformers.js CLIP frame classification is available with `MONTARA_VISION_MODELS=1` or `--vision require`. BLIP/caption-model validation remains runtime-gated. |
 | Local LLM orchestration | The architecture supports local brains, but a fully shipped local orchestration loop is still being hardened. |
 | Screen recording | FFmpeg desktop capture, Cap pickup, deterministic capture-artifact pickup, and `montara capture` Playwright browser recording with user-login storageState. |
 | Cloud providers | Request builders exist for BYOK use. Keep them audited against official provider docs before live execution. |
@@ -47,6 +47,7 @@ montara runtimes plan comfyui
 montara plan "Make a 45-second explainer about why the sky is blue"
 montara make "Make a 45-second explainer about why the sky is blue"
 montara render out/timeline.json      # writes MP4 + EDL/OTIO/FCPXML beside it
+montara understand source.mp4 --vision auto --out out/source.understanding.json
 montara export out/timeline.json --to otio out/edit.otio
 montara capture --url https://example.com out/browser-capture.mp4
 montara capture pick-latest --recordings-dir out/captures --output out/screen-capture.mp4
@@ -79,6 +80,7 @@ current reproducible demos to inspect before trusting a workflow:
 | 60s documentary open-stock proof | `npm.cmd run validate` | `out/validate-documentary-open-stock-60s.mp4` + `.selection.json` + `.asset-manifest.json` | `corpus seed-open-stock-proof` -> `clip_search.select_slots` -> `video_compose` | `$0` |
 | Screen-demo capture proof | `npm.cmd run validate` | `out/validate-screen-demo.mp4` + `out/validate-screen-demo-capture.mp4` | `capture pick-latest --recordings-dir` -> `video_compose` | `$0` |
 | Render auto handoff | `npm.cmd run montara -- render out/validate-compose-core.timeline.json out/validate-render-cli.mp4` | `out/validate-render-cli.mp4` + `.edl/.otio/.fcpxml` | One Timeline IR -> MP4 + editor bridge by default | `$0` |
+| Source understanding | `npm.cmd run montara -- understand out/validate-compose-core.mp4 --vision off --out out/validate-understanding.json --json` | `out/validate-understanding.json` | Model-aware understanding JSON with signalstats fallback; CLIP when opt-in runtime is installed | `$0` |
 | Editor handoff | `npm.cmd run montara -- export out/validate-compose-core.timeline.json --to otio out/validate-compose-core.otio` | OTIO/EDL/FCPXML files on demand | Explicit one-format export for pro-editor handoff | `$0` |
 | Corpus/source discovery | `npm.cmd run montara -- corpus sources` | source-provider menu in stdout | Python `corpus_builder` discovery, no download required | `$0` |
 | Auth browser capture | `npm.cmd run montara -- capture login --url https://example.com` then `capture --url ...` | `out/browser-capture.mp4` | Playwright recording with user-owned storageState | `$0`, runtime-gated |
@@ -97,13 +99,13 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 3.1 render auto-export sync:
+Latest local gate snapshot from the Stage 1G model-aware understanding sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 305 passed, 0 failed |
-| `npm.cmd run validate` | 90 passed, 0 failed |
+| `npm.cmd run verify` | 307 passed, 0 failed |
+| `npm.cmd run validate` | 91 passed, 0 failed |
 | `python -m pytest tests` | 379 passed, 8 skipped |
 
 ## Agent Entry Points

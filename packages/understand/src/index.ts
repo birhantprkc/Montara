@@ -6,3 +6,4 @@ export * from "./frames";
 export * from "./transcribe";
 export * from "./video";
 export * from "./reference";
+export * from "./vision";

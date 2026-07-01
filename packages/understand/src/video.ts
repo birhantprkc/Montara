@@ -1,11 +1,23 @@
 // @montara/understand — video understanding (§G).
 // Real per-frame analysis with ffmpeg signalstats (brightness + colorfulness) at scene cuts, rolled
-// up into tags and a caption. A CLIP/BLIP captioner plugs in later behind the same descriptor shape.
+// up into tags and a caption. Optional Transformers.js CLIP/BLIP-style vision can enrich the same
+// descriptor shape without making model downloads part of the default local path.
 
 import { spawnSync } from "node:child_process";
+import { rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { mediaBin } from "../../render-ffmpeg/src/index";
+import { sampleKeyFrames } from "./frames";
 import { detectScenes } from "./scenes";
 import { probeMediaInfo } from "./probe";
+import {
+  analyzeFramesWithVisionModels,
+  visionModelStatus,
+  type VisionMode,
+  type VisionModelAnalysis,
+  type VisionModelStatus,
+} from "./vision";
 
 export interface FrameDescriptor {
   atSec: number;
@@ -32,12 +44,24 @@ export interface VideoAspectBreakdown {
 }
 
 export interface VideoUnderstanding {
+  mode: "signalstats" | "vision-models";
   durationSec: number;
   sceneCount: number;
   frames: FrameDescriptor[];
   tags: string[];
   caption: string;
   aspectBreakdown: VideoAspectBreakdown[];
+  vision?: VisionModelAnalysis;
+  visionStatus?: VisionModelStatus;
+}
+
+export interface UnderstandVisionOptions {
+  maxFrames?: number;
+  vision?: VisionMode;
+  env?: Record<string, string | undefined>;
+  labels?: string[];
+  clipModel?: string;
+  captionModel?: string;
 }
 
 function frameStats(inputPath: string, atSec: number): { brightness: number; colorfulness: number } {
@@ -154,5 +178,55 @@ export function understandVideo(inputPath: string, opts: { maxFrames?: number } 
   for (const motion of motionSummary) tags.push(motion);
 
   const caption = `A ${tags[0]}, ${tags[1]} ${width >= height ? "horizontal" : "vertical"} clip with ${scenes.sceneCount} scene(s).`;
-  return { durationSec, sceneCount: scenes.sceneCount, frames, tags, caption, aspectBreakdown: breakdown };
+  return { mode: "signalstats", durationSec, sceneCount: scenes.sceneCount, frames, tags, caption, aspectBreakdown: breakdown };
+}
+
+function mergeTags(base: string[], semantic: string[]): string[] {
+  const merged: string[] = [];
+  for (const tag of [...semantic, ...base]) {
+    const clean = tag.trim();
+    if (clean && !merged.includes(clean)) merged.push(clean);
+  }
+  return merged.slice(0, 12);
+}
+
+export async function understandVideoWithVision(
+  inputPath: string,
+  opts: UnderstandVisionOptions = {},
+): Promise<VideoUnderstanding> {
+  const base = understandVideo(inputPath, { maxFrames: opts.maxFrames });
+  const vision = opts.vision ?? "auto";
+  const visionOptions = {
+    mode: vision,
+    env: opts.env,
+    labels: opts.labels,
+    clipModel: opts.clipModel,
+    captionModel: opts.captionModel,
+  };
+  const status = visionModelStatus(visionOptions);
+
+  if (!status.available || !status.enabled) {
+    if (vision === "require") {
+      throw new Error(status.reason ?? "vision models unavailable");
+    }
+    return { ...base, visionStatus: status };
+  }
+
+  const framesDir = join(tmpdir(), `montara-vision-${Date.now()}-${Math.round(Math.random() * 1_000_000)}`);
+  try {
+    const sampled = sampleKeyFrames(inputPath, framesDir, { maxFrames: opts.maxFrames ?? 4 });
+    const analysis = await analyzeFramesWithVisionModels(sampled.map((frame) => frame.path), visionOptions);
+    const tags = mergeTags(base.tags, analysis.tags);
+    const caption = analysis.caption ? `${analysis.caption} ${base.caption}` : base.caption;
+    return {
+      ...base,
+      mode: analysis.frameAnalyses.length ? "vision-models" : "signalstats",
+      tags,
+      caption,
+      vision: analysis,
+      visionStatus: analysis.status,
+    };
+  } finally {
+    rmSync(framesDir, { recursive: true, force: true });
+  }
 }

@@ -50,7 +50,10 @@ If the user gives a video, audio file, image set, screen recording, or reference
 URL, do not trust the prompt or filename alone. Use the available understanding
 path first:
 
-- `montara understand <video>` for frame/scene/audio-signal analysis.
+- `montara understand <video> --vision auto` for model-aware understanding JSON.
+  It always has the FFmpeg signalstats fallback; it uses local Transformers.js
+  CLIP only when the runtime is installed and `MONTARA_VISION_MODELS=1` (or
+  `--vision require`) allows model inference.
 - `montara hear <audio>` for loudness, pace, energy, and voice/music cues.
 - scene detection, transcript timing, source review, and frame sampling when available.
 - `skills/meta/video-reference-analyst.md` for "make something like this" requests.
@@ -612,7 +615,7 @@ If privacy risk is high, stop and ask before rendering or exporting.
 | Captions cover subject/UI | Reposition, shorten, or switch to subtitles only. |
 | Music masks speech | Lower gain, duck under voice, or add silence. |
 | Output is static | Add motion, cuts, source movement, or change the promise to a still-led piece. |
-| No real understanding path | Say current analysis is signal/frame based; do not call it CLIP/BLIP. |
+| No real model understanding path | Say current analysis is signal/frame based unless `montara understand` reports `mode: "vision-models"`. |
 
 ## Commit Protocol
 
@@ -663,7 +666,7 @@ provider/tool-specific raw knowledge in `.agents/skills/`.
 ## Never Do
 
 - Claim a runtime is production-ready because a package name exists.
-- Call current FFmpeg signal analysis "real CLIP/BLIP vision."
+- Call FFmpeg signal analysis "real CLIP/BLIP vision"; only claim CLIP when `mode: "vision-models"` is present in the understanding JSON.
 - Require API keys for a basic video.
 - Commit auth state, `.env`, private source media, or generated user artifacts.
 - Hide cost, auth, missing dependency, or fallback decisions.

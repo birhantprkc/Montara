@@ -36,8 +36,8 @@ and quality gates that block broken delivery — **without** needing OpenMontage
 
 ```bash
 pnpm typecheck
-pnpm verify      # contract tests (~292+ assertions; see scripts/verify.ts)
-pnpm validate    # end-to-end flows (~77 assertions; real MP4 on disk)
+pnpm verify      # contract tests (~307+ assertions; see scripts/verify.ts)
+pnpm validate    # end-to-end flows (~91 assertions; real MP4 on disk)
 python -m pytest tests
 ```
 
@@ -69,7 +69,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **Blender native** | ◐ | Real headless adapter; proof clip exists |
 | **Spline** | ☐ | Planned registry entry only |
 | **Local LLM orchestrator** | ◐ | `@montara/llm` catalogue + Ollama probe; not full `montara make` brain |
-| **CLIP/BLIP vision default** | ☐ | FFmpeg/signalstats today; Python `clip_embedder` not default in TS path |
+| **CLIP/BLIP vision default** | ◐ | FFmpeg/signalstats remains default; optional Transformers.js CLIP path is shipped behind `MONTARA_VISION_MODELS=1` / `--vision require`; BLIP/cached-weight validate pending |
 | **Cloud live executors** | ◐ | TS executor + sanitized fixtures for all cloud providers; dry-run/live-key smoke harness; real-key confirmations pending |
 | **LICENSE / NOTICE** | ☑ | Root AGPL-3.0 LICENSE + NOTICE + docs/ATTRIBUTION.md |
 | **Web GUI** | ☐ | `packages/web` scaffold only |
@@ -270,7 +270,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | **D** Image providers (10) | ◐ | TS + Python; OpenAI/BFL/Google request shapes fixture/request-builder gated |
 | **E** Audio/TTS/music | ◐ | Piper local path; mixer/enhance via FFmpeg |
 | **F** Post/enhancement | ◐ | Model enhancers runtime-gated |
-| **G** Analysis/understanding | ◐ | Reference analysis ☑ in verify; CLIP vision ☐ |
+| **G** Analysis/understanding | ◐ | Reference analysis ☑ in verify; optional Transformers.js CLIP frame classification path + `montara understand` CLI proof; BLIP/cached-weight validate pending |
 | **H** Intelligence (research, corpus, scoring) | ◐ | TS ports exist; Python corpus has CLI build/search/status surface |
 | **I** Governance (pre-compose, self-review, budget) | ◐ | quality package; `montara budget` CLI ☑ |
 | **J** Styles (3) + output profiles (6) | ☑ | verify green |
@@ -329,7 +329,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 3.9 | `montara resume <project>` from checkpoint JSON | ☑ | `lib/checkpoint.py` wired; reports completed + next stage |
 | 3.10 | Project workspace convention enforced | ◐ | AGENT_GUIDE documents; CLI creates dirs |
 | 3.11 | SpeechBrain optional backend in `@montara/hear` | ☐ | Behind optional dep |
-| 3.12 | Real CLIP/BLIP in `@montara/understand` | ☐ | Replace signalstats default |
+| 3.12 | Real CLIP/BLIP in `@montara/understand` | ◐ | Optional local Transformers.js CLIP classification path + `montara understand --vision`; keep signalstats default until cached-weight and BLIP/caption validation land |
 
 **Stage 3 exit criteria:** 3.2, 3.3, 3.4, 3.6, 3.9 ☑; moat items M3, M4, M5, M10, M11 → ☑ or ◐ with validate.
 
@@ -456,6 +456,7 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 2.2 | Remotion default Timeline routing instead of smoke-only proof | done |
 | ✅ | 2.7 | 60s documentary open-stock corpus montage beyond fixture proof | done |
 | ✅ | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | done |
+| ✅ | 1G.1 | Optional Transformers.js CLIP path + `montara understand --vision` CLI proof | done |
 | 🎯 1 | 1C-K | Stage 1 residual partials audit + next highest-risk closure | Stage 1 gap pass |
 | 🎯 2 | 2.4/2.5/2.6/2.8 | Remaining Stage 2 native composition/runtime maturity | Stage 2 gap pass |
 | 🎯 3 | 3.3/3.5/3.7/3.8/3.10-3.12 | Remaining Stage 3 moat partials | Stage 3 gap pass |

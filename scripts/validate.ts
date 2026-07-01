@@ -328,6 +328,27 @@ ok("transcriber degrades to an empty transcript offline", transcribe({ inputPath
 const analysisPath = join(outDir, "validate-reference-analysis.json");
 writeFileSync(analysisPath, `${JSON.stringify(refAnalysis, null, 2)}\n`);
 ok("reference analysis emitted to disk", existsSync(analysisPath));
+const understandCliOut = join(outDir, "validate-understanding.json");
+try { rmSync(understandCliOut, { force: true }); } catch { /* none */ }
+const understandCli = spawnSync(npmBin, ["run", "montara", "--", "understand", mp4Path, "--vision", "off", "--out", understandCliOut, "--json"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+let cliUnderstanding = {} as { mode?: string; frames?: unknown[]; visionStatus?: { enabled?: boolean } };
+try {
+  cliUnderstanding = JSON.parse(readFileSync(understandCliOut, "utf8")) as typeof cliUnderstanding;
+} catch {
+  cliUnderstanding = {};
+}
+ok("understand CLI emits model-aware JSON while preserving signalstats fallback",
+  understandCli.status === 0 &&
+    existsSync(understandCliOut) &&
+    cliUnderstanding.mode === "signalstats" &&
+    (cliUnderstanding.frames?.length ?? 0) >= 2 &&
+    cliUnderstanding.visionStatus?.enabled === false,
+  `status=${understandCli.status} stdout=${(understandCli.stdout || "").slice(-500)} stderr=${(understandCli.stderr || "").slice(-500)}`);
 
 console.log("\n== render engines (Phase 1.11 §A) ==");
 ok("9 composition/capture engines registered", listEngines().length === 9);

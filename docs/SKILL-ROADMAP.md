@@ -56,7 +56,8 @@ Examples:
 
 - Topic-aware overlay skill for reel/talking-head visual reasoning.
 - Spline capture/export adapter and validation skill.
-- Real local vision model skill path for CLIP/BLIP/video-language analysis.
+- Local vision model skill path for `montara understand --vision`, cached CLIP/BLIP setup,
+  video-language analysis, and fallback honesty.
 - Speaker/voice intelligence skill path for pyannote, SpeechBrain, Resemblyzer,
   voice embeddings, and corpus matching.
 - Production matting/compositing skill path for hair/edge/motion-aware masking.
