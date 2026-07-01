@@ -114,16 +114,38 @@ function isScenePlan(value: unknown): value is ScenePlan {
   );
 }
 
-function renderFile(inputPath: string, outPath: string): string {
+interface RenderFileResult {
+  path: string;
+  timeline: Timeline;
+}
+
+function renderFile(inputPath: string, outPath: string): RenderFileResult {
   const input = readJson(inputPath);
   mkdirSync(dirname(outPath), { recursive: true });
-  if (isTimeline(input)) return renderComposedTimeline(input, outPath);
+  if (isTimeline(input)) return { path: renderComposedTimeline(input, outPath), timeline: input };
   if (isScenePlan(input)) {
-    const result = renderComposedScenePlanWithReport(input, outPath);
-    if (!result.ok) throw new Error(result.error ?? "render failed");
-    return result.path;
+    const result = composeScenePlan(input);
+    if (result.diagnostics.length) throw new Error(`compose failed: ${result.diagnostics.join("; ")}`);
+    return { path: renderComposedTimeline(result.timeline, outPath), timeline: result.timeline };
   }
   throw new Error(`unsupported input JSON: ${inputPath}`);
+}
+
+function editorExportBasePath(renderPath: string): string {
+  const name = basename(renderPath).replace(/\.[^.\\/]+$/i, "");
+  return join(dirname(renderPath), name || "montara-render");
+}
+
+function writeEditorExportsBesideRender(timeline: Timeline, renderPath: string, formats: EditorFormat[] = ["edl", "otio", "fcpxml"]): { format: EditorFormat; path: string }[] {
+  const issues = validateTimeline(timeline);
+  if (issues.length) throw new Error(`cannot export invalid timeline: ${issues.join("; ")}`);
+  const base = editorExportBasePath(renderPath);
+  return formats.map((format) => {
+    const { content, ext } = exportTimeline(timeline, format, { title: basename(base) || "Montara Edit" });
+    const path = `${base}.${ext}`;
+    writeFileSync(path, content);
+    return { format, path };
+  });
 }
 
 function pythonModuleAvailable(moduleName: string): boolean {
@@ -2013,7 +2035,7 @@ Commands:
   research <idea>                 plan 15-25 searches + write a research brief to ./out
   plan  [opts] <idea>             write a structured scene plan to ./out
   make  [opts] <idea>             plan + gate + compose + render + self-review to ./out
-  render <ir.json>                render a ScenePlan or Timeline IR JSON to MP4
+  render <ir.json> [out.mp4]      render ScenePlan/Timeline JSON to MP4 + EDL/OTIO/FCPXML
   export <ir.json> --to edl|fcpxml|otio [out]
                                   export the Timeline IR to a pro-editor interchange file
   import <file.edl|.otio|.fcpxml> [out]
@@ -2689,12 +2711,24 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     }
 
     if (command === "render") {
-      const input = rest[0];
+      const positional = positionalArgs(rest);
+      const input = positional[0];
       if (!input) throw new Error("render requires an input JSON path");
-      const out = rest[1] || join(process.cwd(), "out", `${slug(input.replace(/\.json$/i, ""))}.mp4`);
+      const out = positional[1] || join(process.cwd(), "out", `${slug(input.replace(/\.json$/i, ""))}.mp4`);
+      const exportValues = splitOptionList(optionValues(rest, "--export-formats"));
+      const knownFormats = new Set<EditorFormat>(["edl", "otio", "fcpxml"]);
+      const exportFormats = (exportValues.length ? exportValues : ["edl", "otio", "fcpxml"])
+        .filter((value): value is EditorFormat => knownFormats.has(value as EditorFormat));
+      if (exportValues.length && exportFormats.length !== exportValues.length) {
+        throw new Error("invalid --export-formats value; use edl,otio,fcpxml");
+      }
       const result = renderFile(input, out);
-      console.log(result);
-      return existsSync(result) ? 0 : 1;
+      console.log(result.path);
+      if (!rest.includes("--no-editor-exports") && !rest.includes("--no-exports") && exportFormats.length) {
+        const exports = writeEditorExportsBesideRender(result.timeline, result.path, exportFormats);
+        for (const artifact of exports) console.log(`exported ${artifact.format.toUpperCase()} -> ${artifact.path}`);
+      }
+      return existsSync(result.path) ? 0 : 1;
     }
 
     throw new Error(`unknown command: ${command}`);

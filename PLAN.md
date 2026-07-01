@@ -318,7 +318,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 
 | ID | Task | Status | Acceptance |
 |----|------|--------|------------|
-| 3.1 | Auto-export EDL+OTIO+FCPXML on every `montara render` | ◐ | Flag default on |
+| 3.1 | Auto-export EDL+OTIO+FCPXML on every `montara render` | ☑ | `montara render <ir.json> [out.mp4]` writes MP4 plus `.edl`, `.otio`, `.fcpxml` beside it by default; opt out with `--no-editor-exports` |
 | 3.2 | **Editor import** `montara import <fcpxml\|otio\|edl>` → Timeline IR | ☑ | Round-trip test green (verify) |
 | 3.3 | **Local LLM** drives `montara make` (Ollama/LM Studio) | ☐ | Zero-cloud idea→MP4 |
 | 3.4 | `montara budget` (estimate/reserve/reconcile) | ☑ | Wraps `tools/cost_tracker.py`; pytest contract green |
@@ -455,9 +455,12 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 1B.10 | `screen-demo` offline MP4 validate path using capture artifacts | done |
 | ✅ | 2.2 | Remotion default Timeline routing instead of smoke-only proof | done |
 | ✅ | 2.7 | 60s documentary open-stock corpus montage beyond fixture proof | done |
-| 🎯 1 | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | Stage 3 gap |
-| 🎯 2 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
-| 🎯 3 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
+| ✅ | 3.1 | Auto-export EDL/OTIO/FCPXML beside renders | done |
+| 🎯 1 | 1C-K | Stage 1 residual partials audit + next highest-risk closure | Stage 1 gap pass |
+| 🎯 2 | 2.4/2.5/2.6/2.8 | Remaining Stage 2 native composition/runtime maturity | Stage 2 gap pass |
+| 🎯 3 | 3.3/3.5/3.7/3.8/3.10-3.12 | Remaining Stage 3 moat partials | Stage 3 gap pass |
+| 🎯 4 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
+| 🎯 5 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
 
 ---
 

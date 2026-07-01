@@ -80,7 +80,8 @@ At minimum, each run should leave behind:
 - the Timeline IR JSON;
 - the final MP4;
 - QA notes;
-- editor exports when requested: EDL, OTIO, and/or FCPXML.
+- editor exports when requested, and by default after `montara render`: EDL,
+  OTIO, and FCPXML.
 
 ## Pipeline Inventory
 
@@ -540,7 +541,7 @@ Agents should prefer the public CLI when it exists:
 | setup guidance | `montara doctor --fix` |
 | full local production | `montara make "<idea>"` |
 | inspect plan only | `montara plan "<idea>"` |
-| render IR | `montara render <ir.json>` |
+| render IR | `montara render <ir.json> [out.mp4]` (auto-writes `.edl/.otio/.fcpxml`) |
 | source/reference analysis | `montara analyze <mp4>` or `montara understand <mp4>` |
 | audio/music analysis | `montara hear <audio>` or `montara music analyze <audio>` |
 | smart source reel | `montara reel <input.mp4>` |

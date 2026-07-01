@@ -31,6 +31,7 @@ Then inspect:
 | Demo | Prompt / brief | Pipeline | Tools and runtime | Cost | Output |
 | --- | --- | --- | --- | --- | --- |
 | Timeline IR explainer | "Frame one moves; explain the Timeline IR contract." | ScenePlan -> Timeline IR | Remotion IR composer + FFmpeg fallback render | `$0` | `out/validate-compose-core.mp4` |
+| Render auto handoff | "Render the Timeline IR and create pro-editor handoff files automatically." | Timeline IR -> MP4 + editor bridge | `montara render` -> MP4 + EDL/OTIO/FCPXML beside output | `$0` | `out/validate-render-cli.mp4` plus `.edl/.otio/.fcpxml` |
 | Native Remotion smoke | "Render a spring/caption composition natively if the Remotion composer is installed." | native composition smoke | Remotion CLI; honest unavailable path when deps are absent | `$0` | `out/validate-remotion-native.mp4` |
 | Native Remotion Timeline | "Render the same Timeline IR through the native Remotion composer when explicitly enabled." | Timeline IR composition | `REMOTION_ENABLED=1` -> Timeline props -> Remotion `Explainer` | `$0` | `out/validate-remotion-timeline-native.mp4` |
 | Native HyperFrames smoke | "Render strict kinetic typography through HyperFrames when `npx hyperframes` resolves." | kinetic typography | Python `hyperframes_compose`, HyperFrames lint/validate/render | `$0` | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` |

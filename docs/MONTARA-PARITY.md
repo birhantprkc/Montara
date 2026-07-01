@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 2.7 documentary open-stock corpus proof.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-01, after Stage 3.1 render auto-export.
 
 This checklist tracks two things:
 
@@ -14,7 +14,7 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run verify` passed: 305 passed, 0 failed.
-- `npm.cmd run validate` passed: 89 passed, 0 failed.
+- `npm.cmd run validate` passed: 90 passed, 0 failed.
 - `python -m pytest tests` passed: 379 passed, 8 skipped.
 
 ## Snapshot
@@ -26,7 +26,7 @@ Latest local gates before this sync:
 | Python tool engine | ☑ | Root-level `tools/` + `lib/`; engine bridge verifies dependency-free. |
 | Engine bridge | ☑ | JSON bridge and composition <-> IR mapping. |
 | CLI | ◐ | Core commands plus `montara status`, `montara runtimes`, `montara compose`, `montara corpus`, `montara import`, `montara budget`, `montara resume`; not every Python tool wired. |
-| Editor export | ☑ | EDL, OTIO, FCPXML export verified. |
+| Editor export | ☑ | EDL, OTIO, FCPXML export verified and auto-written beside `montara render` MP4 outputs by default. |
 | Editor import | ☑ | `montara import` EDL/OTIO/FCPXML → Timeline IR; verify round-trip green. |
 | CI | ☑ | typecheck + verify + validate + pytest. |
 | Docs honesty | ☑ | README/AGENT_GUIDE/ARCHITECTURE/PROVIDER-AUDIT/SKILL-ROADMAP/CAPABILITY-SNAPSHOT synced. Native render validation, provider-audit, launch-plan, and status-report guidance added. |

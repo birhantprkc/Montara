@@ -11,7 +11,8 @@ Snapshot date: 2026-07-01.
   and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
   extraction, audio mix/enhance, subtitles, reels, and simple composites.
-- **Editor export:** EDL, OTIO, and FCPXML verified through the bridge package.
+- **Editor export:** EDL, OTIO, and FCPXML verified through the bridge package and
+  auto-written beside `montara render` MP4 outputs by default.
 - **Blender:** real headless adapter exists when Blender is installed.
 - **Three.js / Manim:** adapters exist and report availability honestly; native output is runtime-gated.
 - **Playwright browser capture:** `playwright_recorder` is discoverable, pytest-covered, exposed
@@ -42,7 +43,7 @@ Snapshot date: 2026-07-01.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 305 passed, 0 failed |
-| `npm.cmd run validate` | 89 passed, 0 failed |
+| `npm.cmd run validate` | 90 passed, 0 failed |
 | `python -m pytest tests` | 379 passed, 8 skipped |
 
 ## Example Outputs
@@ -51,6 +52,7 @@ Snapshot date: 2026-07-01.
 | --- | --- | --- |
 | Core validate render | `out/validate-compose-core.mp4` | FFmpeg fallback from Timeline IR |
 | Core validate IR | `out/validate-compose-core.timeline.json` | Timeline IR |
+| Render CLI auto exports | `out/validate-render-cli.mp4` + `.edl/.otio/.fcpxml` | `montara render` -> MP4 + editor bridge |
 | Python video compose CLI smoke | `out/validate-cli-video-compose.mp4` | `montara compose` -> Python `video_compose` |
 | Native Remotion smoke | `out/validate-remotion-native.mp4` | Remotion native spring/caption composition when composer deps are installed |
 | Native Remotion Timeline | `out/validate-remotion-timeline-native.mp4` | Timeline IR -> Remotion props -> native `Explainer` render when `REMOTION_ENABLED=1` |

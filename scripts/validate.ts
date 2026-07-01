@@ -132,6 +132,32 @@ if (rendered && existsSync(mp4Path)) {
   ok("MP4 duration ~= 3.8s", Math.abs(duration - 3.8) < 0.45, `got ${duration.toFixed(2)}s`);
 }
 
+const renderCliOut = join(outDir, "validate-render-cli.mp4");
+for (const p of [
+  renderCliOut,
+  join(outDir, "validate-render-cli.edl"),
+  join(outDir, "validate-render-cli.otio"),
+  join(outDir, "validate-render-cli.fcpxml"),
+]) {
+  try { rmSync(p, { force: true }); } catch { /* none */ }
+}
+const renderCli = spawnSync(npmBin, ["run", "montara", "--", "render", irPath, renderCliOut], {
+  encoding: "utf8",
+  timeout: 240000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+ok("render CLI auto-exports EDL, OTIO, and FCPXML beside the MP4",
+  renderCli.status === 0 &&
+    existsSync(renderCliOut) &&
+    existsSync(join(outDir, "validate-render-cli.edl")) &&
+    existsSync(join(outDir, "validate-render-cli.otio")) &&
+    existsSync(join(outDir, "validate-render-cli.fcpxml")) &&
+    readFileSync(join(outDir, "validate-render-cli.otio"), "utf8").includes("OTIO_SCHEMA") &&
+    readFileSync(join(outDir, "validate-render-cli.fcpxml"), "utf8").includes("<fcpxml") &&
+    readFileSync(join(outDir, "validate-render-cli.edl"), "utf8").includes("TITLE:"),
+  `status=${renderCli.status} stdout=${(renderCli.stdout || "").slice(-500)} stderr=${(renderCli.stderr || "").slice(-500)}`);
+
 console.log("\n== provider tools (Phase 1.3 local/free seed) ==");
 ok("9 seed provider tools registered", listProviderTools().length === 9, `got ${listProviderTools().length}`);
 

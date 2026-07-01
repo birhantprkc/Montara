@@ -35,6 +35,12 @@ workspace files are supporting artifacts.
 | Exports | `packages/export-*` | Editor interchange path for EDL, OTIO, and FCPXML. |
 | QA | `packages/quality` and tools | Playback, audio, craft, and validation gates. |
 
+`montara render <timeline-or-scene-plan.json> [out.mp4]` now treats editor
+handoff as part of rendering: it writes the MP4 and, unless explicitly disabled,
+creates `.edl`, `.otio`, and `.fcpxml` siblings from the same Timeline IR. The
+explicit `montara export --to ...` command remains available for one-off format
+exports.
+
 ## Renderer Status
 
 | Renderer | Current status | Validation rule |

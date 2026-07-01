@@ -46,7 +46,7 @@ montara runtimes status --json --out out/runtimes-status.json
 montara runtimes plan comfyui
 montara plan "Make a 45-second explainer about why the sky is blue"
 montara make "Make a 45-second explainer about why the sky is blue"
-montara render out/timeline.json
+montara render out/timeline.json      # writes MP4 + EDL/OTIO/FCPXML beside it
 montara export out/timeline.json --to otio out/edit.otio
 montara capture --url https://example.com out/browser-capture.mp4
 montara capture pick-latest --recordings-dir out/captures --output out/screen-capture.mp4
@@ -78,7 +78,8 @@ current reproducible demos to inspect before trusting a workflow:
 | Documentary corpus proof | `npm.cmd run validate` | `out/validate-documentary-montage.mp4` + `out/validate-documentary-corpus/` | `corpus seed-fixture` -> Python `clip_search` -> `video_compose` | `$0` |
 | 60s documentary open-stock proof | `npm.cmd run validate` | `out/validate-documentary-open-stock-60s.mp4` + `.selection.json` + `.asset-manifest.json` | `corpus seed-open-stock-proof` -> `clip_search.select_slots` -> `video_compose` | `$0` |
 | Screen-demo capture proof | `npm.cmd run validate` | `out/validate-screen-demo.mp4` + `out/validate-screen-demo-capture.mp4` | `capture pick-latest --recordings-dir` -> `video_compose` | `$0` |
-| Editor handoff | `npm.cmd run montara -- export out/validate-compose-core.timeline.json --to otio out/validate-compose-core.otio` | OTIO/EDL/FCPXML files on demand | One Timeline IR -> editor bridge | `$0` |
+| Render auto handoff | `npm.cmd run montara -- render out/validate-compose-core.timeline.json out/validate-render-cli.mp4` | `out/validate-render-cli.mp4` + `.edl/.otio/.fcpxml` | One Timeline IR -> MP4 + editor bridge by default | `$0` |
+| Editor handoff | `npm.cmd run montara -- export out/validate-compose-core.timeline.json --to otio out/validate-compose-core.otio` | OTIO/EDL/FCPXML files on demand | Explicit one-format export for pro-editor handoff | `$0` |
 | Corpus/source discovery | `npm.cmd run montara -- corpus sources` | source-provider menu in stdout | Python `corpus_builder` discovery, no download required | `$0` |
 | Auth browser capture | `npm.cmd run montara -- capture login --url https://example.com` then `capture --url ...` | `out/browser-capture.mp4` | Playwright recording with user-owned storageState | `$0`, runtime-gated |
 
@@ -96,13 +97,13 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 2.7 documentary open-stock corpus sync:
+Latest local gate snapshot from the Stage 3.1 render auto-export sync:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `npm.cmd run verify` | 305 passed, 0 failed |
-| `npm.cmd run validate` | 89 passed, 0 failed |
+| `npm.cmd run validate` | 90 passed, 0 failed |
 | `python -m pytest tests` | 379 passed, 8 skipped |
 
 ## Agent Entry Points
