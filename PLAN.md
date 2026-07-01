@@ -64,7 +64,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **9-engine registry** | ☑ | Honest `maturity` labels (working / adapter / runtime-gated / planned) |
 | **Remotion native** | ☑ | Native smoke + Timeline IR route validate-gated; `REMOTION_ENABLED=1` makes `montara make/render` prefer native when composer deps are installed |
 | **HyperFrames native** | ◐ | Strict kinetic smoke renders through `hyperframes_compose`; broader pipeline parity pending |
-| **Revideo / Motion Canvas native** | ☐ | Registered; packages not fully implemented |
+| **Revideo / Motion Canvas native** | ◐ | Runtime-gated native adapter packages/probes exist; installed-runtime MP4 validate proof pending |
 | **Three.js / Manim native** | ◐ | Adapters exist; often FFmpeg fallback proofs |
 | **Blender native** | ◐ | Real headless adapter; proof clip exists |
 | **Spline** | ☐ | Planned registry entry only |
@@ -173,7 +173,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 | Stage | Name | Goal | Completion |
 |-------|------|------|------------|
 | **0** | Foundation & honesty | Runnable repo, gates, honest docs, CI | **100%** |
-| **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **~85%** |
+| **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **100% exit-complete** |
 | **2** | Native composition | Remotion + HyperFrames as real defaults, not FFmpeg solids | **~45%** |
 | **3** | Moat core | IR import, local LLM, CLI completeness, capture, craft gates | **~40%** |
 | **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~40%** |
@@ -222,7 +222,7 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ---
 
-## 7. STAGE 1 — OpenMontage parity (~85% complete)
+## 7. STAGE 1 — OpenMontage parity (exit-complete)
 
 Goal: **Every OpenMontage capability** available through Montara (Python tools and/or TS
 boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./docs/MONTARA-PARITY.md).
@@ -234,7 +234,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | 1A.0 | Engine at repo root (not `python/`) | ☑ | tools 116, lib 18 |
 | 1A.1 | `engine_bridge.py` info + verify | ☑ | AST parse lib+tools |
 | 1A.2 | Timeline bridge (composition ↔ IR) | ☑ | `@montara/engine` tests green |
-| 1A.3 | CLI invokes bridge deliberately | ◐ | `montara` engine subcommands |
+| 1A.3 | CLI invokes bridge deliberately | ☑ | `montara` engine subcommands + `montara stage1-audit` |
 | 1A.4 | Wire high-value Python tools from CLI | ☑ | `montara compose`; `montara corpus sources|seed-fixture|build|search|stats|get` |
 | 1A.5 | Contract tests (pytest) parity with upstream | ☑ | 34 test files |
 | 1A.6 | `playwright_recorder` in registry | ☑ | Auto-discovered via pkgutil |
@@ -262,7 +262,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 
 **1B pipeline validate gap is now closed.** Keep future pipeline work focused on deeper native runtime quality and source-specific treatment, not basic MP4 proof.
 
-### 1C — Providers & tools (parity categories)
+### 1C — Providers & tools (parity categories; parity gate closed)
 
 | Category | Status | Remaining work |
 |----------|--------|----------------|
@@ -282,8 +282,8 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 |--------|--------|-----------|
 | FFmpeg | ☑ working | Keep as universal floor |
 | Remotion | ☑ native Timeline route | `REMOTION_ENABLED=1` routes Timeline IR through native Remotion; FFmpeg remains visible fallback |
-| Revideo | ☐ runtime-gated | Implement `@montara/render-revideo` native entry |
-| Motion Canvas | ☐ runtime-gated | Implement `@montara/render-motioncanvas` native entry |
+| Revideo | ◐ runtime-gated | Native adapter/probe exists; installed-runtime MP4 validate proof is Stage 2 |
+| Motion Canvas | ◐ runtime-gated | Native adapter/probe exists; installed-runtime MP4 validate proof is Stage 2 |
 | HyperFrames | ◐ native smoke | Strict kinetic smoke via `hyperframes_compose`; `montara compose` can call `video_compose` artifacts |
 | three.js | ◐ | Native headless proof, not fallback only |
 | Manim | ◐ | Native when `manim` installed |
@@ -291,7 +291,7 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 | Playwright | ◐ capture | CLI: `montara capture --url`; auth via `montara capture login` |
 | Spline | ☐ planned | Defer until contract clear |
 
-**Stage 1 exit criteria:** All 1B pipeline validate MP4 gaps are closed; MONTARA-PARITY synced; 1A.4 CLI wiring for compose/corpus/capture artifact pickup is green. Stage 1C-K still carry partial maturity items.
+**Stage 1 exit criteria:** closed by `montara stage1-audit` (4/4 sections, 21/21 checks) plus the existing `verify`/`validate` MP4 proofs. Remaining native-render and live-key maturity items are handed off to Stages 2-4 instead of blocking Stage 1.
 
 ---
 
@@ -460,7 +460,7 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 1G.1 | Optional Transformers.js CLIP path + `montara understand --vision` CLI proof | done |
 | ✅ | 1C.1 | Official-doc provider request-shape refresh for Google, Runway, OpenAI, and BFL | done |
 | ✅ | 1C-K.1 | Offline-testable `build_request()` + pytest across all cloud video/image/TTS/music Python tools | done |
-| 🎯 1 | 1C-K | Stage 1 residual partials audit + next highest-risk closure | Stage 1 gap pass |
+| ✅ | 1C-K | Stage 1 residual partials audit + next highest-risk closure | done via `montara stage1-audit` |
 | 🎯 2 | 2.4/2.5/2.6/2.8 | Remaining Stage 2 native composition/runtime maturity | Stage 2 gap pass |
 | 🎯 3 | 3.3/3.5/3.7/3.8/3.10-3.12 | Remaining Stage 3 moat partials | Stage 3 gap pass |
 | 🎯 4 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |

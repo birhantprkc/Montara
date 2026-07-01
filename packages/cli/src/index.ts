@@ -16,6 +16,7 @@ import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene } 
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY, listSkills, findSkills } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
+import { buildStage1AuditReport, printStage1AuditReport } from "./stage1Audit";
 import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance, findPython as findEnginePython } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
 import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
@@ -646,6 +647,22 @@ function runStatusCommand(rest: string[]): number {
     if (out) console.log(`\nreport -> ${out}`);
   }
   return 0;
+}
+
+function runStage1AuditCommand(rest: string[]): number {
+  const report = buildStage1AuditReport();
+  const out = optionValue(rest, "--out");
+  if (out) {
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, `${JSON.stringify(report, null, 2)}\n`);
+  }
+  if (rest.includes("--json")) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    printStage1AuditReport(report);
+    if (out) console.log(`\nreport -> ${out}`);
+  }
+  return report.status === "complete" ? 0 : 1;
 }
 
 async function runRuntimesCommand(rest: string[]): Promise<number> {
@@ -2069,6 +2086,8 @@ function printHelp(): void {
 Commands:
   doctor [--fix]                  check local render prerequisites + Python engine; print setup guide with --fix
   status [--json] [--out path]     summarize local capability, gates, and upstream parity categories
+  stage1-audit [--json] [--out path]
+                                  prove Stage 1A-D parity gates from local bridge/provider/runtime evidence
   runtimes status [--json]         health check external ComfyUI/A1111/Piper/Whisper/Transformers.js runtimes
   runtimes inventory [--json]      report configured model/cache paths without scanning or downloading
   runtimes plan <id>               show managed install + launch recipes
@@ -2136,6 +2155,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
     if (command === "doctor") return runDoctor(rest);
     if (command === "status") return runStatusCommand(rest);
+    if (command === "stage1-audit" || command === "stage1") return runStage1AuditCommand(rest);
     if (command === "runtimes") return runRuntimesCommand(rest);
     if (command === "reel") return runReelCommand(rest);
     if (command === "capture") return runCaptureCommand(rest);

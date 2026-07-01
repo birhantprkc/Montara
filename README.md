@@ -32,6 +32,7 @@ Montara should be honest with users and agents:
 | Screen recording | FFmpeg desktop capture, Cap pickup, deterministic capture-artifact pickup, and `montara capture` Playwright browser recording with user-login storageState. |
 | Cloud providers | Request builders exist for BYOK use; OpenAI/BFL/Google/Runway shapes are fixture-gated against current official docs. Keep them audited before live execution. |
 | Status reporting | `montara status --json --out out/montara-status.json` summarizes local capability, latest documented gates, and upstream parity categories. |
+| Stage 1 parity audit | `montara stage1-audit --json --out out/stage1-audit.json` proves Stage 1A-D from local bridge, pipeline, provider, and engine evidence. |
 | Local generation runtimes | `montara runtimes status` reports ComfyUI/A1111/Piper/Faster Whisper/Transformers.js health; `runtimes inventory` reports model/cache paths; plan/install/launch/write-env/write-script stay dry-run unless `--execute` is passed. |
 
 For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
@@ -42,6 +43,7 @@ For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
 ```bash
 montara doctor
 montara status --out out/montara-status.json
+montara stage1-audit --out out/stage1-audit.json
 montara runtimes status --json --out out/runtimes-status.json
 montara runtimes inventory --json --out out/runtime-inventory.json
 montara runtimes plan comfyui
@@ -101,13 +103,14 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 1 Python provider `build_request()` extraction:
+Latest local gate snapshot from the Stage 1A-D audit pass:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 310 passed, 0 failed |
-| `npm.cmd run validate` | 92 passed, 0 failed |
+| `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
+| `npm.cmd run verify` | 312 passed, 0 failed |
+| `npm.cmd run validate` | 93 passed, 0 failed |
 | `python -m pytest tests` | 399 passed, 8 skipped |
 
 ## Agent Entry Points
@@ -124,7 +127,8 @@ Agents should run the same loop every time: inspect sources, read the relevant
 skills, produce or update the Timeline IR, render, QA the MP4, and export editor
 formats when requested.
 Use `montara status --json --out out/montara-status.json` before broad parity
-claims so the report is tied to the current local registry and docs snapshot.
+claims, and `montara stage1-audit --json --out out/stage1-audit.json` before
+claiming Stage 1A-D complete.
 
 ## License
 

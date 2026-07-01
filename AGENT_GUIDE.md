@@ -544,6 +544,7 @@ Agents should prefer the public CLI when it exists:
 | --- | --- |
 | environment check | `montara doctor` |
 | setup guidance | `montara doctor --fix` |
+| Stage 1 parity gate | `montara stage1-audit --json --out out/stage1-audit.json` |
 | full local production | `montara make "<idea>"` |
 | inspect plan only | `montara plan "<idea>"` |
 | render IR | `montara render <ir.json> [out.mp4]` (auto-writes `.edl/.otio/.fcpxml`) |

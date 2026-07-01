@@ -8,7 +8,7 @@ Snapshot date: 2026-07-01.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
 - **CLI:** `doctor`, `status`, `runtimes`, `make`, `plan`, `render`, `review`, `analyze`, `understand`, `capture`, `compose`,
   `corpus`, `reel`, `music`, `voiceid`, provider listing, engine bridge commands,
-  and 3D render commands.
+  Stage 1 parity audit, and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
   extraction, audio mix/enhance, subtitles, reels, and simple composites.
 - **Editor export:** EDL, OTIO, and FCPXML verified through the bridge package and
@@ -47,9 +47,10 @@ Snapshot date: 2026-07-01.
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
-| `npm.cmd run verify` | 310 passed, 0 failed |
-| `npm.cmd run validate` | 92 passed, 0 failed |
-| `python -m pytest tests` | 379 passed, 8 skipped |
+| `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
+| `npm.cmd run verify` | 312 passed, 0 failed |
+| `npm.cmd run validate` | 93 passed, 0 failed |
+| `python -m pytest tests` | 399 passed, 8 skipped |
 
 ## Example Outputs
 
@@ -66,6 +67,7 @@ Snapshot date: 2026-07-01.
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
 | Montara status report | `out/validate-montara-status.json` | CLI compare report for local capability and upstream parity |
+| Stage 1 audit report | `out/stage1-audit.json` | `montara stage1-audit` proves Stage 1A-D bridge, pipeline, provider, and engine parity gates |
 | Runtime health report | `out/validate-runtimes-status.json` | CLI report for ComfyUI/A1111/Piper/Faster Whisper/Transformers.js external runtime health |
 | Runtime model inventory | `out/validate-runtime-inventory.json` | Configured model/cache path inventory; no directory scan or model download |
 | Runtime manager script | `out/validate-comfyui-install.ps1` | Generated safe install script from the dry-run manager |
@@ -83,8 +85,8 @@ expectations.
 | Tech | Current status |
 | --- | --- |
 | Remotion | Native smoke and Timeline IR render validate-gated when `remotion-composer` deps are installed; `REMOTION_ENABLED=1` makes `montara make/render` prefer native Remotion with FFmpeg fallback visible. |
-| Revideo | Registered runtime-gated MIT fallback target; native package work pending. |
-| Motion Canvas | Registered runtime-gated kinetic typography target; native package work pending. |
+| Revideo | Runtime-gated MIT fallback adapter/probe exists; installed-runtime MP4 validate proof pending. |
+| Motion Canvas | Runtime-gated kinetic typography adapter/probe exists; installed-runtime MP4 validate proof pending. |
 | HyperFrames | Python `hyperframes_compose` strict kinetic smoke is validate-gated; kinetic typography now has a first-class pipeline; broader non-kinetic pipeline/runtime parity pending. |
 | Three.js | Adapter package exists; native headless proof depends on browser/runtime. |
 | Blender | Real adapter and native proof path when installed. |
@@ -130,6 +132,6 @@ Best current path:
 ## Next Best Engineering Steps
 
 1. Extend the documentary proof from fixture corpus to a longer open-stock corpus montage.
-2. Add native package work for Revideo / Motion Canvas beyond registered adapters.
+2. Add installed-runtime MP4 validate proofs for Revideo / Motion Canvas.
 3. Run live-key provider smoke confirmations where keys are available.
 4. Continue local vision hardening with cached CLIP model validation and BLIP/caption coverage.

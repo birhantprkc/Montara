@@ -229,21 +229,21 @@ export function renderNativeRemotionTimeline(timeline: Timeline, outPath: string
   const issues = validateTimeline(timeline);
   const absOut = resolve(outPath);
   if (issues.length) return { ok: false, path: absOut, renderer: "remotion-native", native: true, composition: "Explainer", error: `invalid timeline: ${issues.join("; ")}` };
-  const bin = remotionCliBin(root);
+  const cli = remotionCliCommand(root);
   const entry = join(root, "src", "index.tsx");
-  if (!bin) return { ok: false, path: absOut, renderer: "remotion-native", native: true, composition: "Explainer", error: "Remotion CLI not installed in remotion-composer/node_modules" };
+  if (!cli) return { ok: false, path: absOut, renderer: "remotion-native", native: true, composition: "Explainer", error: "Remotion CLI not installed in remotion-composer/node_modules" };
   if (!existsSync(entry)) return { ok: false, path: absOut, renderer: "remotion-native", native: true, composition: "Explainer", error: `Remotion entry not found: ${entry}` };
 
   mkdirSync(dirname(absOut), { recursive: true });
   const propsPath = join(dirname(absOut), ".remotion_timeline_props.json");
   writeFileSync(propsPath, `${JSON.stringify(timelineToRemotionProps(timeline), null, 2)}\n`);
   clearRemotionCache(root);
-  const result = spawnSync(bin, remotionRenderArgs("src/index.tsx", "Explainer", absOut, propsPath), {
+  const result = spawnSync(cli.command, [...cli.argsPrefix, ...remotionRenderArgs("src/index.tsx", "Explainer", absOut, propsPath)], {
     cwd: root,
     encoding: "utf8",
     timeout: 240000,
     maxBuffer: 1 << 22,
-    shell: process.platform === "win32",
+    shell: cli.shell,
     env: {
       ...process.env,
       REMOTION_DISABLE_UPDATE_CHECK: "1",
@@ -325,28 +325,35 @@ export function remotionCliBin(root: string = remotionComposerRoot()): string | 
   return existsSync(bin) ? bin : null;
 }
 
+function remotionCliCommand(root: string = remotionComposerRoot()): { command: string; argsPrefix: string[]; shell: boolean } | null {
+  const cliScript = join(root, "node_modules", "@remotion", "cli", "remotion-cli.js");
+  if (existsSync(cliScript)) return { command: process.argv[0] || "node", argsPrefix: [cliScript], shell: false };
+  const bin = remotionCliBin(root);
+  return bin ? { command: bin, argsPrefix: [], shell: process.platform === "win32" } : null;
+}
+
 export function remotionNativeAvailable(root: string = remotionComposerRoot()): boolean {
   return Boolean(
-    remotionCliBin(root) &&
+    remotionCliCommand(root) &&
       existsSync(join(root, "src", "native-smoke.tsx")) &&
       existsSync(join(root, "node_modules", "@remotion", "renderer")),
   );
 }
 
 export function renderNativeRemotionSmoke(outPath: string, root: string = remotionComposerRoot()): NativeRemotionResult {
-  const bin = remotionCliBin(root);
+  const cli = remotionCliCommand(root);
   const entry = join(root, "src", "native-smoke.tsx");
   const absOut = resolve(outPath);
-  if (!bin) return { ok: false, path: absOut, renderer: "remotion-native", composition: "NativeSmoke", error: "Remotion CLI not installed in remotion-composer/node_modules" };
+  if (!cli) return { ok: false, path: absOut, renderer: "remotion-native", composition: "NativeSmoke", error: "Remotion CLI not installed in remotion-composer/node_modules" };
   if (!existsSync(entry)) return { ok: false, path: absOut, renderer: "remotion-native", composition: "NativeSmoke", error: `native smoke entry not found: ${entry}` };
   mkdirSync(dirname(absOut), { recursive: true });
   clearRemotionCache(root);
-  const result = spawnSync(bin, remotionRenderArgs("src/native-smoke.tsx", "NativeSmoke", absOut), {
+  const result = spawnSync(cli.command, [...cli.argsPrefix, ...remotionRenderArgs("src/native-smoke.tsx", "NativeSmoke", absOut)], {
     cwd: root,
     encoding: "utf8",
     timeout: 180000,
     maxBuffer: 1 << 22,
-    shell: process.platform === "win32",
+    shell: cli.shell,
     env: {
       ...process.env,
       REMOTION_DISABLE_UPDATE_CHECK: "1",

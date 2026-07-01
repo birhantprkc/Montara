@@ -60,6 +60,7 @@ The TypeScript boundary that drives the engine. New authored work, not derived s
 | `0x16` | 1A.4 | Provider/runtime discovery (dependency-free, secret-safe, no-key path never crashes) |
 | `0x17` | 1A.5 | Engine self-check battery (schemas/compositions/skills/tests/pipelines) in the gate |
 | `0x18` | 1A.6 | Enforced compliance gate (no legacy branding, no hardcoded secrets in source) |
+| `0x55` | 1A-D | Stage 1 parity audit CLI: bridge, pipelines, providers, and engine-registry evidence |
 
 ## Preserved TypeScript Work
 

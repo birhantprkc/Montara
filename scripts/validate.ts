@@ -472,6 +472,30 @@ ok("status CLI emits a structured Montara/upstream compare report",
     Boolean(statusComparison?.some((row) => row.verdict === "upstream-ahead")),
   `status=${statusCli.status} stdout=${(statusCli.stdout || "").slice(-500)} stderr=${(statusCli.stderr || "").slice(-500)}`);
 
+console.log("\n== Stage 1 parity audit CLI ==");
+const stage1AuditOut = join(outDir, "validate-stage1-audit.json");
+try { rmSync(stage1AuditOut, { force: true }); } catch { /* none */ }
+const stage1AuditCli = spawnSync(npmBin, ["run", "montara", "--", "stage1-audit", "--json", "--out", stage1AuditOut], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+let stage1Audit: { status?: string; sections?: { id?: string; status?: string }[]; summary?: { checksPassed?: number; checksTotal?: number } } = {};
+try {
+  stage1Audit = JSON.parse(readFileSync(stage1AuditOut, "utf8")) as typeof stage1Audit;
+} catch {
+  stage1Audit = {};
+}
+ok("stage1-audit CLI proves Stage 1A-D parity gates",
+  stage1AuditCli.status === 0 &&
+    existsSync(stage1AuditOut) &&
+    stage1Audit.status === "complete" &&
+    stage1Audit.sections?.length === 4 &&
+    stage1Audit.sections.every((section) => section.status === "complete") &&
+    stage1Audit.summary?.checksPassed === stage1Audit.summary?.checksTotal,
+  `status=${stage1AuditCli.status} stdout=${(stage1AuditCli.stdout || "").slice(-500)} stderr=${(stage1AuditCli.stderr || "").slice(-500)}`);
+
 const runtimesReportOut = join(outDir, "validate-runtimes-status.json");
 try { rmSync(runtimesReportOut, { force: true }); } catch { /* none */ }
 const runtimesCli = spawnSync(npmBin, ["run", "montara", "--", "runtimes", "status", "--json", "--no-probe", "--out", runtimesReportOut], {

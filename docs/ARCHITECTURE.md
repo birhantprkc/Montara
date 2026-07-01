@@ -31,7 +31,7 @@ workspace files are supporting artifacts.
 | Providers | `packages/providers` and `tools/*` | BYOK request builders plus Python tools. Offline fallbacks remain mandatory. |
 | Python tools | `tools/` | Real operational muscle: capture, analysis, generation, enhancement, registry. |
 | Skills | `skills/` and `.agents/skills/` | Layer 2 Montara guidance plus Layer 3 provider/runtime knowledge. |
-| CLI | `packages/cli` | User-facing entry point for doctor/plan/make/render/hear/understand/export flows. |
+| CLI | `packages/cli` | User-facing entry point for doctor/status/stage1-audit/plan/make/render/hear/understand/export flows. |
 | Exports | `packages/export-*` | Editor interchange path for EDL, OTIO, and FCPXML. |
 | QA | `packages/quality` and tools | Playback, audio, craft, and validation gates. |
 

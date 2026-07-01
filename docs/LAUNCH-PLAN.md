@@ -100,7 +100,7 @@ Open focused issues rather than vague roadmap posts:
 | Issue | Why it helps |
 | --- | --- |
 | Native Remotion Timeline routing | Converts the current native smoke into the default composition path. |
-| Revideo and Motion Canvas native packages | Turns registered adapters into verified renderers. |
+| Revideo and Motion Canvas installed-runtime validate proofs | Turns runtime-gated adapters into verified native renderers. |
 | Real CLIP/BLIP local understanding | Replaces signal-only understanding with actual local vision models. |
 | Runtime manager for ComfyUI/A1111 | Makes local generation setup repeatable. |
 | Compare report automation | Lets `montara status` produce a fresh parity report against upstream-style categories. |

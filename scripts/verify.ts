@@ -199,6 +199,7 @@ import {
   listSkills,
   findSkills,
 } from "../packages/agent/src/index";
+import { buildStage1AuditReport } from "../packages/cli/src/stage1Audit";
 
 let pass = 0;
 let fail = 0;
@@ -1159,6 +1160,18 @@ const compliance = engineCompliance();
 ok("no legacy source-project branding in committable source", Boolean(compliance) && compliance!.legacy_tokens.length === 0);
 ok("no hardcoded secrets in committable source", Boolean(compliance) && compliance!.hardcoded_secrets.length === 0);
 ok("compliance scan covers the whole source tree", Boolean(compliance) && compliance!.ok && compliance!.scanned > 300, `scanned ${compliance?.scanned ?? 0}`);
+
+console.log("\n== Stage 1 parity audit (1A-D) ==");
+const stage1Audit = buildStage1AuditReport();
+ok("Stage 1 audit closes all A-D parity sections",
+  stage1Audit.status === "complete" &&
+  stage1Audit.sections.length === 4 &&
+  stage1Audit.sections.every((section) => section.status === "complete"),
+  stage1Audit.sections.map((section) => `${section.id}:${section.status}`).join(", "));
+ok("Stage 1 audit records later-stage caveats instead of overclaiming",
+  stage1Audit.caveatsHandedOff.some((caveat) => caveat.includes("Stage 2")) &&
+  stage1Audit.caveatsHandedOff.some((caveat) => caveat.includes("Stage 4")) &&
+  stage1Audit.summary.checksPassed === stage1Audit.summary.checksTotal);
 
 console.log("\n== Voice-ID hear engine (2.4) ==");
 ok("voice-ID availability is a boolean (degrade-friendly), never throws", typeof voiceIdAvailable() === "boolean");
