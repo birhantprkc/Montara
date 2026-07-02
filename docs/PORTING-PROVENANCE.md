@@ -62,6 +62,7 @@ The TypeScript boundary that drives the engine. New authored work, not derived s
 | `0x18` | 1A.6 | Enforced compliance gate (no legacy branding, no hardcoded secrets in source) |
 | `0x55` | 1A-D | Stage 1 parity audit CLI: bridge, pipelines, providers, and engine-registry evidence |
 | `0x56` | 2.4/2.5/2.8 | Stage 2 runtime gap pass: HyperFrames doctor/cache-warm, license-aware Revideo fallback, character SVG rig final MP4 validate proof |
+| `0x57` | 3.3/3.5/3.7/3.8/3.10 | Stage 3 moat pass: local-brain fallback make, URL reference preflight, documentary evidence gates, transcript Shorts gates, project workspace CLI |
 
 ## Preserved TypeScript Work
 

@@ -116,6 +116,9 @@ import {
   parseFps,
   sampleTimestamps,
   reviewSourceMedia,
+  documentaryEvidenceGate,
+  suggestTranscriptShortCuts,
+  verifyShortCutsAgainstTranscript,
   type ScorableTool,
   type Scene,
 } from "../packages/quality/src/index";
@@ -1650,6 +1653,36 @@ ok("content-aware reel plan emits editable Timeline IR plus edit_decisions",
   reelArtifacts.editDecisions.render_runtime === "ffmpeg" &&
   reelArtifacts.editDecisions.metadata?.visual_directives instanceof Array &&
   reelArtifacts.editDecisions.cuts.length >= 1);
+
+const docGate = documentaryEvidenceGate({
+  claims: [
+    { id: "claim-a", text: "Traffic rose after the closure", sourceUrl: "https://example.com/source", confidence: "source-backed" },
+    { id: "claim-b", text: "Officials reported delays", confidence: "reported" },
+  ],
+  maps: [{ id: "map-a", hasSourceData: true, precision: "approximate" }],
+  musicCues: [{ sceneId: "open", startSec: 0, endSec: 3, fadeInSec: 0.2, fadeOutSec: 0.4, gainDb: -16 }],
+  coldOpenMoves: true,
+  transcriptCutVerified: true,
+});
+ok("documentaryEvidenceGate accepts sourced claims, honest maps, and scene-mapped music", docGate.ok && docGate.blockers.length === 0);
+
+const blockedDocGate = documentaryEvidenceGate({
+  claims: [{ id: "claim-c", text: "A precise unsourced claim", confidence: "source-backed" }],
+  maps: [{ id: "map-c", hasSourceData: false, precision: "exact" }],
+});
+ok("documentaryEvidenceGate blocks unsourced source-backed claims and unsupported precise maps",
+  !blockedDocGate.ok && blockedDocGate.blockers.length >= 2);
+
+const transcriptCaptions = [
+  { startSec: 0, endSec: 1.4, text: "The first sentence lands cleanly." },
+  { startSec: 1.4, endSec: 3.0, text: "The second sentence gives the short a finish." },
+];
+const suggestedShorts = suggestTranscriptShortCuts(transcriptCaptions, { maxCuts: 2 });
+const transcriptGate = verifyShortCutsAgainstTranscript(suggestedShorts, transcriptCaptions);
+ok("transcript Shorts suggestions land on transcript boundaries",
+  suggestedShorts.length === 2 && transcriptGate.ok);
+ok("shorts boundary gate rejects guessed cut points",
+  !verifyShortCutsAgainstTranscript([{ startSec: 0.3, endSec: 1.9, caption: "guessed" }], transcriptCaptions).ok);
 
 const reelHardcodeFiles = [
   join(process.cwd(), "packages", "render-ffmpeg", "src", "reel.ts"),

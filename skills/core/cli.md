@@ -16,8 +16,10 @@ generated outputs under `./out` unless the user gives an explicit path.
 | `research <idea>` | Plan broad research searches and write a research brief. |
 | `plan [opts] <idea>` | Write a structured scene plan JSON. |
 | `make [opts] <idea>` | Plan -> pre-compose gate -> compose -> render -> post-render review. |
+| `project init <name>` | Create the gitignored project workspace layout and `project.json` manifest. |
 | `render <ir.json>` | Render a ScenePlan, edit decisions, or Timeline IR JSON to MP4. |
 | `review <mp4>` | Emit a post-render self-review report for an existing MP4. |
+| `analyze <url\|file>` | Analyze a local reference video, or write a URL materialization/research preflight. |
 | `export <ir.json> --to otio\|fcpxml\|edl` | Export Timeline IR for professional editors. |
 | `import <file>` | Import EDL/OTIO/FCPXML back into Timeline IR where supported. |
 | `capture ...` | Record browser demos, pick up completed desktop recordings, and guide Playwright login storageState support. |
@@ -31,6 +33,9 @@ Options for `plan` and `make`:
 
 - `--pipeline, -p <id>` sets the pipeline shape.
 - `--seconds, -s <n>` sets the target runtime.
+- `--brain` asks a reachable local Ollama/LM Studio/llama.cpp model to rewrite
+  the brief; if none answers, the deterministic local planner continues.
+- `--brain-timeout-ms <n>` bounds that local brain attempt.
 
 `make` is gated: if the pre-compose check finds a broken delivery promise, invalid
 IR, missing renderer, or runtime overclaim, it blocks and prints the blockers

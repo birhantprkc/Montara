@@ -320,18 +320,18 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 |----|------|--------|------------|
 | 3.1 | Auto-export EDL+OTIO+FCPXML on every `montara render` | ☑ | `montara render <ir.json> [out.mp4]` writes MP4 plus `.edl`, `.otio`, `.fcpxml` beside it by default; opt out with `--no-editor-exports` |
 | 3.2 | **Editor import** `montara import <fcpxml\|otio\|edl>` → Timeline IR | ☑ | Round-trip test green (verify) |
-| 3.3 | **Local LLM** drives `montara make` (Ollama/LM Studio) | ☐ | Zero-cloud idea→MP4 |
+| 3.3 | **Local LLM** drives `montara make` (Ollama/LM Studio) | ☑ | `montara make --brain` uses Ollama/LM Studio/llama.cpp when reachable and deterministically falls back to the local planner; validate renders MP4 with no cloud key |
 | 3.4 | `montara budget` (estimate/reserve/reconcile) | ☑ | Wraps `tools/cost_tracker.py`; pytest contract green |
-| 3.5 | `montara analyze <url\|file>` reference-video CLI | ◐ | Partial via understand package |
+| 3.5 | `montara analyze <url\|file>` reference-video CLI | ☑ | Local files run frame/audio reference analysis; URLs emit an honest research/materialization preflight until captured/downloaded |
 | 3.6 | `montara capture` (Playwright + desktop selector) | ☑ | Wraps screen_capture_selector + playwright_recorder |
-| 3.7 | Documentary evidence craft **gates** in quality package | ◐ | Skill ☑; automated LUFS/map/claim checks |
-| 3.8 | Reel factory with transcript-verified Shorts cuts | ◐ | verify tests exist; CLI command |
+| 3.7 | Documentary evidence craft **gates** in quality package | ☑ | `documentaryEvidenceGate` blocks unsourced claims and unsupported precise maps; warns on static cold opens, missing score cues, and unverified transcript cuts |
+| 3.8 | Reel factory with transcript-verified Shorts cuts | ☑ | `suggestTranscriptShortCuts` + `verifyShortCutsAgainstTranscript` enforce sentence-boundary cuts; reel CLI keeps editable IR/artifact output |
 | 3.9 | `montara resume <project>` from checkpoint JSON | ☑ | `lib/checkpoint.py` wired; reports completed + next stage |
-| 3.10 | Project workspace convention enforced | ◐ | AGENT_GUIDE documents; CLI creates dirs |
-| 3.11 | SpeechBrain optional backend in `@montara/hear` | ☐ | Behind optional dep |
+| 3.10 | Project workspace convention enforced | ☑ | `montara project init <name>` creates gitignored `projects/<name>/` artifacts/assets/auth/renders/hyperframes layout with manifest |
+| 3.11 | SpeechBrain optional backend in `@montara/hear` | ◐ | Optional status probe reports SpeechBrain/Resemblyzer/pyannote availability without hard-failing |
 | 3.12 | Real CLIP/BLIP in `@montara/understand` | ◐ | Optional local Transformers.js CLIP classification path + `montara understand --vision`; keep signalstats default until cached-weight and BLIP/caption validation land |
 
-**Stage 3 exit criteria:** 3.2, 3.3, 3.4, 3.6, 3.9 ☑; moat items M3, M4, M5, M10, M11 → ☑ or ◐ with validate.
+**Stage 3 exit criteria:** 3.1-3.10 ☑, 3.11-3.12 ◐; moat items M3, M4, M5, M10, M11, M12 → ☑ or ◐ with validate.
 
 ---
 
@@ -462,7 +462,8 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 1C-K.1 | Offline-testable `build_request()` + pytest across all cloud video/image/TTS/music Python tools | done |
 | ✅ | 1C-K | Stage 1 residual partials audit + next highest-risk closure | done via `montara stage1-audit` |
 | 🎯 2 | 2.6 | Motion Canvas installed-runtime MP4 proof | Runtime-gated native proof |
-| 🎯 3 | 3.3/3.5/3.7/3.8/3.10-3.12 | Remaining Stage 3 moat partials | Stage 3 gap pass |
+| ✅ | 3.3/3.5/3.7/3.8/3.10 | Local brain fallback, URL analysis preflight, evidence gates, transcript Shorts gates, project workspace CLI | done |
+| 🎯 3 | 3.11-3.12 | Remaining runtime-gated Stage 3 moat partials | Optional speaker/vision runtime hardening |
 | 🎯 4 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
 | 🎯 5 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
 

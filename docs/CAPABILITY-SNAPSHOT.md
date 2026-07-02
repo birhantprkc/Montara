@@ -6,7 +6,7 @@ Snapshot date: 2026-07-02.
 
 - **Python engine bridge:** ready. Current bridge reports 116 tools, 18 lib modules, and 14 pipeline manifests.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
-- **CLI:** `doctor`, `status`, `runtimes`, `make`, `plan`, `render`, `review`, `analyze`, `understand`, `capture`, `compose`,
+- **CLI:** `doctor`, `status`, `runtimes`, `project init`, `make --brain`, `plan`, `render`, `review`, `analyze`, `understand`, `capture`, `compose`,
   `corpus`, `reel`, `music`, `voiceid`, provider listing, engine bridge commands,
   Stage 1 parity audit, license-aware render recommendations, and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
@@ -34,6 +34,13 @@ Snapshot date: 2026-07-02.
   pyannote status without hard-failing.
 - **Documentary evidence craft:** generalized Montara skill at
   `skills/meta/documentary-evidence-craft.md`; `warfront-craft.md` is a compatibility alias.
+  `@montara/quality` now exposes executable evidence gates for source-backed
+  claims, honest map precision, scene-mapped music cues, cold-open motion, and
+  transcript-bound short cuts.
+- **Local brain / project workspace:** `montara make --brain` probes local
+  Ollama/LM Studio/llama.cpp and falls back to the deterministic planner with no
+  cloud key; `montara project init` creates the gitignored project workspace
+  convention with manifest and media/auth/render folders.
 - **Layer 3 skills:** 69 installed `.agents/skills` packs covering GSAP, HyperFrames, Three.js,
   Manim, FFmpeg, video understanding, music, speech, Playwright, visual style, and character animation.
 - **Runtime manager:** `@montara/runtimes` registers ComfyUI, A1111, Piper,
@@ -48,8 +55,8 @@ Snapshot date: 2026-07-02.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
-| `npm.cmd run verify` | 317 passed, 0 failed |
-| `npm.cmd run validate` | 96 passed, 0 failed |
+| `npm.cmd run verify` | 321 passed, 0 failed |
+| `npm.cmd run validate` | 100 passed, 0 failed |
 | `python -m pytest tests` | 399 passed, 8 skipped |
 
 ## Example Outputs
@@ -67,6 +74,9 @@ Snapshot date: 2026-07-02.
 | Character animation HyperFrames proof | `out/validate-character-animation/final.mp4` | SVG/GSAP character rig -> `video_compose` -> HyperFrames final MP4 when runtime is available |
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
+| Stage 3 local-brain smoke | `out/stage-3-local-brain-smoke.mp4` | `montara make --brain` with deterministic local fallback |
+| URL reference preflight | `out/https-example-com-stage3-reference.analysis.json` | `montara analyze <url>` materialization/research preflight |
+| Project workspace smoke | `projects/stage3-workspace-smoke/project.json` | `montara project init` gitignored workspace convention |
 | Montara status report | `out/validate-montara-status.json` | CLI compare report for local capability and upstream parity |
 | Stage 1 audit report | `out/stage1-audit.json` | `montara stage1-audit` proves Stage 1A-D bridge, pipeline, provider, and engine parity gates |
 | Runtime health report | `out/validate-runtimes-status.json` | CLI report for ComfyUI/A1111/Piper/Faster Whisper/Transformers.js external runtime health |

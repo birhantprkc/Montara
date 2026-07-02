@@ -53,6 +53,9 @@ import {
   postRenderSelfReview,
   writeSelfReview,
   BudgetLedger,
+  documentaryEvidenceGate,
+  suggestTranscriptShortCuts,
+  verifyShortCutsAgainstTranscript,
 } from "../packages/quality/src/index";
 import { runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 import { planVideo } from "../packages/ai/src/index";
@@ -499,6 +502,83 @@ const captureRecommend = spawnSync(npmBin, ["run", "montara", "--", "capture", "
 ok("capture CLI routes URL briefs to Playwright recommendation",
   captureRecommend.status === 0 && /Recommended:\*\* playwright|capture recommendation: playwright/.test(captureRecommend.stdout ?? ""),
   (captureRecommend.error?.message || captureRecommend.stderr || captureRecommend.stdout || "").slice(-500));
+
+console.log("\n== Stage 3 moat CLI and gates ==");
+const brainMp4 = join(outDir, "stage-3-local-brain-smoke.mp4");
+try { rmSync(brainMp4, { force: true }); } catch { /* none */ }
+const brainMakeCli = spawnSync(npmBin, ["run", "montara", "--", "make", "--brain", "--brain-timeout-ms", "800", "--seconds", "4", "Stage 3 local brain smoke"], {
+  encoding: "utf8",
+  timeout: 180000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+const brainDuration = existsSync(brainMp4) ? probeDuration(brainMp4) : 0;
+ok("make --brain produces a local-first MP4 or deterministic fallback without cloud",
+  brainMakeCli.status === 0 &&
+    /brain:/.test(brainMakeCli.stdout ?? "") &&
+    existsSync(brainMp4) &&
+    brainDuration > 3.2,
+  `status=${brainMakeCli.status} dur=${brainDuration.toFixed(2)} stdout=${(brainMakeCli.stdout || "").slice(-500)} stderr=${(brainMakeCli.stderr || "").slice(-500)}`);
+
+const analyzeUrlCli = spawnSync(npmBin, ["run", "montara", "--", "analyze", "https://example.com/stage3-reference"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+const analyzeUrlPath = (analyzeUrlCli.stdout || "").trim().split(/\r?\n/).filter(Boolean).at(-1) ?? "";
+let analyzeUrlReport: { mode?: string; inputType?: string; referenceNeeds?: unknown[] } = {};
+try {
+  analyzeUrlReport = JSON.parse(readFileSync(analyzeUrlPath, "utf8")) as typeof analyzeUrlReport;
+} catch {
+  analyzeUrlReport = {};
+}
+ok("analyze URL emits a reference preflight report instead of pretending URL media is local",
+  analyzeUrlCli.status === 0 &&
+    existsSync(analyzeUrlPath) &&
+    analyzeUrlReport.mode === "url-reference-preflight" &&
+    analyzeUrlReport.inputType === "url" &&
+    Boolean(analyzeUrlReport.referenceNeeds?.length),
+  `status=${analyzeUrlCli.status} path=${analyzeUrlPath} stdout=${(analyzeUrlCli.stdout || "").slice(-500)} stderr=${(analyzeUrlCli.stderr || "").slice(-500)}`);
+
+const projectCli = spawnSync(npmBin, ["run", "montara", "--", "project", "init", "stage3-workspace-smoke", "--pipeline", "documentary-montage", "--json"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+type ProjectInitResult = { projectId?: string; root?: string; manifestPath?: string; dirs?: string[] };
+let projectInit: ProjectInitResult = {};
+try {
+  projectInit = JSON.parse((projectCli.stdout || "").slice((projectCli.stdout || "").indexOf("{"))) as ProjectInitResult;
+} catch {
+  projectInit = {};
+}
+ok("project init creates the gitignored project workspace convention",
+  projectCli.status === 0 &&
+    projectInit.projectId === "stage3-workspace-smoke" &&
+    Boolean(projectInit.manifestPath && existsSync(projectInit.manifestPath)) &&
+    Boolean(projectInit.dirs?.some((dir) => dir.endsWith(join("projects", "stage3-workspace-smoke", "artifacts")) || dir.endsWith("\\artifacts") || dir.endsWith("/artifacts"))) &&
+    Boolean(projectInit.dirs?.some((dir) => dir.endsWith("\\renders") || dir.endsWith("/renders"))) &&
+    Boolean(projectInit.dirs?.some((dir) => dir.endsWith("\\auth") || dir.endsWith("/auth"))),
+  `status=${projectCli.status} stdout=${(projectCli.stdout || "").slice(-500)} stderr=${(projectCli.stderr || "").slice(-500)}`);
+
+const docGate = documentaryEvidenceGate({
+  claims: [{ id: "source", text: "The closure changed routing", sourceUrl: "https://example.com/report", confidence: "source-backed" }],
+  maps: [{ id: "map", hasSourceData: true, precision: "approximate" }],
+  musicCues: [{ sceneId: "cold-open", startSec: 0, endSec: 2, fadeInSec: 0.2, fadeOutSec: 0.3, gainDb: -18 }],
+  coldOpenMoves: true,
+  transcriptCutVerified: true,
+});
+const transcript = [
+  { startSec: 0, endSec: 1.3, text: "Sentence one makes the hook." },
+  { startSec: 1.3, endSec: 2.8, text: "Sentence two closes the short." },
+];
+const transcriptCuts = suggestTranscriptShortCuts(transcript, { maxCuts: 2 });
+const transcriptGate = verifyShortCutsAgainstTranscript(transcriptCuts, transcript);
+ok("documentary evidence and transcript Shorts gates pass valid Stage 3 craft inputs",
+  docGate.ok && transcriptGate.ok && transcriptCuts.length === 2,
+  `doc=${docGate.blockers.join("|")} shorts=${transcriptGate.blockers.join("|")}`);
 
 console.log("\n== status CLI (Stage 4.9) ==");
 const statusReportOut = join(outDir, "validate-montara-status.json");

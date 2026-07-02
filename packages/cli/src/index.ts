@@ -22,7 +22,7 @@ import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/i
 import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { exportTimeline, importTimeline, detectEditorFormat, type EditorFormat } from "../../bridge/src/index";
-import { brainCatalogue, ollamaInstalled, ollamaModelsSync, ollamaCompleteSync } from "../../llm/src/index";
+import { brainCatalogue, brainComplete, ollamaInstalled, ollamaModelsSync, ollamaCompleteSync } from "../../llm/src/index";
 import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback, transcribeAvailable, localTranscribe, analyzeMusic, planSceneMappedMusic, speakerIntelligenceStatus, findDialogueByVoice } from "../../hear/src/index";
 import {
   installRuntime,
@@ -41,11 +41,15 @@ interface MakeArgs {
   pipelineId: string;
   idea: string;
   targetSeconds?: number;
+  useBrain: boolean;
+  brainTimeoutMs: number;
 }
 
 function parseMakeArgs(rest: string[]): MakeArgs {
   let pipelineId = "animated-explainer";
   let targetSeconds: number | undefined;
+  let useBrain = false;
+  let brainTimeoutMs = 2500;
   const ideaParts: string[] = [];
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i] ?? "";
@@ -59,16 +63,113 @@ function parseMakeArgs(rest: string[]): MakeArgs {
       if (v) targetSeconds = Number(v);
     } else if (a.startsWith("--seconds=")) {
       targetSeconds = Number(a.slice("--seconds=".length));
+    } else if (a === "--brain" || a === "--local-brain") {
+      useBrain = true;
+    } else if (a === "--brain-timeout-ms") {
+      const v = rest[++i];
+      if (v) brainTimeoutMs = Number(v);
+    } else if (a.startsWith("--brain-timeout-ms=")) {
+      brainTimeoutMs = Number(a.slice("--brain-timeout-ms=".length));
     } else {
       ideaParts.push(a);
     }
   }
-  return { pipelineId, idea: ideaParts.join(" "), targetSeconds };
+  return { pipelineId, idea: ideaParts.join(" "), targetSeconds, useBrain, brainTimeoutMs: Number.isFinite(brainTimeoutMs) ? brainTimeoutMs : 2500 };
+}
+
+interface LocalBrainBrief {
+  requested: boolean;
+  idea: string;
+  used: boolean;
+  note: string;
+  backend?: string;
+  model?: string;
+}
+
+function cleanBrainBrief(text: string, fallback: string): string {
+  const compact = text
+    .replace(/```[\s\S]*?```/g, " ")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-*\d.\s]+/, "").trim())
+    .filter(Boolean)
+    .join(" ");
+  return compact.slice(0, 180).trim() || fallback;
+}
+
+async function enrichIdeaWithLocalBrain(args: MakeArgs): Promise<LocalBrainBrief> {
+  const idea = args.idea.trim() || args.pipelineId;
+  if (!args.useBrain) {
+    return { requested: false, idea, used: false, note: "deterministic planner" };
+  }
+  const prompt = [
+    "Rewrite this video request into one concise production brief.",
+    "Keep it factual, specific, and under 28 words. Return only the brief.",
+    `Pipeline: ${args.pipelineId}`,
+    `Request: ${idea}`,
+  ].join("\n");
+  const result = await brainComplete(prompt, {
+    temperature: 0.2,
+    maxTokens: 80,
+    timeoutMs: Math.max(500, args.brainTimeoutMs),
+  });
+  if (!result?.text) {
+    return {
+      requested: true,
+      idea,
+      used: false,
+      note: "local brain unavailable; continued with deterministic planner",
+    };
+  }
+  return {
+    requested: true,
+    idea: cleanBrainBrief(result.text, idea),
+    used: true,
+    backend: result.backend,
+    model: result.model,
+    note: `local brain ${result.backend}/${result.model}`,
+  };
 }
 
 function slug(input: string): string {
   const s = input.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
   return s || "montara-video";
+}
+
+const PROJECT_WORKSPACE_DIRS = [
+  "artifacts",
+  "assets",
+  "assets/images",
+  "assets/video",
+  "assets/audio",
+  "assets/music",
+  "assets/captions",
+  "auth",
+  "renders",
+  "hyperframes",
+];
+
+function createProjectWorkspace(name: string, opts: { pipeline?: string; root?: string } = {}): { projectId: string; root: string; manifestPath: string; dirs: string[] } {
+  const projectId = slug(name);
+  const root = join(process.cwd(), opts.root ?? "projects", projectId);
+  const dirs = PROJECT_WORKSPACE_DIRS.map((dir) => join(root, dir));
+  for (const dir of dirs) mkdirSync(dir, { recursive: true });
+  const manifest = {
+    version: "1.0",
+    project_id: projectId,
+    name,
+    pipeline: opts.pipeline ?? "animated-explainer",
+    created_at: new Date().toISOString(),
+    paths: {
+      artifacts: "artifacts",
+      assets: "assets",
+      auth: "auth",
+      renders: "renders",
+      hyperframes: "hyperframes",
+    },
+  };
+  const manifestPath = join(root, "project.json");
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  return { projectId, root, manifestPath, dirs };
 }
 
 function fallbackPlan(idea: string): ScenePlan {
@@ -234,13 +335,18 @@ const VALUE_FLAGS = new Set([
   "--recordings",
   "--timeout",
   "--to",
+  "--pipeline",
+  "-p",
+  "-s",
+  "--root",
+  "--brain-timeout-ms",
 ]);
 
 function positionalArgs(args: string[]): string[] {
   const out: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] ?? "";
-    if (arg.startsWith("--")) {
+    if (arg.startsWith("-")) {
       if (!arg.includes("=") && VALUE_FLAGS.has(arg)) i++;
       continue;
     }
@@ -1912,6 +2018,34 @@ async function runReelCommand(rest: string[]): Promise<number> {
   return res.ok ? 0 : 1;
 }
 
+function runProjectCommand(rest: string[]): number {
+  const sub = rest[0] && !rest[0].startsWith("--") ? rest[0] : "init";
+  const args = rest;
+  const json = args.includes("--json");
+  if (sub !== "init" && sub !== "create") {
+    console.error("usage: montara project init <name> [--pipeline <id>] [--root projects] [--json]");
+    return 1;
+  }
+  const positional = positionalArgs(args).slice(1);
+  const name = positional[0];
+  if (!name) {
+    console.error("usage: montara project init <name> [--pipeline <id>] [--root projects] [--json]");
+    return 1;
+  }
+  const workspace = createProjectWorkspace(name, {
+    pipeline: optionValue(args, "--pipeline") ?? optionValue(args, "-p"),
+    root: optionValue(args, "--root"),
+  });
+  if (json) {
+    console.log(JSON.stringify(workspace, null, 2));
+  } else {
+    console.log(`project: ${workspace.projectId}`);
+    console.log(workspace.root);
+    console.log(workspace.manifestPath);
+  }
+  return 0;
+}
+
 const BUDGET_SNIPPET = [
   "import json, sys",
   "from pathlib import Path",
@@ -2126,7 +2260,7 @@ Commands:
   import <file.edl|.otio|.fcpxml> [out]
                                   round-trip a pro-editor cut back into Timeline IR (auto-detects format)
   review <mp4>                    post-render self-review report for an MP4
-  analyze <mp4>                   scene/understanding analysis + concept variants for a video
+  analyze <url|mp4>               URL reference preflight or local video analysis + concept variants
   understand <mp4>                write model-aware source understanding JSON (--vision off|auto|require)
   capture [--url URL] [out.mp4]    record/recommend/pick screen captures; Playwright auth via capture login
   compose <edit-decisions.json> [out.mp4]
@@ -2136,12 +2270,15 @@ Commands:
   reel <input.mp4> [out]           understand + smart-edit a source clip; writes MP4 + Timeline IR + edit decisions (--vision off|auto|require)
   budget [show|estimate|reserve|reconcile|refund]
                                   preflight cost governance over cost_log.json (wraps tools/cost_tracker.py)
+  project init <name>              create a gitignored projects/<name>/ workspace layout
   resume <project-dir>             report completed stages + the next stage to run from checkpoints
   agent                           regenerate pipeline manifests + schemas + assistant configs
 
 Options (plan/make):
   --pipeline, -p <id>             pipeline shape (default: animated-explainer)
   --seconds,  -s <n>              target runtime in seconds (default: 20)
+  --brain                         let a local Ollama/LM Studio/llama.cpp brain rewrite the brief when available
+  --brain-timeout-ms <n>          bound the local brain attempt before deterministic fallback
 `);
 }
 
@@ -2162,6 +2299,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     if (command === "compose") return runComposeCommand(rest);
     if (command === "corpus") return runCorpusCommand(rest);
     if (command === "budget") return runBudgetCommand(rest);
+    if (command === "project") return runProjectCommand(rest);
     if (command === "resume") return runResumeCommand(rest);
     if (command === "understand") return runUnderstandCommand(rest);
 
@@ -2676,18 +2814,21 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     }
 
     if (command === "plan") {
-      const { pipelineId, idea, targetSeconds } = parseMakeArgs(rest);
-      const plan = planVideo(pipelineId, idea, targetSeconds ? { targetSeconds } : {});
-      const out = join(process.cwd(), "out", `${slug(idea || pipelineId)}.scene-plan.json`);
+      const makeArgs = parseMakeArgs(rest);
+      const brain = await enrichIdeaWithLocalBrain(makeArgs);
+      const plan = planVideo(makeArgs.pipelineId, brain.idea, makeArgs.targetSeconds ? { targetSeconds: makeArgs.targetSeconds } : {});
+      const out = join(process.cwd(), "out", `${slug(makeArgs.idea || makeArgs.pipelineId)}.scene-plan.json`);
       mkdirSync(dirname(out), { recursive: true });
       writeFileSync(out, `${JSON.stringify(plan, null, 2)}\n`);
+      if (brain.requested) console.log(`brain: ${brain.note}`);
       console.log(out);
       return 0;
     }
 
     if (command === "make") {
-      const { pipelineId, idea, targetSeconds } = parseMakeArgs(rest);
-      const plan = planVideo(pipelineId, idea, targetSeconds ? { targetSeconds } : {});
+      const makeArgs = parseMakeArgs(rest);
+      const brain = await enrichIdeaWithLocalBrain(makeArgs);
+      const plan = planVideo(makeArgs.pipelineId, brain.idea, makeArgs.targetSeconds ? { targetSeconds: makeArgs.targetSeconds } : {});
       const composed = composeScenePlan(plan);
       const promised = composed.timeline.composition.durationSec;
       const gate = preComposeGate(composed.timeline, { targetDurationSec: promised });
@@ -2696,7 +2837,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
         return 1;
       }
       for (const w of gate.warnings) console.error(`  warn: ${w}`);
-      const base = slug(idea || pipelineId);
+      const base = slug(makeArgs.idea || makeArgs.pipelineId);
       const ir = join(process.cwd(), "out", `${base}.timeline.json`);
       const mp4 = join(process.cwd(), "out", `${base}.mp4`);
       const reportPath = join(process.cwd(), "out", `${base}.self-review.json`);
@@ -2709,6 +2850,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       }
       const review = postRenderSelfReview(mp4, { timeline: composed.timeline, targetDurationSec: promised });
       writeSelfReview(review, reportPath);
+      if (brain.requested) console.log(`brain: ${brain.note}`);
       console.log(mp4);
       console.log(`renderer: ${renderResult.renderer}`);
       if (renderResult.fallbackReason) console.log(`fallback: ${renderResult.fallbackReason}`);
@@ -2768,7 +2910,47 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
     if (command === "analyze") {
       const input = rest[0];
-      if (!input) throw new Error("analyze requires a video path");
+      if (!input) throw new Error("analyze requires a video path or URL");
+      if (/^https?:\/\//i.test(input)) {
+        const bundle = runResearch(input);
+        const concepts = bundle.angles.slice(0, 3).map((angle, index) => ({
+          id: ["faithful", "contrast", "data"][index] ?? `concept-${index + 1}`,
+          angle,
+          rationale: "URL reference preflight uses research signals until the video is materialized locally",
+        }));
+        const report = {
+          input,
+          inputType: "url",
+          mode: "url-reference-preflight",
+          research: bundle,
+          referenceNeeds: [
+            {
+              id: "capture-or-download",
+              need: "materialize the URL to a local MP4 before frame, audio, and transcript analysis",
+              evidence: "URLs cannot be probed by ffprobe until captured or downloaded",
+              recommendedCommand: `montara capture --url ${input} out/url-reference.mp4`,
+              fallback: "Download with an external tool, then rerun montara analyze <file>.",
+            },
+            {
+              id: "transcript-cut-proof",
+              need: "verify Shorts/reel cut points against the captured transcript",
+              evidence: "Stage 3 shorts gates require transcript boundaries",
+              recommendedCommand: "montara analyze <captured-file.mp4>",
+              fallback: "Use source-derived captions only; avoid guessed cut durations.",
+            },
+          ],
+          concepts,
+          costEstimateUsd: 0,
+        };
+        const out = join(process.cwd(), "out", `${slug(input)}.analysis.json`);
+        mkdirSync(dirname(out), { recursive: true });
+        writeFileSync(out, `${JSON.stringify(report, null, 2)}\n`);
+        console.log(`url reference preflight: ${bundle.queries.length} planned queries; ${bundle.findings.length} finding(s)`);
+        for (const c of concepts) console.log(`  concept ${c.id}: ${c.angle}`);
+        console.log(out);
+        return 0;
+      }
+      if (!existsSync(input)) throw new Error("analyze requires an existing video path or URL");
       const a = analyzeReferenceVideo(input, {});
       console.log(`${a.durationSec.toFixed(2)}s · ${a.width}x${a.height} · ${a.sceneCount} scene(s) · ${a.cutsPerMinute} cuts/min`);
       console.log(`tags: ${a.understanding.tags.join(", ")}`);

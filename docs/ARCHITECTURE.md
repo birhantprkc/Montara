@@ -92,6 +92,11 @@ Examples:
 - Documentary: source-backed maps, evidence cards, measured narration, scene-mapped music.
 - Minimal: restrained typography, fewer overlays, no generic CTA.
 
+The Stage 3 gate helpers make this executable: `documentaryEvidenceGate` blocks
+source-backed claims without URLs and precise maps without source data, while
+`suggestTranscriptShortCuts` and `verifyShortCutsAgainstTranscript` keep Shorts
+cut points on transcript boundaries instead of guessed timestamps.
+
 ## Provider Audit Policy
 
 Cloud providers change faster than Montara releases. Provider code must be checked

@@ -27,6 +27,7 @@ Use these as the first public proof set. They are already represented in
 | Native Remotion smoke | `npm.cmd run validate` | `out/validate-remotion-native.mp4` when installed | Remotion is validate-gated; missing deps are reported honestly. |
 | Editor handoff | `npm.cmd run montara -- export out/validate-compose-core.timeline.json --to otio out/validate-compose-core.otio` | OTIO, EDL, or FCPXML | Pro-editor export is part of the core workflow. |
 | Auth browser capture | `npm.cmd run montara -- capture login --url <site>` then capture | `out/browser-capture.mp4` | User-owned login state enables authorized website demos without committing secrets. |
+| Stage 3 moat | `npm.cmd run validate` | `out/stage-3-local-brain-smoke.mp4`, URL preflight JSON, project manifest | Local brain is optional, URLs are preflighted honestly, documentary/Shorts gates are executable. |
 
 ## Launch Video Sequence
 

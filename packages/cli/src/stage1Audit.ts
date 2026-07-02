@@ -209,7 +209,7 @@ export function buildStage1AuditReport(start = process.cwd()): Stage1AuditReport
     sections,
     caveatsHandedOff: [
       "Stage 2 owns the remaining native Revideo/Motion Canvas installed-runtime proofs beyond honest registry routing.",
-      "Stage 3 owns local brain, reel planner hardening, documentary quality gates, and BLIP/cached-weight vision.",
+      "Stage 3 now validate-covers local brain fallback, reel/documentary quality gates, and project workspaces; optional SpeechBrain and BLIP/cached-weight vision remain runtime-gated hardening.",
       "Stage 4 owns live BYOK provider confirmations; Stage 1 only proves redacted fixtures and dry-run/live smoke plumbing.",
     ],
   };

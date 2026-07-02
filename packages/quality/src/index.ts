@@ -17,3 +17,5 @@ export * from "./budget";
 export * from "./voiceDirector";
 export * from "./reelPlanner";
 export * from "./reelArtifacts";
+export * from "./documentaryEvidence";
+export * from "./shortsTranscript";

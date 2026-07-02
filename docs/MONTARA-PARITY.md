@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-02, after the Stage 2 runtime gap pass.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-02, after the Stage 3 moat gap pass.
 
 This checklist tracks two things:
 
@@ -14,8 +14,8 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` passed: 4/4 sections, 21/21 checks.
-- `npm.cmd run verify` passed: 317 passed, 0 failed.
-- `npm.cmd run validate` passed: 96 passed, 0 failed.
+- `npm.cmd run verify` passed: 321 passed, 0 failed.
+- `npm.cmd run validate` passed: 100 passed, 0 failed.
 - `python -m pytest tests` passed: 399 passed, 8 skipped.
 
 ## Snapshot
@@ -26,7 +26,7 @@ Latest local gates before this sync:
 | FFmpeg renderer | ☑ | Universal native MP4 path and fallback. |
 | Python tool engine | ☑ | Root-level `tools/` + `lib/`; engine bridge verifies dependency-free. |
 | Engine bridge | ☑ | JSON bridge and composition <-> IR mapping. |
-| CLI | ◐ | Core commands plus `montara status`, `montara runtimes`, `montara compose`, `montara corpus`, `montara import`, `montara budget`, `montara resume`; not every Python tool wired. |
+| CLI | ◐ | Core commands plus `montara status`, `montara runtimes`, `montara project init`, `montara make --brain`, `montara compose`, `montara corpus`, `montara import`, `montara budget`, `montara resume`; not every Python tool wired. |
 | Editor export | ☑ | EDL, OTIO, FCPXML export verified and auto-written beside `montara render` MP4 outputs by default. |
 | Editor import | ☑ | `montara import` EDL/OTIO/FCPXML → Timeline IR; verify round-trip green. |
 | CI | ☑ | typecheck + verify + validate + pytest. |
@@ -43,7 +43,7 @@ Latest local gates before this sync:
 | Three.js / Manim | ◐ | Adapters exist; native proof depends on installed runtimes. |
 | Blender | ◐ | Real headless adapter; documented as runtime-gated. |
 | Spline | ☐ | Planned registry entry only. |
-| Local LLM orchestrator | ◐ | Backend catalogue/probes; full local brain not shipped. |
+| Local LLM orchestrator | ☑ | `montara make --brain` probes Ollama/LM Studio/llama.cpp, uses the first reachable local model, and falls back to deterministic local planning without cloud. |
 | CLIP/BLIP vision default | ◐ | Current default is FFmpeg/frame/audio signal analysis; optional Transformers.js CLIP classification is exposed through `montara understand --vision` when local model runtime is installed/enabled. |
 | Cloud live executors | ◐ | TS executor + redaction + all-cloud sanitized fixtures + dry-run/live smoke harness; real-key confirmations pending. |
 | Legal/notice | ☑ | Root AGPL-3.0 LICENSE, NOTICE, and docs/ATTRIBUTION.md are present. |
@@ -93,7 +93,7 @@ Latest local gates before this sync:
 | F Post/enhancement | ◐ | Core FFmpeg operations work; model enhancers runtime-gated. |
 | G Analysis/understanding | ◐ | Reference analysis, signalstats fallback, optional Transformers.js CLIP path, and `montara understand` CLI proof work; BLIP/default cached-weight validation pending. |
 | H Intelligence | ◐ | Research/corpus/scoring ports exist; Python corpus has CLI source/build/search/status surface. |
-| I Governance | ◐ | Quality gates exist; budget CLI wraps CostTracker and is pytest/CLI-smoke covered. |
+| I Governance | ◐ | Quality gates exist; budget CLI wraps CostTracker and is pytest/CLI-smoke covered; documentary evidence gates block unsourced source-backed claims and unsupported precise maps. |
 | J Styles/output profiles | ☑ | 3 styles and 6 output profiles verified. |
 | K Agent layer | ◐ | Skills/configs/schemas/checkpoints exist; resume CLI reports checkpoint state; broader onboarding depth pending. |
 
@@ -105,13 +105,13 @@ Latest local gates before this sync:
 | M2 Pro-editor export | ☑ |
 | M3 Pro-editor import | ☑ |
 | M4 First-class `montara` CLI | ◐ |
-| M5 Local LLM orchestrator | ◐ |
+| M5 Local LLM orchestrator | ☑ |
 | M6 Runtimes manager | ◐ |
 | M7 Web GUI | ☐ |
 | M8 WARCUT desktop GUI | ☐ |
 | M9 Runtime honesty layer | ☑ |
 | M10 Playwright auth capture | ◐ |
-| M11 Content-aware reel planner | ◐ |
+| M11 Content-aware reel planner | ☑ |
 | M12 Documentary evidence craft | ☑ |
 | M13 Voice/hear intelligence | ◐ |
 | M14 Dual orchestration | ◐ |
@@ -119,7 +119,7 @@ Latest local gates before this sync:
 | M16 README demo gallery | ☑ |
 | M17 Public demo assets | ☑ |
 
-Moat completion: 6/17 done, 8 partial, 3 not done.
+Moat completion: 10/17 done, 5 partial, 2 not done.
 
 ## Current Stage Exit Criteria
 
@@ -131,3 +131,5 @@ bridge, 14 pipeline definitions, provider/request fixtures, local fallbacks,
 agent skills, and the honest nine-engine registry from the local machine.
 
 Stage 2 has native Remotion, HyperFrames kinetic typography, HyperFrames character animation, doctor/cache-warm setup, license-aware Revideo fallback selection, and the 60s documentary corpus proof covered in `validate`; the remaining Stage 2 item is the Motion Canvas installed-runtime MP4 proof.
+
+Stage 3 now has local-brain `make` fallback, URL/file reference analysis, budget/resume/capture, editor import/export, documentary evidence gates, transcript-verified Shorts helpers, and the project workspace CLI covered by `verify`/`validate`. SpeechBrain and deeper CLIP/BLIP paths remain optional-runtime hardening.

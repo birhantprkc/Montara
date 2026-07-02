@@ -41,6 +41,7 @@ Then inspect:
 | 60s documentary open-stock proof | "Build a provenance-aware corpus proof, select one non-reused clip per documentary slot, and compose a 60s montage." | documentary-montage | `montara corpus seed-open-stock-proof` -> `clip_search.select_slots` -> `montara compose` | `$0` | `out/validate-documentary-open-stock-60s.mp4` plus selection/asset JSON |
 | Screen-demo capture proof | "Pick up a completed screen recording artifact and compose it as a screen-demo video." | screen-demo | `montara capture pick-latest --recordings-dir` -> `montara compose` | `$0` | `out/validate-screen-demo.mp4` |
 | Smart reel | "Create a vertical source-aware reel with hook/caption/end-card treatment." | reel | content-aware reel planner + FFmpeg reel renderer | `$0` | `out/validate-smart-reel.mp4` |
+| Stage 3 moat smoke | "Use local brain if present, preflight a URL reference, and create a project workspace." | moat / CLI | `montara make --brain`, `montara analyze <url>`, `montara project init`, quality gates | `$0` | `out/stage-3-local-brain-smoke.mp4`, analysis JSON, `projects/stage3-workspace-smoke/project.json` |
 | Editor handoff | "Export the same Timeline IR to a pro-editor format." | handoff | `montara export <timeline.json> --to otio|edl|fcpxml` | `$0` | generated on demand |
 | Corpus discovery | "Show available stock/corpus sources without downloading media." | documentary preflight | `montara corpus sources` -> Python `corpus_builder.get_info()` | `$0` | stdout JSON/table |
 

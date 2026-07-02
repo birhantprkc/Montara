@@ -50,9 +50,12 @@ montara runtimes inventory --json --out out/runtime-inventory.json
 montara runtimes plan comfyui
 montara plan "Make a 45-second explainer about why the sky is blue"
 montara make "Make a 45-second explainer about why the sky is blue"
+montara make --brain "Make a local-first documentary cold open"
 montara render out/timeline.json      # writes MP4 + EDL/OTIO/FCPXML beside it
+montara analyze https://example.com/reference-video
 montara understand source.mp4 --vision auto --out out/source.understanding.json
 montara export out/timeline.json --to otio out/edit.otio
+montara project init client-demo --pipeline screen-demo
 montara capture --url https://example.com out/browser-capture.mp4
 montara capture pick-latest --recordings-dir out/captures --output out/screen-capture.mp4
 montara compose out/edit-decisions.json out/final.mp4 --assets out/asset-manifest.json
@@ -82,6 +85,7 @@ current reproducible demos to inspect before trusting a workflow:
 | Character animation rig | `npm.cmd run validate` | `out/validate-character-animation/final.mp4` when runtime is available | SVG/GSAP character rig -> `video_compose` -> HyperFrames | `$0`, runtime-gated |
 | Python compose CLI | `npm.cmd run validate` | `out/validate-cli-video-compose.mp4` + `.render-report.json` | `montara compose` -> Python `video_compose` -> FFmpeg | `$0` |
 | Smart reel proof | `npm.cmd run validate` | `out/validate-smart-reel.mp4` | Source-aware reel planner + caption/end-card treatment | `$0` |
+| Stage 3 moat smokes | `npm.cmd run validate` | `out/stage-3-local-brain-smoke.mp4` + URL analysis JSON + `projects/stage3-workspace-smoke/project.json` | local-brain fallback, URL reference preflight, transcript/evidence gates, project workspace CLI | `$0` |
 | Documentary corpus proof | `npm.cmd run validate` | `out/validate-documentary-montage.mp4` + `out/validate-documentary-corpus/` | `corpus seed-fixture` -> Python `clip_search` -> `video_compose` | `$0` |
 | 60s documentary open-stock proof | `npm.cmd run validate` | `out/validate-documentary-open-stock-60s.mp4` + `.selection.json` + `.asset-manifest.json` | `corpus seed-open-stock-proof` -> `clip_search.select_slots` -> `video_compose` | `$0` |
 | Screen-demo capture proof | `npm.cmd run validate` | `out/validate-screen-demo.mp4` + `out/validate-screen-demo-capture.mp4` | `capture pick-latest --recordings-dir` -> `video_compose` | `$0` |
@@ -106,14 +110,14 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 2 runtime gap pass:
+Latest local gate snapshot from the Stage 3 moat gap pass:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
-| `npm.cmd run verify` | 317 passed, 0 failed |
-| `npm.cmd run validate` | 96 passed, 0 failed |
+| `npm.cmd run verify` | 321 passed, 0 failed |
+| `npm.cmd run validate` | 100 passed, 0 failed |
 | `python -m pytest tests` | 399 passed, 8 skipped |
 
 ## Agent Entry Points
