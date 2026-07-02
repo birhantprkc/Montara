@@ -286,6 +286,29 @@ ok("sanitized provider executor writes a fixture artifact", fixtureExec.ok && fi
 const providerAuditOut = join(outDir, "validate-provider-audit-fixtures.json");
 const providerAudit = writeProviderAuditReport(providerAuditOut);
 ok("provider audit writes sanitized fixtures for all cloud providers", providerAudit.total >= 18 && providerAudit.invalid === 0 && existsSync(providerAuditOut) && !readFileSync(providerAuditOut, "utf8").includes("fixture-redaction-marker"));
+const providerLiveAuditOut = join(outDir, "validate-provider-live-audit.json");
+try { rmSync(providerLiveAuditOut, { force: true }); } catch { /* none */ }
+const providerLiveAuditCli = spawnSync(npmBin, ["run", "montara", "--", "providers", "live-audit", "--json", "--out", providerLiveAuditOut], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+let providerLiveAudit: { totals?: { providers?: number; dryRun?: number; failed?: number }; entries?: { status?: string; request?: unknown }[] } = {};
+try {
+  providerLiveAudit = JSON.parse(readFileSync(providerLiveAuditOut, "utf8")) as typeof providerLiveAudit;
+} catch {
+  providerLiveAudit = {};
+}
+ok("providers live-audit CLI writes a sanitized no-key readiness ledger",
+  providerLiveAuditCli.status === 0 &&
+    existsSync(providerLiveAuditOut) &&
+    (providerLiveAudit.totals?.providers ?? 0) >= 18 &&
+    providerLiveAudit.totals?.dryRun === providerLiveAudit.totals?.providers &&
+    providerLiveAudit.totals?.failed === 0 &&
+    providerLiveAudit.entries?.every((entry) => entry.status === "dry-run" && !("request" in entry)) === true &&
+    !readFileSync(providerLiveAuditOut, "utf8").includes("fixture-redaction-marker"),
+  `status=${providerLiveAuditCli.status} stdout=${(providerLiveAuditCli.stdout || "").slice(-500)} stderr=${(providerLiveAuditCli.stderr || "").slice(-500)}`);
 
 console.log("\n== audio: tts + music + mixer + enhance (Phase 1.8 §E) ==");
 ok("4 TTS + 3 music providers registered", TTS_PROVIDERS.length === 4 && MUSIC_PROVIDERS.length === 3);

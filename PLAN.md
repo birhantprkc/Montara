@@ -343,7 +343,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 4.2 | Public demo gallery (`assets/` + docs/DEMOS.md) | ☑ | Each demo records prompt, pipeline, tools, runtime, cost, artifact |
 | 4.3 | AGENT_GUIDE parity + onboarding | ☑ | 0.1.3 + 0.1.4 |
 | 4.4 | PROMPT_GALLERY full coverage | ☑ | 0.1.8 |
-| 4.5 | Live BYOK provider executors + sanitized fixture tests | ◐ | TS executor + all-cloud sanitized fixtures + dry-run/live smoke harness; Python OpenAI/BFL request builders; real-key confirmations pending |
+| 4.5 | Live BYOK provider executors + sanitized fixture tests | ◐ | TS executor + all-cloud sanitized fixtures + dry-run/live smoke harness + `providers live-audit` readiness ledger; Python OpenAI/BFL request builders; real-key confirmations pending |
 | 4.6 | `skills/core/native-render-validation.md` | ☑ | Native-vs-fallback proof and MP4 QA guidance added |
 | 4.7 | `skills/core/provider-audit.md` | ☑ | Official-doc checks, redacted fixtures, dry-run/live BYOK smoke protocol |
 | 4.8 | YouTube/community launch plan | ☑ | `docs/LAUNCH-PLAN.md` maps proof videos, commands, artifacts, caveats, and launch checklist |
@@ -464,7 +464,8 @@ When you say "continue the plan," work **top to bottom**:
 | 🎯 2 | 2.6 | Motion Canvas installed-runtime MP4 proof | Runtime-gated native proof |
 | ✅ | 3.3/3.5/3.7/3.8/3.10 | Local brain fallback, URL analysis preflight, evidence gates, transcript Shorts gates, project workspace CLI | done |
 | 🎯 3 | 3.11-3.12 | Remaining runtime-gated Stage 3 moat partials | Optional speaker/vision runtime hardening |
-| 🎯 4 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
+| ✅ | 4.5C | Provider live-readiness ledger across cloud providers without secrets | done |
+| 🎯 4 | 4.5D | Real live-key provider smoke confirmations where keys are available | External BYOK follow-up |
 | 🎯 5 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |
 
 ---

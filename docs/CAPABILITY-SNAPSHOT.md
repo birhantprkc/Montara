@@ -7,7 +7,7 @@ Snapshot date: 2026-07-02.
 - **Python engine bridge:** ready. Current bridge reports 116 tools, 18 lib modules, and 14 pipeline manifests.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
 - **CLI:** `doctor`, `status`, `runtimes`, `project init`, `make --brain`, `plan`, `render`, `review`, `analyze`, `understand`, `capture`, `compose`,
-  `corpus`, `reel`, `music`, `voiceid`, provider listing, engine bridge commands,
+  `corpus`, `reel`, `music`, `voiceid`, provider listing/audit/live-audit, engine bridge commands,
   Stage 1 parity audit, license-aware render recommendations, and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
   extraction, audio mix/enhance, subtitles, reels, and simple composites.
@@ -55,8 +55,8 @@ Snapshot date: 2026-07-02.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
-| `npm.cmd run verify` | 321 passed, 0 failed |
-| `npm.cmd run validate` | 100 passed, 0 failed |
+| `npm.cmd run verify` | 324 passed, 0 failed |
+| `npm.cmd run validate` | 101 passed, 0 failed |
 | `python -m pytest tests` | 399 passed, 8 skipped |
 
 ## Example Outputs
@@ -119,14 +119,16 @@ provider tools now also expose testable OpenAI/BFL request builders; `flux_image
 prefers direct BFL and keeps fal.ai as a compatibility fallback.
 
 `montara providers audit` now writes a redacted fixture report covering every
-cloud video/image/TTS/music provider in the registry, and `montara providers
-smoke <provider-id>` builds a dry-run request by default. A real network smoke is
-blocked unless the caller passes `--live`, provides the provider key, and sets
-`MONTARA_LIVE_PROVIDER_SMOKE=1`.
+cloud video/image/TTS/music provider in the registry, `montara providers
+live-audit` writes a sanitized readiness ledger across cloud providers, and
+`montara providers smoke <provider-id>` builds a dry-run request by default. A
+real network smoke is blocked unless the caller passes `--live`, provides the
+provider key, and sets `MONTARA_LIVE_PROVIDER_SMOKE=1`.
 
 This is not yet a blanket production claim for every cloud provider. Python
 provider tools and the cloud long tail still need real-key smoke confirmations;
-see [docs/PROVIDER-AUDIT.md](./PROVIDER-AUDIT.md).
+the live-audit ledger records missing-key/opt-in/passed/failed status without
+secrets. See [docs/PROVIDER-AUDIT.md](./PROVIDER-AUDIT.md).
 
 ## Voice And Audio Options
 
@@ -144,5 +146,5 @@ Best current path:
 
 1. Extend the documentary proof from fixture corpus to a longer open-stock corpus montage.
 2. Add installed-runtime MP4 validate proofs for Revideo / Motion Canvas.
-3. Run live-key provider smoke confirmations where keys are available.
+3. Run real live-key provider smoke confirmations where keys are available and record them in the live-audit ledger.
 4. Continue local vision hardening with cached CLIP model validation and BLIP/caption coverage.

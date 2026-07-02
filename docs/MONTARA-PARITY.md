@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-02, after the Stage 3 moat gap pass.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-02, after the Stage 4 trust gap pass.
 
 This checklist tracks two things:
 
@@ -14,8 +14,8 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` passed: 4/4 sections, 21/21 checks.
-- `npm.cmd run verify` passed: 321 passed, 0 failed.
-- `npm.cmd run validate` passed: 100 passed, 0 failed.
+- `npm.cmd run verify` passed: 324 passed, 0 failed.
+- `npm.cmd run validate` passed: 101 passed, 0 failed.
 - `python -m pytest tests` passed: 399 passed, 8 skipped.
 
 ## Snapshot
@@ -45,7 +45,7 @@ Latest local gates before this sync:
 | Spline | ☐ | Planned registry entry only. |
 | Local LLM orchestrator | ☑ | `montara make --brain` probes Ollama/LM Studio/llama.cpp, uses the first reachable local model, and falls back to deterministic local planning without cloud. |
 | CLIP/BLIP vision default | ◐ | Current default is FFmpeg/frame/audio signal analysis; optional Transformers.js CLIP classification is exposed through `montara understand --vision` when local model runtime is installed/enabled. |
-| Cloud live executors | ◐ | TS executor + redaction + all-cloud sanitized fixtures + dry-run/live smoke harness; real-key confirmations pending. |
+| Cloud live executors | ◐ | TS executor + redaction + all-cloud sanitized fixtures + dry-run/live smoke harness + batch live-readiness ledger; real-key confirmations pending. |
 | Legal/notice | ☑ | Root AGPL-3.0 LICENSE, NOTICE, and docs/ATTRIBUTION.md are present. |
 | Web GUI / WARCUT | ☐ | Long-term product surface. |
 | Runtimes manager | ◐ | ComfyUI/A1111/Piper/Faster Whisper/Transformers.js health, dry-run install/launch plans, env writers, generated scripts, and model/cache inventory exist; web GUI integration pending. |
@@ -87,7 +87,7 @@ Latest local gates before this sync:
 
 | Category | Status | Notes |
 | --- | --- | --- |
-| C Video providers | ◐ | 14 registered; cloud request fixtures cover Kling/Runway Gen-4.5/Veo/xAI/Higgsfield/MiniMax/HeyGen; every cloud video Python tool now exposes an offline `build_request()` with pytest parity; Google/Runway request shapes refreshed against current official docs; real-key confirmations pending. |
+| C Video providers | ◐ | 14 registered; cloud request fixtures cover Kling/Runway Gen-4.5/Veo/xAI/Higgsfield/MiniMax/HeyGen; every cloud video Python tool now exposes an offline `build_request()` with pytest parity; Google/Runway request shapes refreshed against current official docs; `providers live-audit` records live-readiness without secrets; real-key confirmations pending. |
 | D Image providers | ◐ | 10 registered; OpenAI/BFL/Google Interactions API TS request shapes; Python OpenAI/BFL/Google-Imagen/Grok/Recraft image tools expose `build_request()` with pytest parity; all-cloud fixture report gated. |
 | E Audio/TTS/music | ◐ | Local/offline fallbacks and analysis exist; TTS/music cloud fixtures covered; ElevenLabs/Google/OpenAI/Doubao TTS + Suno/ElevenLabs music tools expose `build_request()` with pytest parity; premium providers BYOK/runtime-gated. |
 | F Post/enhancement | ◐ | Core FFmpeg operations work; model enhancers runtime-gated. |

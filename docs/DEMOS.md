@@ -42,6 +42,7 @@ Then inspect:
 | Screen-demo capture proof | "Pick up a completed screen recording artifact and compose it as a screen-demo video." | screen-demo | `montara capture pick-latest --recordings-dir` -> `montara compose` | `$0` | `out/validate-screen-demo.mp4` |
 | Smart reel | "Create a vertical source-aware reel with hook/caption/end-card treatment." | reel | content-aware reel planner + FFmpeg reel renderer | `$0` | `out/validate-smart-reel.mp4` |
 | Stage 3 moat smoke | "Use local brain if present, preflight a URL reference, and create a project workspace." | moat / CLI | `montara make --brain`, `montara analyze <url>`, `montara project init`, quality gates | `$0` | `out/stage-3-local-brain-smoke.mp4`, analysis JSON, `projects/stage3-workspace-smoke/project.json` |
+| Provider live-readiness | "Show cloud provider live readiness without spending money or leaking keys." | provider audit | `montara providers live-audit` sanitized ledger | `$0`; BYOK opt-in for live smokes | `out/validate-provider-live-audit.json` |
 | Editor handoff | "Export the same Timeline IR to a pro-editor format." | handoff | `montara export <timeline.json> --to otio|edl|fcpxml` | `$0` | generated on demand |
 | Corpus discovery | "Show available stock/corpus sources without downloading media." | documentary preflight | `montara corpus sources` -> Python `corpus_builder.get_info()` | `$0` | stdout JSON/table |
 

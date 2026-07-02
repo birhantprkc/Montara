@@ -25,6 +25,7 @@ generated outputs under `./out` unless the user gives an explicit path.
 | `capture ...` | Record browser demos, pick up completed desktop recordings, and guide Playwright login storageState support. |
 | `compose ...` | Route Python `video_compose` / HyperFrames-style artifacts into MP4. |
 | `corpus ...` | Discover, seed fixtures, build, search, and inspect footage/source corpora. |
+| `providers live-audit` | Write a sanitized cloud-provider live-readiness ledger without requiring keys. |
 | `budget ...` | Check cost caps and provider spend decisions. |
 | `resume ...` | Inspect or continue a headless run checkpoint. |
 | `agent` | Regenerate pipeline manifests, JSON schemas, and per-assistant configs. |

@@ -12,6 +12,7 @@ Read this before:
 - changing Python provider tools under `tools/`;
 - adding a new provider or model default;
 - running `montara providers smoke <provider-id> --live`;
+- running `montara providers live-audit --live`;
 - claiming a cloud provider is production-ready.
 
 ## Safety Contract
@@ -31,6 +32,7 @@ Without all five, stay in dry-run fixture mode.
 
 ```bash
 montara providers audit --out out/provider-audit-fixtures.json
+montara providers live-audit --out out/provider-live-audit.json
 montara providers smoke flux --category image --json
 montara providers smoke flux --category image --live --out out/flux-smoke.png
 npm.cmd run verify
@@ -38,9 +40,10 @@ npm.cmd run validate
 ```
 
 `providers audit` writes a redacted fixture report for every cloud provider in
-the TypeScript registry. `providers smoke` builds one provider request. It is a
-dry-run by default; `--live` executes only when the opt-in env var and key are
-present.
+the TypeScript registry. `providers live-audit` writes a sanitized readiness
+ledger across cloud providers: dry-run, missing-key, opt-in-required, passed, or
+failed. `providers smoke` builds one provider request. It is a dry-run by
+default; `--live` executes only when the opt-in env var and key are present.
 
 ## Official Docs Checklist
 
@@ -77,13 +80,15 @@ material.
 
 1. Run dry-run first:
    `montara providers smoke <id> --category <kind> --json`.
-2. Compare the redacted request against official docs.
-3. Set only the one required provider key.
-4. Set `MONTARA_LIVE_PROVIDER_SMOKE=1`.
-5. Run `--live` with a tiny, low-cost prompt and short duration.
-6. Save only the redacted request/response shape and a tiny disposable artifact.
-7. Re-run `verify` and `validate`.
-8. Update `docs/PROVIDER-AUDIT.md` with date, provider, model, and result.
+2. Run `montara providers live-audit --out out/provider-live-audit.json` to see
+   which providers have keys and which would need explicit opt-in.
+3. Compare the redacted request against official docs.
+4. Set only the one required provider key.
+5. Set `MONTARA_LIVE_PROVIDER_SMOKE=1`.
+6. Run `--live` with a tiny, low-cost prompt and short duration.
+7. Save only the redacted request/response shape and a tiny disposable artifact.
+8. Re-run `verify` and `validate`.
+9. Update `docs/PROVIDER-AUDIT.md` with date, provider, model, and result.
 
 If the provider charges per job, use the cheapest documented quality/duration
 that still exercises the response path.
@@ -129,6 +134,7 @@ When a smoke fails:
 ## Done Means
 
 - `montara providers audit` reports zero invalid fixtures.
+- `montara providers live-audit` records provider readiness without secrets.
 - Any live smoke used explicit opt-in and redacted output.
 - `pnpm verify` passes.
 - `pnpm validate` passes when provider execution or CLI behavior changed.

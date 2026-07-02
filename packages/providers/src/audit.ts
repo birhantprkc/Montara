@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import {
   buildImageRequest,
   buildMusicRequest,
@@ -66,6 +66,56 @@ export interface ProviderSmokeOptions {
   env?: Record<string, string | undefined>;
   fetch?: ProviderFetch;
   download?: (url: string) => Promise<Uint8Array>;
+}
+
+export type ProviderLiveAuditStatus = "dry-run" | "missing-key" | "opt-in-required" | "passed" | "failed";
+
+export interface ProviderLiveAuditEntry {
+  providerId: string;
+  name: string;
+  category: MediaCategory;
+  authEnv?: string;
+  credentialPresent: boolean;
+  liveRequested: boolean;
+  optIn: boolean;
+  status: ProviderLiveAuditStatus;
+  redactedRequest: HttpRequestSpec;
+  execution?: {
+    ok: boolean;
+    status: number;
+    polls: number;
+    artifactPath?: string;
+    outputUrlPresent: boolean;
+    jobIdPresent: boolean;
+    error?: string;
+  };
+  error?: string;
+  nextStep?: string;
+}
+
+export interface ProviderLiveAuditReport {
+  generatedAt: string;
+  liveRequested: boolean;
+  optIn: boolean;
+  totals: {
+    providers: number;
+    dryRun: number;
+    missingKey: number;
+    optInRequired: number;
+    passed: number;
+    failed: number;
+  };
+  entries: ProviderLiveAuditEntry[];
+}
+
+export interface ProviderLiveAuditOptions {
+  live?: boolean;
+  providerIds?: string[];
+  categories?: MediaCategory[];
+  env?: Record<string, string | undefined>;
+  fetch?: ProviderFetch;
+  download?: (url: string) => Promise<Uint8Array>;
+  outDir?: string;
 }
 
 const SAMPLE_PROMPT = "Montara provider smoke: cinematic product frame, no brand marks";
@@ -223,6 +273,16 @@ function providerById(id: string, category?: MediaCategory): MediaProvider | und
   return undefined;
 }
 
+function providerListForAudit(options: ProviderLiveAuditOptions = {}): MediaProvider[] {
+  const ids = new Set((options.providerIds ?? []).filter(Boolean));
+  const categories = new Set((options.categories ?? []).filter(Boolean));
+  return cloudProviders().filter((provider) => {
+    if (ids.size && !ids.has(provider.id)) return false;
+    if (categories.size && !categories.has(provider.category)) return false;
+    return true;
+  });
+}
+
 function requestFor(provider: MediaProvider, env: Record<string, string | undefined>): HttpRequestSpec {
   return provider.category === "video" ? buildVideoRequest(provider, sampleVideo, env)
     : provider.category === "image" ? buildImageRequest(provider, sampleImage, env)
@@ -302,4 +362,120 @@ export async function runProviderSmoke(options: ProviderSmokeOptions): Promise<P
     maxPolls: 4,
   });
   return { ok: execution.ok, mode: "live", ...base, execution, error: execution.error };
+}
+
+function summarizeExecution(execution: ProviderExecutionResult | undefined): ProviderLiveAuditEntry["execution"] {
+  if (!execution) return undefined;
+  return {
+    ok: execution.ok,
+    status: execution.status,
+    polls: execution.polls,
+    artifactPath: execution.artifactPath,
+    outputUrlPresent: Boolean(execution.outputUrl),
+    jobIdPresent: Boolean(execution.jobId),
+    error: execution.error,
+  };
+}
+
+function smokeExtension(category: MediaCategory): string {
+  return category === "image" ? "png" : category === "video" ? "mp4" : "wav";
+}
+
+export async function buildProviderLiveAuditReport(options: ProviderLiveAuditOptions = {}): Promise<ProviderLiveAuditReport> {
+  const env = options.env ?? process.env;
+  const liveRequested = Boolean(options.live);
+  const optIn = env.MONTARA_LIVE_PROVIDER_SMOKE === "1";
+  const providers = providerListForAudit(options);
+  const entries: ProviderLiveAuditEntry[] = [];
+
+  for (const provider of providers) {
+    const credentialPresent = Boolean(provider.authEnv && env[provider.authEnv]);
+    const dry = await runProviderSmoke({
+      providerId: provider.id,
+      category: provider.category,
+      env,
+    });
+    const base = {
+      providerId: provider.id,
+      name: provider.name,
+      category: provider.category,
+      authEnv: provider.authEnv,
+      credentialPresent,
+      liveRequested,
+      optIn,
+      redactedRequest: dry.redactedRequest,
+    };
+
+    if (!liveRequested) {
+      entries.push({
+        ...base,
+        status: "dry-run",
+        nextStep: dry.nextStep,
+      });
+      continue;
+    }
+
+    if (!credentialPresent) {
+      entries.push({
+        ...base,
+        status: "missing-key",
+        error: provider.authEnv ? `missing ${provider.authEnv}` : "provider has no credential env",
+        nextStep: provider.authEnv ? `Set ${provider.authEnv} before running live smoke.` : "No credential env is registered for this provider.",
+      });
+      continue;
+    }
+
+    if (!optIn) {
+      entries.push({
+        ...base,
+        status: "opt-in-required",
+        error: "live provider smoke is disabled",
+        nextStep: "Set MONTARA_LIVE_PROVIDER_SMOKE=1 for an explicit paid/network opt-in.",
+      });
+      continue;
+    }
+
+    const outPath = options.outDir ? join(options.outDir, `${provider.id}-smoke.${smokeExtension(provider.category)}`) : undefined;
+    const live = await runProviderSmoke({
+      providerId: provider.id,
+      category: provider.category,
+      live: true,
+      outPath,
+      env,
+      fetch: options.fetch,
+      download: options.download,
+    });
+    entries.push({
+      ...base,
+      redactedRequest: live.redactedRequest,
+      status: live.ok ? "passed" : "failed",
+      execution: summarizeExecution(live.execution),
+      error: live.error,
+      nextStep: live.ok ? undefined : live.nextStep,
+    });
+  }
+
+  const totals = {
+    providers: entries.length,
+    dryRun: entries.filter((entry) => entry.status === "dry-run").length,
+    missingKey: entries.filter((entry) => entry.status === "missing-key").length,
+    optInRequired: entries.filter((entry) => entry.status === "opt-in-required").length,
+    passed: entries.filter((entry) => entry.status === "passed").length,
+    failed: entries.filter((entry) => entry.status === "failed").length,
+  };
+
+  return {
+    generatedAt: new Date().toISOString(),
+    liveRequested,
+    optIn,
+    totals,
+    entries,
+  };
+}
+
+export async function writeProviderLiveAuditReport(outPath: string, options: ProviderLiveAuditOptions = {}): Promise<ProviderLiveAuditReport> {
+  const report = await buildProviderLiveAuditReport(options);
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
+  return report;
 }

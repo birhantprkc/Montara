@@ -71,6 +71,7 @@ import {
   buildProviderAuditReport,
   writeProviderAuditReport,
   runProviderSmoke,
+  buildProviderLiveAuditReport,
   cloudProviders,
   planSpeechGeneration,
   runSpeechGeneration,
@@ -631,6 +632,15 @@ writeProviderAuditReport(providerAuditPath);
 ok("provider audit report writes a sanitized JSON fixture file", existsSync(providerAuditPath) && !readFileSync(providerAuditPath, "utf8").includes("fixture-redaction-marker"));
 const drySmoke = await runProviderSmoke({ providerId: "flux", category: "image", env: {} });
 ok("provider smoke dry-run builds a redacted request without requiring keys", drySmoke.ok && drySmoke.mode === "dry-run" && drySmoke.redactedRequest.headers["x-key"] === "[REDACTED]");
+const dryLiveAudit = await buildProviderLiveAuditReport({ env: {} });
+ok("provider live-audit report records every cloud provider as a sanitized dry run",
+  dryLiveAudit.totals.providers === providerCloudCount &&
+    dryLiveAudit.totals.dryRun === providerCloudCount &&
+    dryLiveAudit.entries.every((entry) => entry.status === "dry-run" && !("request" in entry)) &&
+    !JSON.stringify(dryLiveAudit).includes("fixture-redaction-marker"));
+const missingKeyAudit = await buildProviderLiveAuditReport({ live: true, providerIds: ["flux"], categories: ["image"], env: {} });
+ok("provider live-audit marks live providers with no credential as missing-key",
+  missingKeyAudit.entries.length === 1 && missingKeyAudit.entries[0]?.status === "missing-key" && missingKeyAudit.totals.missingKey === 1);
 const blockedSmoke = await runProviderSmoke({ providerId: "flux", category: "image", live: true, env: { BFL_API_KEY: "bk" } });
 ok("provider live smoke is blocked without explicit opt-in", !blockedSmoke.ok && blockedSmoke.mode === "blocked" && Boolean(blockedSmoke.nextStep?.includes("MONTARA_LIVE_PROVIDER_SMOKE")));
 const liveSmoke = await runProviderSmoke({
@@ -645,6 +655,21 @@ const liveSmoke = await runProviderSmoke({
   download: async () => new Uint8Array([5, 4, 3, 2]),
 });
 ok("provider live smoke harness executes through the BYOK executor when explicitly opted in", liveSmoke.ok && liveSmoke.mode === "live" && liveSmoke.execution?.outputUrl === "https://cdn.example/live.png");
+const passedLiveAudit = await buildProviderLiveAuditReport({
+  live: true,
+  providerIds: ["flux"],
+  categories: ["image"],
+  env: { BFL_API_KEY: "bk", MONTARA_LIVE_PROVIDER_SMOKE: "1" },
+  fetch: async (_url, init) => init.method === "POST"
+    ? { ok: true, status: 200, json: async () => ({ polling_url: "https://api.bfl.ai/v1/get_result?id=audit_fixture" }) }
+    : { ok: true, status: 200, json: async () => ({ status: "Ready", result: { sample: "https://cdn.example/audit.png" } }) },
+  download: async () => new Uint8Array([9, 8, 7, 6]),
+});
+ok("provider live-audit records an opted-in live pass without storing raw output URLs",
+  passedLiveAudit.totals.passed === 1 &&
+    passedLiveAudit.entries[0]?.status === "passed" &&
+    passedLiveAudit.entries[0]?.execution?.outputUrlPresent === true &&
+    !JSON.stringify(passedLiveAudit).includes("https://cdn.example/audit.png"));
 
 const offlineImg = planImageGeneration(iInput, {});
 ok("with no credentials an image plan falls back to local-free", offlineImg.mode === "fallback" && offlineImg.provider.tier === "local-free");

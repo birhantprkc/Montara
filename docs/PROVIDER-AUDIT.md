@@ -38,13 +38,19 @@ Last checked: 2026-07-01.
   keys, network calls, or provider spend.
 - `packages/providers/src/audit.ts` builds a redacted fixture report for all 18
   cloud providers and exposes a dry-run/live smoke harness. CLI entry points:
-  `montara providers audit` and `montara providers smoke <provider-id> [--live]`.
+  `montara providers audit`, `montara providers live-audit`, and
+  `montara providers smoke <provider-id> [--live]`.
+- `montara providers live-audit --out out/provider-live-audit.json` writes a
+  sanitized readiness ledger across cloud providers. It records `dry-run`,
+  `missing-key`, `opt-in-required`, `passed`, or `failed` without raw requests,
+  API keys, signed output URLs, or provider response bodies.
 
 ## Known Follow-Ups
 
 - The TS executor and audit harness are fixture-tested, not broadly live-key
   tested. Before spending user money, run `montara providers smoke <id> --live`
-  with `MONTARA_LIVE_PROVIDER_SMOKE=1`, then save a sanitized fixture.
+  with `MONTARA_LIVE_PROVIDER_SMOKE=1`, then save a sanitized fixture and update
+  the live-audit ledger.
 - Python image providers now expose testable request builders:
   `tools/graphics/openai_image.py` defaults to GPT Image 2, and
   `tools/graphics/flux_image.py` prefers direct BFL FLUX.2 while retaining

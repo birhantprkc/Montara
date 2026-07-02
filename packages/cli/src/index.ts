@@ -7,7 +7,7 @@ import { validateTimeline, scenePlanToTimeline, pictureInPicture, collage, type 
 import { compositeTimeline, probeDuration, mediaBin, masterAudio, generateThumbnails, cutShorts, buildReel, type Caption, type ThumbConcept } from "../../render-ffmpeg/src/index";
 import { composeScenePlan, renderComposedScenePlanWithReport, renderComposedTimeline } from "../../render-remotion/src/index";
 import { listPipelines, planVideo } from "../../ai/src/index";
-import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable, buildProviderAuditReport, sanitizeProviderAuditReport, writeProviderAuditReport, runProviderSmoke, type MediaCategory } from "../../providers/src/index";
+import { listProviderTools, listVideoProviders, listImageProviders, listTtsProviders, listMusicProviders, providerAvailable, buildProviderAuditReport, sanitizeProviderAuditReport, writeProviderAuditReport, runProviderSmoke, writeProviderLiveAuditReport, type MediaCategory } from "../../providers/src/index";
 import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, directScript, reviewSourceMedia, planReelTreatment, createReelArtifacts, type ReelInputKind, type ReelStyleMode, type SceneEmotion } from "../../quality/src/index";
 import { TTSSelector } from "../../tools/src/audio/tts-selector";
 import { CLIP_EMBED_DIM, embedTexts, runResearch } from "../../research/src/index";
@@ -288,6 +288,7 @@ const VALUE_FLAGS = new Set([
   "--url",
   "--output",
   "--out",
+  "--out-dir",
   "--category",
   "--provider",
   "--auth-state",
@@ -2247,6 +2248,7 @@ Commands:
   tools                           list local/free provider tools
   providers [video|image|tts|music]  list generation providers + availability
   providers audit [--out path]       write sanitized request fixtures for cloud providers
+  providers live-audit [--live]      write a sanitized provider live-readiness report
   providers smoke <id> [--live]      dry-run or opt-in live-key smoke for one provider
   engines                         list composition engines + availability
   styles                          list style playbooks
@@ -2799,6 +2801,25 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
           if (result.error) console.error(result.error);
         }
         return result.ok ? 0 : 1;
+      }
+      if (sub === "live-audit" || sub === "audit-live") {
+        const out = optionValue(rest, "--out") ?? join(process.cwd(), "out", "provider-live-audit.json");
+        const report = await writeProviderLiveAuditReport(out, {
+          live: rest.includes("--live"),
+          providerIds: optionValues(rest, "--provider"),
+          categories: optionValues(rest, "--category") as MediaCategory[],
+          outDir: optionValue(rest, "--out-dir"),
+        });
+        if (rest.includes("--json")) {
+          console.log(JSON.stringify(report, null, 2));
+        } else {
+          console.log(`provider live audit: ${report.totals.providers} provider(s), ${report.totals.passed} passed, ${report.totals.failed} failed, ${report.totals.missingKey} missing key, ${report.totals.optInRequired} need opt-in, ${report.totals.dryRun} dry-run`);
+          console.log(out);
+          for (const entry of report.entries) {
+            console.log(`  ${entry.providerId.padEnd(22)} ${entry.category.padEnd(5)} ${entry.status}${entry.authEnv ? ` (${entry.authEnv})` : ""}`);
+          }
+        }
+        return rest.includes("--strict") && report.totals.failed > 0 ? 1 : 0;
       }
       const category = sub;
       const providers =
