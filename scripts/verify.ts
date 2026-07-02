@@ -134,7 +134,7 @@ import {
 } from "../packages/research/src/index";
 import { getPipeline, PIPELINE_DEFS } from "../packages/ai/src/index";
 import { detectScenes, sampleKeyFrames, transcribe, understandVideo, understandVideoWithVision, visionModelStatus, analyzeReferenceVideo } from "../packages/understand/src/index";
-import { listEngines, getEngine, engineAvailable, preferredEngine, renderWithEngine, recommendEngine, engineReallyAvailable, availableEngines } from "../packages/render-engines/src/index";
+import { listEngines, getEngine, engineAvailable, preferredEngine, renderWithEngine, recommendEngine, engineReallyAvailable, availableEngines, engineLicenseClass, selectCompositionEngine, probeHyperframes, hyperframesAvailable } from "../packages/render-engines/src/index";
 import { threeAvailable } from "../packages/render-three/src/index";
 import {
   STYLE_PLAYBOOKS,
@@ -1402,6 +1402,30 @@ ok("availableEngines marks ffmpeg always-available and reports stable boolean st
   const list = availableEngines();
   const ff = list.find((e) => e.engine.id === "ffmpeg")!;
   return ff.available === true && ff.native === false && list.every((e) => typeof e.available === "boolean" && typeof e.native === "boolean");
+})());
+ok("engineLicenseClass labels Remotion source-available and MIT engines open", (() => {
+  return engineLicenseClass(getEngine("remotion")!) === "source-available" &&
+    engineLicenseClass(getEngine("revideo")!) === "open" &&
+    engineLicenseClass(getEngine("motion-canvas")!) === "open";
+})());
+ok("selectCompositionEngine keeps Remotion when source-available runtimes are allowed", (() => {
+  const rec = selectCompositionEngine("explainer", (id) => id === "remotion");
+  return rec.preferred === "remotion" && rec.engine === "remotion" && rec.native === true && rec.licenseFallback === false;
+})());
+ok("selectCompositionEngine switches Remotion to Revideo when source-available runtimes are declined", (() => {
+  const rec = selectCompositionEngine("explainer", (id) => id === "remotion" || id === "revideo", { allowSourceAvailable: false });
+  return rec.preferred === "remotion" && rec.engine === "revideo" && rec.licenseFallback === true && rec.license === "MIT";
+})());
+ok("selectCompositionEngine degrades to ffmpeg when no native composition fallback is available", (() => {
+  const rec = selectCompositionEngine("explainer", (id) => id === "remotion", { allowSourceAvailable: false });
+  return rec.engine === "ffmpeg" && rec.native === false && rec.licenseFallback === true;
+})());
+ok("probeHyperframes reports a stable status shape and boolean convenience probe", (() => {
+  const hf = probeHyperframes();
+  return typeof hf.available === "boolean" &&
+    ["node_modules", "npx", "absent"].includes(hf.source) &&
+    typeof hf.hint === "string" &&
+    hyperframesAvailable() === hf.available;
 })());
 
 // ---- Pro-editor bridges: export the IR to EDL / FCPXML / OTIO ----

@@ -24,9 +24,9 @@ Montara should be honest with users and agents:
 | FFmpeg render | Working universal fallback for assembly, encode, captions, audio, and MP4 output. |
 | Blender / Manim | Real external-process adapters when the corresponding tools are installed. |
 | Three.js | Registered and partially implemented through a headless browser path; still runtime-gated. |
-| Revideo / Motion Canvas | Adapter surfaces exist and depend on the local toolchain. Validate before promising native output. |
+| Revideo / Motion Canvas | Adapter surfaces exist; Revideo fallback selection is license-aware, while native MP4 proofs still depend on the local toolchain. Validate before promising native output. |
 | Remotion | Native smoke and Timeline IR rendering are validate-gated when `remotion-composer` deps are installed; set `REMOTION_ENABLED=1` for `montara make/render` to prefer native Remotion. |
-| HyperFrames | Native strict kinetic-typography smoke render is validate-gated when `npx hyperframes` is available; broader pipeline parity is still in progress. |
+| HyperFrames | Native strict kinetic-typography and character SVG-rig final MP4 proofs are validate-gated when `npx hyperframes` is available; broader pipeline parity is still in progress. |
 | Video understanding | `montara understand` produces scene/frame/audio-signal JSON by default; optional Transformers.js CLIP frame classification is available with `MONTARA_VISION_MODELS=1` or `--vision require`. BLIP/caption-model validation remains runtime-gated. |
 | Local LLM orchestration | The architecture supports local brains, but a fully shipped local orchestration loop is still being hardened. |
 | Screen recording | FFmpeg desktop capture, Cap pickup, deterministic capture-artifact pickup, and `montara capture` Playwright browser recording with user-login storageState. |
@@ -44,6 +44,7 @@ For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
 montara doctor
 montara status --out out/montara-status.json
 montara stage1-audit --out out/stage1-audit.json
+montara recommend explainer --open-license-only
 montara runtimes status --json --out out/runtimes-status.json
 montara runtimes inventory --json --out out/runtime-inventory.json
 montara runtimes plan comfyui
@@ -77,6 +78,8 @@ current reproducible demos to inspect before trusting a workflow:
 | Timeline IR explainer | `npm.cmd run validate` | `out/validate-compose-core.mp4` + `out/validate-compose-core.timeline.json` | ScenePlan -> Timeline IR -> FFmpeg MP4 | `$0` |
 | Native Remotion smoke | `npm.cmd run validate` | `out/validate-remotion-native.mp4` when deps are installed | Remotion native spring/caption proof, otherwise honest skip | `$0` |
 | Native Remotion Timeline | `npm.cmd run validate` | `out/validate-remotion-timeline-native.mp4` when deps are installed | Timeline IR -> Remotion props -> native `Explainer` render with `REMOTION_ENABLED=1` | `$0` |
+| HyperFrames kinetic smoke | `npm.cmd run validate` | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` when runtime is available | `hyperframes_compose` strict lint/validate/render | `$0`, runtime-gated |
+| Character animation rig | `npm.cmd run validate` | `out/validate-character-animation/final.mp4` when runtime is available | SVG/GSAP character rig -> `video_compose` -> HyperFrames | `$0`, runtime-gated |
 | Python compose CLI | `npm.cmd run validate` | `out/validate-cli-video-compose.mp4` + `.render-report.json` | `montara compose` -> Python `video_compose` -> FFmpeg | `$0` |
 | Smart reel proof | `npm.cmd run validate` | `out/validate-smart-reel.mp4` | Source-aware reel planner + caption/end-card treatment | `$0` |
 | Documentary corpus proof | `npm.cmd run validate` | `out/validate-documentary-montage.mp4` + `out/validate-documentary-corpus/` | `corpus seed-fixture` -> Python `clip_search` -> `video_compose` | `$0` |
@@ -103,14 +106,14 @@ pnpm typecheck
 python -m pytest tests
 ```
 
-Latest local gate snapshot from the Stage 1A-D audit pass:
+Latest local gate snapshot from the Stage 2 runtime gap pass:
 
 | Gate | Result |
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
-| `npm.cmd run verify` | 312 passed, 0 failed |
-| `npm.cmd run validate` | 93 passed, 0 failed |
+| `npm.cmd run verify` | 317 passed, 0 failed |
+| `npm.cmd run validate` | 96 passed, 0 failed |
 | `python -m pytest tests` | 399 passed, 8 skipped |
 
 ## Agent Entry Points

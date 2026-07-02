@@ -1,6 +1,6 @@
 # Montara Parity And Moat Checklist
 
-Last synced with [PLAN.md](../PLAN.md): 2026-07-02, after the Stage 1A-D audit gate.
+Last synced with [PLAN.md](../PLAN.md): 2026-07-02, after the Stage 2 runtime gap pass.
 
 This checklist tracks two things:
 
@@ -14,8 +14,8 @@ Latest local gates before this sync:
 
 - `npm.cmd run typecheck` passed.
 - `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` passed: 4/4 sections, 21/21 checks.
-- `npm.cmd run verify` passed: 312 passed, 0 failed.
-- `npm.cmd run validate` passed: 93 passed, 0 failed.
+- `npm.cmd run verify` passed: 317 passed, 0 failed.
+- `npm.cmd run validate` passed: 96 passed, 0 failed.
 - `python -m pytest tests` passed: 399 passed, 8 skipped.
 
 ## Snapshot
@@ -38,8 +38,8 @@ Latest local gates before this sync:
 | Playwright capture | ◐ | Tool/selector/skills, pytest coverage, and `montara capture` CLI exist; native browser runtime remains Playwright-gated. |
 | 9-engine registry | ☑ | Includes maturity labels: working, adapter, runtime-gated, planned. |
 | Native Remotion | ☑ | Native smoke + Timeline IR render validate-gated; `REMOTION_ENABLED=1` routes `montara make/render` through native Remotion when composer deps are installed. |
-| HyperFrames | ◐ | Python `hyperframes_compose` strict kinetic smoke is validate-gated; kinetic-typography has pipeline skills; broader non-kinetic parity pending. |
-| Revideo / Motion Canvas | ◐ | Runtime-gated native adapter packages/probes exist; installed-runtime MP4 validate proof is Stage 2 work. |
+| HyperFrames | ◐ | Python `hyperframes_compose` strict kinetic smoke plus character-animation SVG rig final MP4 are validate-gated when HyperFrames is available; broader non-kinetic parity pending. |
+| Revideo / Motion Canvas | ◐ | License-aware Revideo fallback selection and runtime-gated native adapter packages/probes exist; installed-runtime MP4 validate proof remains runtime-gated. |
 | Three.js / Manim | ◐ | Adapters exist; native proof depends on installed runtimes. |
 | Blender | ◐ | Real headless adapter; documented as runtime-gated. |
 | Spline | ☐ | Planned registry entry only. |
@@ -56,9 +56,9 @@ Latest local gates before this sync:
 | --- | --- | --- |
 | FFmpeg | ☑ | Working local native renderer and fallback. |
 | Remotion | ☑ | Native smoke + Timeline IR render validate-gated; FFmpeg fallback remains visible when native is disabled/unavailable. |
-| Revideo | ◐ | Runtime-gated native adapter/probe target; needs installed-runtime MP4 validate proof. |
-| Motion Canvas | ◐ | Runtime-gated native adapter/probe target; needs installed-runtime MP4 validate proof. |
-| HyperFrames | ◐ | Strict kinetic smoke renders through `hyperframes_compose`; `montara compose` can route `video_compose` artifacts, native HyperFrames still runtime-gated. |
+| Revideo | ◐ | Runtime-gated native adapter/probe target plus license-aware open fallback selector; needs installed-runtime MP4 validate proof. |
+| Motion Canvas | ◐ | Runtime-gated native adapter/probe target and kinetic-typography picker default; needs installed-runtime MP4 validate proof. |
+| HyperFrames | ◐ | Strict kinetic smoke and character SVG-rig final MP4 render through `hyperframes_compose` when available; `montara compose` can route `video_compose` artifacts, native HyperFrames still runtime-gated. |
 | Three.js | ◐ | Headless/WebGL adapter path; native availability depends on browser/runtime. |
 | Manim | ◐ | External adapter; native availability depends on Manim install. |
 | Blender | ◐ | Real external adapter; native availability depends on Blender install. |
@@ -80,8 +80,8 @@ Latest local gates before this sync:
 | podcast-repurpose | ☑ | Manifest + skills. |
 | screen-demo | ☑ | Offline capture artifact pickup -> `montara capture pick-latest` -> `video_compose` MP4 validate path is green. |
 | talking-head | ☑ | Manifest + skills. |
-| character-animation | ☑ | Contract tests green. |
-| kinetic-typography | ☑ | Manifest + HyperFrames-aware stage skills; native strict kinetic smoke validate-gated. |
+| character-animation | ☑ | Contract tests plus validate-gated HyperFrames SVG rig -> final MP4 when runtime is available. |
+| kinetic-typography | ☑ | Manifest + HyperFrames-aware stage skills; native strict kinetic smoke validate-gated; Motion Canvas picker target is runtime-gated. |
 
 ## C-K. OpenMontage Parity Categories
 
@@ -130,4 +130,4 @@ Stage 1A-D parity is closed by `montara stage1-audit`, which checks the Python
 bridge, 14 pipeline definitions, provider/request fixtures, local fallbacks,
 agent skills, and the honest nine-engine registry from the local machine.
 
-Stage 2 has native Remotion, HyperFrames, and the 60s documentary corpus proof green in `validate`; remaining Stage 2 items are runtime/package maturity work rather than the blocked exit proof.
+Stage 2 has native Remotion, HyperFrames kinetic typography, HyperFrames character animation, doctor/cache-warm setup, license-aware Revideo fallback selection, and the 60s documentary corpus proof covered in `validate`; the remaining Stage 2 item is the Motion Canvas installed-runtime MP4 proof.

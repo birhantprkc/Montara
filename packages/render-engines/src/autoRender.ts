@@ -11,8 +11,10 @@ import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { revideoAvailable } from "../../render-revideo/src/index";
 import { motionCanvasAvailable } from "../../render-motioncanvas/src/index";
 import { remotionNativeAvailable } from "../../render-remotion/src/index";
-import { join } from "node:path";
-import { preferredEngine, RENDER_ENGINES, type EngineId, type RenderEngine } from "./index";
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { getEngine, preferredEngine, RENDER_ENGINES, type EngineId, type RenderEngine } from "./index";
 
 /** Real, runtime availability of each engine (probes the actual toolchain, not just an env flag). */
 export function engineReallyAvailable(id: EngineId): boolean {
@@ -26,6 +28,129 @@ export function engineReallyAvailable(id: EngineId): boolean {
     case "remotion": return remotionNativeAvailable();
     default: return false;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Stage 2.5 — license-aware composition selection
+// ---------------------------------------------------------------------------
+// Montara's contract: Remotion is the DEFAULT composition engine, but
+// it ships under a *source-available* license (not OSI-open). When a Remotion
+// license/runtime is unavailable, Montara auto-falls-back to Revideo (MIT) — both
+// compile the same Timeline IR — then Motion Canvas (MIT), then the FFmpeg floor.
+
+/** Coarse license class used to decide license-safe composition fallbacks. */
+export function engineLicenseClass(engine: RenderEngine): "open" | "source-available" | "proprietary" {
+  const l = engine.license.toLowerCase();
+  if (l.includes("mit") || l.includes("apache") || l.includes("gpl")) return "open";
+  if (l.includes("source-available")) return "source-available";
+  return "proprietary";
+}
+
+/** Ordered MIT-licensed composition fallbacks, tried when the preferred engine is unavailable or license-restricted. */
+const OPEN_COMPOSITION_FALLBACKS: EngineId[] = ["revideo", "motion-canvas", "three"];
+
+export interface CompositionSelection {
+  sceneType: string;
+  /** best engine for the scene type, installed or not */
+  preferred: EngineId;
+  /** engine that will actually run */
+  engine: EngineId;
+  license: string;
+  native: boolean;
+  /** true only when Montara deliberately switched OFF a source-available/proprietary engine to an open-licensed one */
+  licenseFallback: boolean;
+  reason: string;
+}
+
+/**
+ * License-aware composition engine selection (Stage 2.5).
+ *
+ * Pure and deterministic: pass `available` to select without touching a real
+ * toolchain (defaults to the real runtime probe). Set `allowSourceAvailable:false`
+ * to decline Remotion's source-available license and force the MIT path.
+ */
+export function selectCompositionEngine(
+  sceneType: string,
+  available: (id: EngineId) => boolean = engineReallyAvailable,
+  opts: { allowSourceAvailable?: boolean } = {},
+): CompositionSelection {
+  const allowSA = opts.allowSourceAvailable ?? true;
+  const preferred = preferredEngine(sceneType);
+  const cls = engineLicenseClass(preferred);
+  const licenseOk = preferred.id === "ffmpeg" || cls === "open" || (cls === "source-available" && allowSA);
+
+  if (available(preferred.id) && licenseOk) {
+    return {
+      sceneType, preferred: preferred.id, engine: preferred.id, license: preferred.license,
+      native: preferred.id !== "ffmpeg", licenseFallback: false,
+      reason: `${preferred.name} fits '${sceneType}' and is available (${preferred.license}).`,
+    };
+  }
+
+  // Distinguish "switched because of license" from "switched because it isn't installed".
+  const blockedByLicense = available(preferred.id) && !licenseOk;
+
+  for (const id of OPEN_COMPOSITION_FALLBACKS) {
+    if (id === preferred.id || !available(id)) continue;
+    const e = getEngine(id)!;
+    return {
+      sceneType, preferred: preferred.id, engine: id, license: e.license, native: true,
+      licenseFallback: blockedByLicense,
+      reason: blockedByLicense
+        ? `${preferred.name} is ${preferred.license}; auto-switched to ${e.name} (${e.license}) for a license-safe composition.`
+        : `${preferred.name} is not installed; using ${e.name} (${e.license}) as the license-safe composition fallback.`,
+    };
+  }
+
+  return {
+    sceneType, preferred: preferred.id, engine: "ffmpeg", license: getEngine("ffmpeg")!.license,
+    native: false, licenseFallback: blockedByLicense,
+    reason: `No native composition engine available for '${sceneType}'; rendering through the FFmpeg floor.`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Stage 2.4 — HyperFrames runtime probe (for `montara doctor --fix`)
+// ---------------------------------------------------------------------------
+
+export interface HyperframesStatus {
+  available: boolean;
+  version: string | null;
+  /** how the probe resolved: local node_modules, npx, or absent */
+  source: "node_modules" | "npx" | "absent";
+  hint: string;
+}
+
+/** node_modules/hyperframes present anywhere up the tree. */
+function findHyperframesRoot(start: string = process.cwd()): string | null {
+  let dir = start;
+  for (let i = 0; i < 6; i++) {
+    if (existsSync(join(dir, "node_modules", "hyperframes")) || existsSync(join(dir, "node_modules", "@hyperframes", "cli"))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+
+/** Honest, never-throwing probe of the HyperFrames toolchain (Stage 2.4). */
+export function probeHyperframes(start: string = process.cwd()): HyperframesStatus {
+  if (findHyperframesRoot(start)) {
+    return { available: true, version: null, source: "node_modules", hint: "HyperFrames found in node_modules; run `npx hyperframes doctor` for details." };
+  }
+  try {
+    const probe = spawnSync("npx", ["--no-install", "hyperframes", "--version"], { encoding: "utf8", shell: true, timeout: 8000 });
+    if (probe.status === 0) {
+      const version = (probe.stdout || "").trim().split(/\s+/)[0] || null;
+      return { available: true, version, source: "npx", hint: "HyperFrames CLI resolved via npx." };
+    }
+  } catch { /* probe failure = not available */ }
+  return { available: false, version: null, source: "absent", hint: "HyperFrames not installed; run `npx --yes hyperframes doctor` to verify and cache-warm before native kinetic renders." };
+}
+
+/** Boolean convenience wrapper around {@link probeHyperframes}. */
+export function hyperframesAvailable(start: string = process.cwd()): boolean {
+  return probeHyperframes(start).available;
 }
 
 export interface EngineRecommendation {

@@ -47,14 +47,14 @@ exports.
 | --- | --- | --- |
 | FFmpeg | Working and reliable for local MP4 output. | Always acceptable fallback if the creative promise allows it. |
 | Remotion | Native smoke render is validate-gated when `remotion-composer` deps are installed; full Timeline routing is not guaranteed on every machine. | Require the native Remotion validate case before promising it as final engine. |
-| Revideo | Runtime-gated adapter. | Require installed Revideo toolchain and MP4 probe. |
+| Revideo | Runtime-gated adapter plus license-aware open fallback selection for Remotion-style composition choices. | Require installed Revideo toolchain and MP4 probe before promising native output. |
 | Three.js | Registered and partially implemented through browser/WebGL rendering. | Run headless browser/canvas checks before promising 3D output. |
 | Manim | Real external Manim path when installed. | Verify generated video and transcode. |
 | Blender | Real headless Blender path when installed. | Verify render and final MP4. |
-| Motion Canvas | Adapter/runtime-gated. | Confirm Node toolchain and native render. |
+| Motion Canvas | Adapter/runtime-gated; picker target for kinetic typography. | Confirm Node toolchain and native render before promising output. |
 | Spline | Planned. | Needs a render package, selector registration, and validate case. |
 | Playwright | Browser recording/capture path, not a general render engine. | Validate login state, recording, transcode, and privacy review. |
-| HyperFrames | Python `hyperframes_compose` can strict-lint/validate/render a kinetic typography MP4 when `npx hyperframes` is available; broader pipeline parity is incomplete. | Treat as runtime-gated and require the Stage 2.3 validate case before promising it. |
+| HyperFrames | Python `hyperframes_compose` can strict-lint/validate/render a kinetic typography MP4 and character SVG-rig final MP4 when `npx hyperframes` is available; broader pipeline parity is incomplete. | Treat as runtime-gated and require the Stage 2.3/2.8 validate cases before promising it. |
 
 ## Understanding Status
 

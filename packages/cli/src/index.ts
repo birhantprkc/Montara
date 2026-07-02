@@ -12,7 +12,7 @@ import { preComposeGate, postRenderSelfReview, writeSelfReview, directScene, dir
 import { TTSSelector } from "../../tools/src/audio/tts-selector";
 import { CLIP_EMBED_DIM, embedTexts, runResearch } from "../../research/src/index";
 import { analyzeReferenceVideo, understandVideoWithVision, visionModelStatus, type VideoUnderstanding, type VisionMode } from "../../understand/src/index";
-import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene } from "../../render-engines/src/index";
+import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene, selectCompositionEngine } from "../../render-engines/src/index";
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY, listSkills, findSkills } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
@@ -2726,8 +2726,14 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
     if (command === "recommend") {
       const sceneType = rest[0];
-      if (!sceneType) { console.error("usage: montara recommend <sceneType>  (e.g. 3d, title-3d, math, kinetic-typography, explainer, assembly)"); return 1; }
+      if (!sceneType) { console.error("usage: montara recommend <sceneType> [--composition] [--open-license-only]  (e.g. 3d, title-3d, math, kinetic-typography, explainer, assembly)"); return 1; }
       const out = (rest[1] && !rest[1].startsWith("--")) ? rest[1] : "";
+      if (rest.includes("--composition") || rest.includes("--open-license-only")) {
+        const rec = selectCompositionEngine(sceneType, engineReallyAvailable, { allowSourceAvailable: !rest.includes("--open-license-only") });
+        console.log(`recommend '${sceneType}': use ${rec.engine}${rec.native ? " (native)" : ""} - ${rec.reason}`);
+        console.log(`license: ${rec.license}${rec.licenseFallback ? " (license fallback)" : ""}; preferred: ${rec.preferred}`);
+        return 0;
+      }
       const rec = recommendEngine(sceneType);
       console.log(`recommend '${sceneType}': use ${rec.engine}${rec.native ? " (native)" : ""} — ${rec.reason}`);
       if (out) {

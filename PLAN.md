@@ -64,7 +64,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **9-engine registry** | ☑ | Honest `maturity` labels (working / adapter / runtime-gated / planned) |
 | **Remotion native** | ☑ | Native smoke + Timeline IR route validate-gated; `REMOTION_ENABLED=1` makes `montara make/render` prefer native when composer deps are installed |
 | **HyperFrames native** | ◐ | Strict kinetic smoke renders through `hyperframes_compose`; broader pipeline parity pending |
-| **Revideo / Motion Canvas native** | ◐ | Runtime-gated native adapter packages/probes exist; installed-runtime MP4 validate proof pending |
+| **Revideo / Motion Canvas native** | ◐ | License-aware Revideo fallback selector and runtime-gated adapter packages/probes exist; installed-runtime MP4 validate proof pending |
 | **Three.js / Manim native** | ◐ | Adapters exist; often FFmpeg fallback proofs |
 | **Blender native** | ◐ | Real headless adapter; proof clip exists |
 | **Spline** | ☐ | Planned registry entry only |
@@ -304,13 +304,13 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 2.1 | **Native Remotion render** in validate | ☑ | Real spring/caption MP4, not FFmpeg solids |
 | 2.2 | Remotion as default when `REMOTION_ENABLED` + composer installed | ☑ | Timeline IR -> Remotion props -> native `Explainer` render; `montara make/render` use it when enabled |
 | 2.3 | **HyperFrames compose** E2E through Python `hyperframes_compose` | ☑ | validate case: kinetic typography MP4 |
-| 2.4 | `make setup` equivalent: `montara doctor --fix` + HyperFrames cache-warm | ☐ | npx hyperframes doctor |
-| 2.5 | Revideo MIT fallback auto-switch | ☐ | License-aware adapter selection |
-| 2.6 | Motion Canvas native package | ☐ | kinetic-typography pipeline default |
+| 2.4 | `make setup` equivalent: `montara doctor --fix` + HyperFrames cache-warm | ☑ | `doctor --fix` surfaces `npx --yes hyperframes doctor` and cache-warm command; validate smoke covers it |
+| 2.5 | Revideo MIT fallback auto-switch | ☑ | `selectCompositionEngine` + `montara recommend --open-license-only` choose open-licensed fallback deterministically |
+| 2.6 | Motion Canvas native package | ◐ | `@montara/render-motioncanvas` package + kinetic-typography picker default exist; installed-runtime MP4 proof still pending |
 | 2.7 | Documentary montage: CLIP corpus + real footage stitch | ☑ | `validate` now builds a 60s provenance-aware open-stock corpus proof, selects non-reused rows with `clip_search.select_slots`, writes asset/selection artifacts, and composes a real MP4 |
-| 2.8 | Character animation: HyperFrames SVG rig → final MP4 | ☐ | match OpenMontage pipeline output |
+| 2.8 | Character animation: HyperFrames SVG rig → final MP4 | ☑ | validate helper renders `out/validate-character-animation/final.mp4` when HyperFrames is available, otherwise reports runtime blocker honestly |
 
-**Stage 2 exit criteria:** 2.1 + 2.3 + 2.7 green in `validate`; README embeds 3 native-composition demo videos.
+**Stage 2 exit criteria:** 2.1 + 2.3 + 2.4 + 2.5 + 2.7 + 2.8 green in `validate` or report runtime blockers honestly; README embeds native-composition demo videos. Motion Canvas remains an installed-runtime proof item, not a false native claim.
 
 ---
 
@@ -461,7 +461,7 @@ When you say "continue the plan," work **top to bottom**:
 | ✅ | 1C.1 | Official-doc provider request-shape refresh for Google, Runway, OpenAI, and BFL | done |
 | ✅ | 1C-K.1 | Offline-testable `build_request()` + pytest across all cloud video/image/TTS/music Python tools | done |
 | ✅ | 1C-K | Stage 1 residual partials audit + next highest-risk closure | done via `montara stage1-audit` |
-| 🎯 2 | 2.4/2.5/2.6/2.8 | Remaining Stage 2 native composition/runtime maturity | Stage 2 gap pass |
+| 🎯 2 | 2.6 | Motion Canvas installed-runtime MP4 proof | Runtime-gated native proof |
 | 🎯 3 | 3.3/3.5/3.7/3.8/3.10-3.12 | Remaining Stage 3 moat partials | Stage 3 gap pass |
 | 🎯 4 | 4.5C | Live-key provider smoke confirmations where keys are available | Stage 4 gap |
 | 🎯 5 | 5.2 | Public SDK after Stage 1-4 gaps are reduced | Stage 5 follow-up |

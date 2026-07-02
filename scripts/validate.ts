@@ -362,6 +362,30 @@ try { rmSync(enginePath, { force: true }); } catch { /* none */ }
 const engResult = renderWithEngine("motion-canvas", result.timeline, enginePath, {});
 ok("generic non-ffmpeg dispatch is honest fallback, not claimed native", existsSync(enginePath) && probeDuration(enginePath) > 1 && engResult.renderer === "degraded-ffmpeg" && engResult.note.includes("fallback"));
 
+const doctorFix = spawnSync(npmBin, ["run", "montara", "--", "doctor", "--fix"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+ok("doctor --fix surfaces HyperFrames doctor/cache-warm setup",
+  doctorFix.status === 0 &&
+    /npx --yes hyperframes doctor/.test(doctorFix.stdout ?? "") &&
+    /npx --yes hyperframes --version/.test(doctorFix.stdout ?? ""),
+  (doctorFix.error?.message || doctorFix.stderr || doctorFix.stdout || "").slice(-500));
+
+const compositionRecommend = spawnSync(npmBin, ["run", "montara", "--", "recommend", "explainer", "--open-license-only"], {
+  encoding: "utf8",
+  timeout: 120000,
+  maxBuffer: 1 << 22,
+  shell: process.platform === "win32",
+});
+ok("recommend --open-license-only exposes license-aware composition fallback",
+  compositionRecommend.status === 0 &&
+    /license:/.test(compositionRecommend.stdout ?? "") &&
+    /preferred: remotion/.test(compositionRecommend.stdout ?? ""),
+  (compositionRecommend.error?.message || compositionRecommend.stderr || compositionRecommend.stdout || "").slice(-500));
+
 const nativeRemotionPath = join(outDir, "validate-remotion-native.mp4");
 const nativeRemotionTimelinePath = join(outDir, "validate-remotion-timeline-native.mp4");
 try { rmSync(nativeRemotionPath, { force: true }); } catch { /* none */ }
@@ -424,6 +448,35 @@ if (hfProbe.status === 0 && hfVersion && py) {
   ok("HyperFrames native render reports unavailable or blocked honestly",
     true,
     (hfProbe.error?.message || hfProbe.stderr || hfProbe.stdout || "python not found").slice(-500));
+}
+
+console.log("\n== Character animation HyperFrames (Stage 2.8) ==");
+if (py) {
+  const characterNative = spawnSync(py, ["scripts/validate_character_animation.py"], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    timeout: 300000,
+    maxBuffer: 1 << 22,
+  });
+  let payload: { success?: boolean; unavailable?: boolean; error?: string; data?: { output?: string }; artifacts?: string[] } = {};
+  try {
+    payload = JSON.parse((characterNative.stdout || "").trim());
+  } catch {
+    payload = { success: false, error: `non-JSON output: ${(characterNative.stdout || characterNative.stderr || "").slice(-500)}` };
+  }
+  if (payload.unavailable) {
+    ok("character animation HyperFrames final MP4 reports unavailable honestly",
+      characterNative.status === 0,
+      payload.error || "");
+  } else {
+    const characterOut = String(payload.data?.output || payload.artifacts?.[0] || join(outDir, "validate-character-animation", "final.mp4"));
+    const characterDuration = payload.success && existsSync(characterOut) ? probeDuration(characterOut) : 0;
+    ok("character animation SVG rig renders through HyperFrames to final MP4",
+      characterNative.status === 0 && payload.success === true && existsSync(characterOut) && characterDuration > 0.8,
+      `dur=${characterDuration.toFixed(2)}s err=${payload.error || characterNative.error?.message || characterNative.stderr || ""}`);
+  }
+} else {
+  ok("character animation HyperFrames final MP4 reports unavailable honestly", true, "python not found");
 }
 
 console.log("\n== capture CLI (Stage 3.6) ==");

@@ -42,6 +42,8 @@ CLI:
 ```
 montara engines                      # install state of every engine
 montara recommend title-3d           # which renderer would run, and why
+montara recommend explainer --open-license-only
+                                      # choose an open-licensed composition fallback (Remotion -> Revideo/Motion Canvas/ffmpeg)
 montara recommend title-3d out.mp4   # ...and actually render it via the picked engine
 montara render3d three out.mp4       # force the native three.js WebGL renderer
 ```

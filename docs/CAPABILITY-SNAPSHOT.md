@@ -1,6 +1,6 @@
 # Montara Capability Snapshot
 
-Snapshot date: 2026-07-01.
+Snapshot date: 2026-07-02.
 
 ## What Works Now
 
@@ -8,7 +8,7 @@ Snapshot date: 2026-07-01.
 - **Timeline IR:** TypeScript core validates, edits, renders, and exports Timeline IR.
 - **CLI:** `doctor`, `status`, `runtimes`, `make`, `plan`, `render`, `review`, `analyze`, `understand`, `capture`, `compose`,
   `corpus`, `reel`, `music`, `voiceid`, provider listing, engine bridge commands,
-  Stage 1 parity audit, and 3D render commands.
+  Stage 1 parity audit, license-aware render recommendations, and 3D render commands.
 - **FFmpeg render:** fully working native renderer and fallback path for MP4, probe, frame
   extraction, audio mix/enhance, subtitles, reels, and simple composites.
 - **Editor export:** EDL, OTIO, and FCPXML verified through the bridge package and
@@ -48,8 +48,8 @@ Snapshot date: 2026-07-01.
 | --- | --- |
 | `npm.cmd run typecheck` | passed |
 | `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
-| `npm.cmd run verify` | 312 passed, 0 failed |
-| `npm.cmd run validate` | 93 passed, 0 failed |
+| `npm.cmd run verify` | 317 passed, 0 failed |
+| `npm.cmd run validate` | 96 passed, 0 failed |
 | `python -m pytest tests` | 399 passed, 8 skipped |
 
 ## Example Outputs
@@ -64,6 +64,7 @@ Snapshot date: 2026-07-01.
 | Native Remotion smoke | `out/validate-remotion-native.mp4` | Remotion native spring/caption composition when composer deps are installed |
 | Native Remotion Timeline | `out/validate-remotion-timeline-native.mp4` | Timeline IR -> Remotion props -> native `Explainer` render when `REMOTION_ENABLED=1` |
 | Native HyperFrames smoke | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` | HyperFrames strict lint/validate/render kinetic typography when `npx hyperframes` is available |
+| Character animation HyperFrames proof | `out/validate-character-animation/final.mp4` | SVG/GSAP character rig -> `video_compose` -> HyperFrames final MP4 when runtime is available |
 | Headless validate render | `out/validate-headless.mp4` | FFmpeg path |
 | Smart reel validate render | `out/validate-smart-reel.mp4` | FFmpeg reel path |
 | Montara status report | `out/validate-montara-status.json` | CLI compare report for local capability and upstream parity |
@@ -85,9 +86,9 @@ expectations.
 | Tech | Current status |
 | --- | --- |
 | Remotion | Native smoke and Timeline IR render validate-gated when `remotion-composer` deps are installed; `REMOTION_ENABLED=1` makes `montara make/render` prefer native Remotion with FFmpeg fallback visible. |
-| Revideo | Runtime-gated MIT fallback adapter/probe exists; installed-runtime MP4 validate proof pending. |
-| Motion Canvas | Runtime-gated kinetic typography adapter/probe exists; installed-runtime MP4 validate proof pending. |
-| HyperFrames | Python `hyperframes_compose` strict kinetic smoke is validate-gated; kinetic typography now has a first-class pipeline; broader non-kinetic pipeline/runtime parity pending. |
+| Revideo | Runtime-gated MIT fallback adapter/probe exists; license-aware open fallback selection is covered by `selectCompositionEngine`; installed-runtime MP4 validate proof pending. |
+| Motion Canvas | Runtime-gated kinetic typography adapter/probe exists and remains the picker target for kinetic typography; installed-runtime MP4 validate proof pending. |
+| HyperFrames | Python `hyperframes_compose` strict kinetic smoke and character SVG-rig final MP4 are validate-gated when HyperFrames is available; broader non-kinetic pipeline/runtime parity pending. |
 | Three.js | Adapter package exists; native headless proof depends on browser/runtime. |
 | Blender | Real adapter and native proof path when installed. |
 | Manim | Adapter package exists; native binary optional. |

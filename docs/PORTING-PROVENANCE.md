@@ -61,6 +61,7 @@ The TypeScript boundary that drives the engine. New authored work, not derived s
 | `0x17` | 1A.5 | Engine self-check battery (schemas/compositions/skills/tests/pipelines) in the gate |
 | `0x18` | 1A.6 | Enforced compliance gate (no legacy branding, no hardcoded secrets in source) |
 | `0x55` | 1A-D | Stage 1 parity audit CLI: bridge, pipelines, providers, and engine-registry evidence |
+| `0x56` | 2.4/2.5/2.8 | Stage 2 runtime gap pass: HyperFrames doctor/cache-warm, license-aware Revideo fallback, character SVG rig final MP4 validate proof |
 
 ## Preserved TypeScript Work
 
