@@ -16,6 +16,8 @@ import { ProductReveal, ProductRevealProps } from "./components/ProductReveal";
 import { CaptionOverlay, WordCaption } from "./components/CaptionOverlay";
 import { CollageBurst, CollageBurstProps } from "./CollageBurst";
 import { LyricOverlay, LyricOverlayProps } from "./LyricOverlay";
+import { DocumentaryColdOpen, type DocumentaryColdOpenProps } from "./documentary-studio/DocumentaryColdOpen";
+import { EngineMatrix, ENGINE_MATRIX_FRAMES } from "./EngineMatrix";
 
 // ---------------------------------------------------------------------------
 // Theme System — prevents every video from looking like dark fintech
@@ -314,6 +316,31 @@ export const Root: React.FC = () => {
           holdSeconds: 4.3,
           fadeOutSeconds: 0.6,
         } as EndTagProps}
+      />
+      <Composition
+        id="DocumentaryColdOpen"
+        component={DocumentaryColdOpen}
+        durationInFrames={30 * 22}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          topic: "Why chokepoints still shape global trade",
+          kicker: "GEOPOLITICS",
+          lines: [
+            "Twenty percent of world oil still moves through narrow sea lanes.",
+            "One disruption reroutes supply chains across three continents.",
+            "Montara turns verified sources into documentary-grade motion.",
+          ],
+        } as DocumentaryColdOpenProps}
+      />
+      <Composition
+        id="EngineMatrix"
+        component={EngineMatrix}
+        durationInFrames={ENGINE_MATRIX_FRAMES}
+        fps={30}
+        width={1920}
+        height={1080}
       />
       <Composition
         id="EndTagOverlay"

@@ -156,17 +156,43 @@ export function findDialogueByVoice(input: DialogueSearchInput, root: string = h
   return scored.sort((a, b) => b.combinedScore - a.combinedScore);
 }
 
-// ---- Local transcription (captions, zero-key, via faster-whisper) ----
+export * from "./groq";
+import { groqTranscribe, groqTranscribeAvailable, mediaForGroq } from "./groq";
+
+// ---- Transcription (Groq cloud OR local faster-whisper) ----
 
 export interface TranscriptSegment { start: number; end: number; text: string }
 export interface Transcript { language: string; duration: number; segments: TranscriptSegment[] }
 
-/** Whether local STT can run: Python + the script + faster-whisper installed (no model import). */
+/** Whether any STT path is available (Groq key or local faster-whisper). */
+export function sttAvailable(root: string = hearRoot(), secrets: Record<string, string | undefined> = process.env): boolean {
+  return groqTranscribeAvailable(secrets) || localTranscribeAvailable(root);
+}
+
+/** @deprecated use sttAvailable */
 export function transcribeAvailable(root: string = hearRoot()): boolean {
+  return sttAvailable(root);
+}
+
+function localTranscribeAvailable(root: string = hearRoot()): boolean {
   const py = findPython();
   if (!py || !existsSync(join(root, TRANSCRIBE_SCRIPT))) return false;
   const chk = spawnSync(py, ["-c", "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('faster_whisper') else 1)"], { encoding: "utf8", env: pythonEnv(root) });
   return chk.status === 0;
+}
+
+/** Best available STT: Groq when GROQ_API_KEY is set, else local faster-whisper. */
+export function transcribeMedia(
+  media: string,
+  opts: { model?: string; language?: string; workDir?: string } = {},
+  root: string = hearRoot(),
+  secrets: Record<string, string | undefined> = process.env,
+): Transcript | null {
+  if (groqTranscribeAvailable(secrets)) {
+    const audio = mediaForGroq(media, opts.workDir ?? join(root, "out"));
+    return groqTranscribe(audio, secrets);
+  }
+  return localTranscribe(media, opts, root);
 }
 
 /** Transcribe a media file to timed segments using local faster-whisper. */

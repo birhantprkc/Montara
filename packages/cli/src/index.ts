@@ -16,6 +16,7 @@ import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene, s
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY, listSkills, findSkills } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
+import { runStartCommand } from "./start";
 import { buildStage1AuditReport, printStage1AuditReport } from "./stage1Audit";
 import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance, findPython as findEnginePython } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
@@ -23,7 +24,7 @@ import { threeAvailable, renderThreeScene } from "../../render-three/src/index";
 import { manimAvailable, renderManimScene } from "../../render-manim/src/index";
 import { exportTimeline, importTimeline, detectEditorFormat, type EditorFormat } from "../../bridge/src/index";
 import { brainCatalogue, brainComplete, ollamaInstalled, ollamaModelsSync, ollamaCompleteSync } from "../../llm/src/index";
-import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback, transcribeAvailable, localTranscribe, analyzeMusic, planSceneMappedMusic, speakerIntelligenceStatus, findDialogueByVoice } from "../../hear/src/index";
+import { voiceIdAvailable, voiceCompare, voiceVerify, qaPlayback, sttAvailable, transcribeMedia, analyzeMusic, planSceneMappedMusic, speakerIntelligenceStatus, findDialogueByVoice } from "../../hear/src/index";
 import {
   installRuntime,
   launchRuntime,
@@ -1932,12 +1933,13 @@ async function runReelCommand(rest: string[]): Promise<number> {
     };
   }
 
-  const localStt = transcribeAvailable();
+  const hasStt = sttAvailable();
   let captions: Caption[] = [];
   if (!noCaptions) {
-    if (localStt) {
-      console.log("transcribing (local faster-whisper)...");
-      const t = localTranscribe(input, { model: modelI >= 0 ? rest[modelI + 1] : "base" });
+    if (hasStt) {
+      const engine = process.env.GROQ_API_KEY ? "groq-whisper" : "faster-whisper";
+      console.log(`transcribing (${engine})...`);
+      const t = transcribeMedia(input, { model: modelI >= 0 ? rest[modelI + 1] : "base", workDir: join(process.cwd(), "out") });
       if (t) {
         captions = t.segments.map((s) => ({ startSec: s.start, endSec: s.end, text: s.text }));
         console.log(`  ${captions.length} caption cues (${t.language}, ${t.duration}s)`);
@@ -1945,7 +1947,7 @@ async function runReelCommand(rest: string[]): Promise<number> {
         console.log("  transcription failed; building reel without generated captions");
       }
     } else {
-      console.log("local STT unavailable (pip install faster-whisper); building reel without generated captions");
+      console.log("STT unavailable — set GROQ_API_KEY or pip install faster-whisper");
     }
   }
 
@@ -1960,7 +1962,7 @@ async function runReelCommand(rest: string[]): Promise<number> {
     ttsProviders: availableTtsProviders,
     musicProviders: availableMusicProviders,
     capabilities: {
-      localStt: localStt && !noCaptions,
+      localStt: hasStt && !noCaptions,
       voiceId: voiceIdAvailable(),
       aiHumanMask: pythonModuleAvailable("rembg"),
       localBrain: ollamaInstalled(),
@@ -2219,6 +2221,7 @@ function printHelp(): void {
   console.log(`montara <command>
 
 Commands:
+  start                           interactive studio welcome — pick create/edit, format, niche, then produce
   doctor [--fix]                  check local render prerequisites + Python engine; print setup guide with --fix
   status [--json] [--out path]     summarize local capability, gates, and upstream parity categories
   stage1-audit [--json] [--out path]
@@ -2292,6 +2295,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       return 0;
     }
 
+    if (command === "start") return runStartCommand(rest);
     if (command === "doctor") return runDoctor(rest);
     if (command === "status") return runStatusCommand(rest);
     if (command === "stage1-audit" || command === "stage1") return runStage1AuditCommand(rest);
@@ -2555,9 +2559,10 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
       let captions: Caption[] = [];
       if (!rest.includes("--no-captions")) {
-        if (transcribeAvailable()) {
-          console.log("transcribing (local faster-whisper)…");
-          const t = localTranscribe(input, { model: modelI >= 0 ? rest[modelI + 1] : "base" });
+        if (sttAvailable()) {
+          const engine = process.env.GROQ_API_KEY ? "groq-whisper" : "faster-whisper";
+          console.log(`transcribing (${engine})…`);
+          const t = transcribeMedia(input, { model: modelI >= 0 ? rest[modelI + 1] : "base", workDir: join(process.cwd(), "out") });
           if (t) { captions = t.segments.map((s) => ({ startSec: s.start, endSec: s.end, text: s.text })); console.log(`  ${captions.length} caption cues (${t.language}, ${t.duration}s)`); }
           else console.log("  transcription failed — building reel without captions");
         } else {

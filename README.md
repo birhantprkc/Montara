@@ -1,145 +1,357 @@
-# Montara
+<p align="center">
+  <img src="demos/posters/01-engine-matrix-poster.jpg" alt="Montara full engine matrix preview" width="920" />
+</p>
 
-Montara is an open, local-first video production system built around one editable
-Timeline IR. Agents, humans, CLIs, and future GUIs all work on the same JSON
-timeline, then render it to a real MP4 and, when needed, export it to editor
-formats such as EDL, OTIO, and FCPXML.
+<h1 align="center">Montara</h1>
 
-Montara's advantage is not a single renderer. It is the combination of:
+<p align="center">
+  <strong>Local-first video studio OS.</strong><br/>
+  One Timeline IR. Many renderers. Real MP4s. Honest provider and runtime gates.
+</p>
 
-- a strongly typed Timeline IR as the source of truth;
-- a Python tool registry for real-world media work and provider discovery;
-- local-first fallbacks that still produce watchable MP4s without API keys;
-- skill-guided agents that inspect sources before composing;
-- export bridges for professional editor handoff.
+<p align="center">
+  <a href="#quick-start">Quick Start</a> |
+  <a href="#what-montara-is">What It Is</a> |
+  <a href="#what-is-tested-today">Tested Today</a> |
+  <a href="#provider-surface">Providers</a> |
+  <a href="#roadmap">Roadmap</a> |
+  <a href="docs/ARCHITECTURE.md">Architecture</a>
+</p>
 
-## Current State
+---
 
-This repository is runnable, but not every premium runtime is equally mature.
-Montara should be honest with users and agents:
+Montara is an open, agent-ready video production system for making explainers,
+reels, software demos, documentaries, trailers, motion graphics, and eventually
+long-form films from one editable source of truth: the **Timeline IR**.
 
-| Area | Status |
+The idea is simple and very large:
+
+> Give creators and AI agents a local-first video engine that can plan, assemble,
+> render, QA, revise, and hand off video projects without locking the project
+> inside one cloud tool.
+
+Today Montara already renders real local MP4s, exports editor files, runs a
+Python media engine, verifies many provider request shapes, and ships public demo
+artifacts. The larger ambition is to scale the same IR and pipeline system from
+30-second shorts to 12-minute documentaries and hour-long films. That long-form
+ambition is a roadmap item, not a claim that every feature-length workflow is
+fully production-tested today.
+
+## What Montara Is
+
+Montara is built around a few hard choices:
+
+| Principle | What it means |
 | --- | --- |
-| Timeline IR | Real core model and render/export surface. This is the canonical format. |
-| FFmpeg render | Working universal fallback for assembly, encode, captions, audio, and MP4 output. |
-| Blender / Manim | Real external-process adapters when the corresponding tools are installed. |
-| Three.js | Registered and partially implemented through a headless browser path; still runtime-gated. |
-| Revideo / Motion Canvas | Adapter surfaces exist; Revideo fallback selection is license-aware, while native MP4 proofs still depend on the local toolchain. Validate before promising native output. |
-| Remotion | Native smoke and Timeline IR rendering are validate-gated when `remotion-composer` deps are installed; set `REMOTION_ENABLED=1` for `montara make/render` to prefer native Remotion. |
-| HyperFrames | Native strict kinetic-typography and character SVG-rig final MP4 proofs are validate-gated when `npx hyperframes` is available; broader pipeline parity is still in progress. |
-| Video understanding | `montara understand` produces scene/frame/audio-signal JSON by default; optional Transformers.js CLIP frame classification is available with `MONTARA_VISION_MODELS=1` or `--vision require`. BLIP/caption-model validation remains runtime-gated. |
-| Local LLM orchestration | The architecture supports local brains, but a fully shipped local orchestration loop is still being hardened. |
-| Screen recording | FFmpeg desktop capture, Cap pickup, deterministic capture-artifact pickup, and `montara capture` Playwright browser recording with user-login storageState. |
-| Cloud providers | Request builders exist for BYOK use; OpenAI/BFL/Google/Runway shapes are fixture-gated against current official docs. Keep them audited before live execution. |
-| Status reporting | `montara status --json --out out/montara-status.json` summarizes local capability, latest documented gates, and upstream parity categories. |
-| Stage 1 parity audit | `montara stage1-audit --json --out out/stage1-audit.json` proves Stage 1A-D from local bridge, pipeline, provider, and engine evidence. |
-| Local generation runtimes | `montara runtimes status` reports ComfyUI/A1111/Piper/Faster Whisper/Transformers.js health; `runtimes inventory` reports model/cache paths; plan/install/launch/write-env/write-script stay dry-run unless `--execute` is passed. |
+| **One Timeline IR** | Scene plans, edit decisions, imported editor cuts, and generated assets resolve into one JSON timeline. |
+| **Local-first** | With zero API keys, Montara still creates watchable MP4s using FFmpeg, caption cards, local/system voice paths, and deterministic fallbacks. |
+| **Provider-pluggable** | Cloud providers are BYOK. Montara builds and audits request specs, but live paid calls require explicit opt-in. |
+| **Renderer-honest** | FFmpeg is the universal floor. Remotion, HyperFrames, Blender, Three.js, Manim, Motion Canvas, Revideo, Playwright, and local model runtimes are used only when available. |
+| **Agent-ready** | Humans, Codex, Cursor, local models, or Montara's own orchestrator read the same `skills/`, operate through the same CLI, and leave verifiable artifacts. |
+| **Editor-friendly** | Renders can export EDL, OTIO, and FCPXML so work can continue in Premiere, Resolve, or Final Cut. |
+| **Documentary-grade honesty** | Claims, maps, music cues, transcript cut points, and source footage are treated as quality gates, not vibes. |
 
-For the detailed matrix, read [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) and
-[docs/MONTARA-PARITY.md](./docs/MONTARA-PARITY.md).
+## What It Can Aim To Make
+
+Montara is designed as a general video production substrate, not a single-format
+demo app.
+
+| Format | Current truth |
+| --- | --- |
+| Animated explainers | Tested through `montara make`, Timeline IR, FFmpeg/Remotion fallback, and validate MP4s. |
+| YouTube Shorts / Reels | Tested through reel helpers, vertical output profiles, transcript-bound cut gates, and demo artifacts. |
+| Documentary montage | Tested with offline fixture corpus and a 60-second open-stock proof. Live publication footage depends on source adapters and provenance review. |
+| Screen demos / product walkthroughs | Tested via capture artifact pickup and browser-capture CLI surfaces. Live Playwright recording is runtime-gated. |
+| Kinetic typography | HyperFrames strict smoke is validate-gated when runtime is present; Motion Canvas native proof remains runtime-gated. |
+| Character animation | SVG/GSAP rig to HyperFrames final MP4 is validate-gated when HyperFrames is present. |
+| 3D / math / cinematic scenes | Three.js, Blender, Manim, Revideo, Motion Canvas adapters exist; native proof quality varies by installed runtime. |
+| Long documentaries and movies | The IR, pipelines, corpus, provider, and runtime layers are designed for this. Full 12-minute/1-hour production workflows still need longer-form validation, shot continuity, asset budgeting, and heavier QA. |
 
 ## Quick Start
 
-```bash
-montara doctor
-montara status --out out/montara-status.json
-montara stage1-audit --out out/stage1-audit.json
-montara recommend explainer --open-license-only
-montara runtimes status --json --out out/runtimes-status.json
-montara runtimes inventory --json --out out/runtime-inventory.json
-montara runtimes plan comfyui
-montara providers live-audit --out out/provider-live-audit.json
-montara plan "Make a 45-second explainer about why the sky is blue"
-montara make "Make a 45-second explainer about why the sky is blue"
-montara make --brain "Make a local-first documentary cold open"
-montara render out/timeline.json      # writes MP4 + EDL/OTIO/FCPXML beside it
-montara analyze https://example.com/reference-video
-montara understand source.mp4 --vision auto --out out/source.understanding.json
-montara export out/timeline.json --to otio out/edit.otio
-montara project init client-demo --pipeline screen-demo
-montara capture --url https://example.com out/browser-capture.mp4
-montara capture pick-latest --recordings-dir out/captures --output out/screen-capture.mp4
-montara compose out/edit-decisions.json out/final.mp4 --assets out/asset-manifest.json
-montara corpus sources
-```
+Prerequisites:
 
-If the CLI is not linked globally, use `npm.cmd run montara -- <command>` on
-Windows or `npm run montara -- <command>` on macOS/Linux.
-
-## Demo Gallery
-
-Run this once to generate the zero-key local proof set:
+- Node.js 18+; Node 22+ recommended for some runtime tooling
+- `pnpm`
+- FFmpeg and ffprobe on `PATH`
+- Python 3.10+ for the Python media engine
 
 ```bash
-npm.cmd run validate
+git clone https://github.com/abhinavshrivastava950/Montara.git
+cd Montara
+pnpm install
+copy .env.example .env
+pnpm run montara doctor
+pnpm run montara start
 ```
 
-The validate harness writes real local artifacts under `out/`. These are the
-current reproducible demos to inspect before trusting a workflow:
+PowerShell-friendly commands:
 
-| Demo | Command | Output | Pipeline / runtime | Cost |
-| --- | --- | --- | --- | --- |
-| Timeline IR explainer | `npm.cmd run validate` | `out/validate-compose-core.mp4` + `out/validate-compose-core.timeline.json` | ScenePlan -> Timeline IR -> FFmpeg MP4 | `$0` |
-| Native Remotion smoke | `npm.cmd run validate` | `out/validate-remotion-native.mp4` when deps are installed | Remotion native spring/caption proof, otherwise honest skip | `$0` |
-| Native Remotion Timeline | `npm.cmd run validate` | `out/validate-remotion-timeline-native.mp4` when deps are installed | Timeline IR -> Remotion props -> native `Explainer` render with `REMOTION_ENABLED=1` | `$0` |
-| HyperFrames kinetic smoke | `npm.cmd run validate` | `out/validate-hyperframes/validate-hyperframes-kinetic.mp4` when runtime is available | `hyperframes_compose` strict lint/validate/render | `$0`, runtime-gated |
-| Character animation rig | `npm.cmd run validate` | `out/validate-character-animation/final.mp4` when runtime is available | SVG/GSAP character rig -> `video_compose` -> HyperFrames | `$0`, runtime-gated |
-| Python compose CLI | `npm.cmd run validate` | `out/validate-cli-video-compose.mp4` + `.render-report.json` | `montara compose` -> Python `video_compose` -> FFmpeg | `$0` |
-| Smart reel proof | `npm.cmd run validate` | `out/validate-smart-reel.mp4` | Source-aware reel planner + caption/end-card treatment | `$0` |
-| Stage 3 moat smokes | `npm.cmd run validate` | `out/stage-3-local-brain-smoke.mp4` + URL analysis JSON + `projects/stage3-workspace-smoke/project.json` | local-brain fallback, URL reference preflight, transcript/evidence gates, project workspace CLI | `$0` |
-| Provider live-readiness ledger | `npm.cmd run validate` | `out/validate-provider-live-audit.json` | `providers live-audit` sanitized no-key readiness report across cloud providers | `$0`; live smokes require BYOK opt-in |
-| Documentary corpus proof | `npm.cmd run validate` | `out/validate-documentary-montage.mp4` + `out/validate-documentary-corpus/` | `corpus seed-fixture` -> Python `clip_search` -> `video_compose` | `$0` |
-| 60s documentary open-stock proof | `npm.cmd run validate` | `out/validate-documentary-open-stock-60s.mp4` + `.selection.json` + `.asset-manifest.json` | `corpus seed-open-stock-proof` -> `clip_search.select_slots` -> `video_compose` | `$0` |
-| Screen-demo capture proof | `npm.cmd run validate` | `out/validate-screen-demo.mp4` + `out/validate-screen-demo-capture.mp4` | `capture pick-latest --recordings-dir` -> `video_compose` | `$0` |
-| Render auto handoff | `npm.cmd run montara -- render out/validate-compose-core.timeline.json out/validate-render-cli.mp4` | `out/validate-render-cli.mp4` + `.edl/.otio/.fcpxml` | One Timeline IR -> MP4 + editor bridge by default | `$0` |
-| Source understanding | `npm.cmd run montara -- understand out/validate-compose-core.mp4 --vision off --out out/validate-understanding.json --json` | `out/validate-understanding.json` | Model-aware understanding JSON with signalstats fallback; CLIP when opt-in runtime is installed | `$0` |
-| Runtime model inventory | `npm.cmd run montara -- runtimes inventory --json --out out/validate-runtime-inventory.json` | `out/validate-runtime-inventory.json` | External model/cache path inventory without scanning or downloading weights | `$0` |
-| Editor handoff | `npm.cmd run montara -- export out/validate-compose-core.timeline.json --to otio out/validate-compose-core.otio` | OTIO/EDL/FCPXML files on demand | Explicit one-format export for pro-editor handoff | `$0` |
-| Corpus/source discovery | `npm.cmd run montara -- corpus sources` | source-provider menu in stdout | Python `corpus_builder` discovery, no download required | `$0` |
-| Auth browser capture | `npm.cmd run montara -- capture login --url https://example.com` then `capture --url ...` | `out/browser-capture.mp4` | Playwright recording with user-owned storageState | `$0`, runtime-gated |
+```powershell
+pnpm run montara doctor
+pnpm run montara status --json --out out/montara-status.json
+pnpm run montara make --pipeline animated-explainer --seconds 20 "Explain Montara's Timeline IR"
+```
 
-For the public proof ledger, see [docs/DEMOS.md](./docs/DEMOS.md). For richer
-prompt coverage, see [PROMPT_GALLERY.md](./PROMPT_GALLERY.md). The gallery
-covers talking-head overlays, documentary evidence cuts, kinetic typography,
-browser demos behind login, editor handoff, and style-switch prompts.
+No API key is required for the basic local path. Add keys only for the providers
+you want to test.
 
-For repository work:
+## Studio Flow
+
+`montara start` is the beginner-facing entry point:
+
+```text
+Montara is started.
+What can I do for you today?
+
+  1. Create videos
+  2. Edit videos
+
+How would you like to make your video?
+  1. Instagram Reel
+  2. YouTube Short
+  3. YouTube video
+  4. Documentary
+  5. Animated explainer
+  6. Screen demo
+```
+
+Non-interactive example:
 
 ```bash
-pnpm verify
-pnpm validate
-pnpm typecheck
-python -m pytest tests
+pnpm run montara start --non-interactive create \
+  --kind documentary \
+  --niche geopolitics \
+  --topic "Why chokepoints still shape global trade" \
+  --seconds 60
 ```
 
-Latest local gate snapshot from the Stage 4 trust gap pass:
+## Public Demo Gallery
+
+The repo includes a tighter public demo set under `demos/`. These are the demos
+to show first. The old low-motion text-card clips were removed from the public
+gallery because they did not represent the ambition of the engine.
+
+| Demo | What it proves | API used for checked artifact | Preview |
+| --- | --- | --- | --- |
+| Full engine matrix | One polished chaptered video covering FFmpeg, Remotion, HyperFrames, Blender, Three.js, Manim, Revideo, Motion Canvas, and Playwright, with status labels for runtime-gated engines | none | [video](demos/01-engine-matrix.mp4) / [poster](demos/posters/01-engine-matrix-poster.jpg) |
+| Documentary studio proof | Remotion documentary UI, d3-geo map motion, source chips, cinematic evidence framing, and FFmpeg mux/probe/poster output | none | [video](demos/02-documentary-studio.mp4) / [poster](demos/posters/02-documentary-studio-poster.jpg) |
+
+<p align="center">
+  <img src="demos/posters/01-engine-matrix-poster.jpg" alt="Full engine matrix poster" width="760" />
+  <br/>
+  <img src="demos/posters/02-documentary-studio-poster.jpg" alt="Documentary studio poster" width="760" />
+</p>
+
+The engine matrix is deliberately honest: it demonstrates FFmpeg and Remotion as
+local render paths, and it shows HyperFrames, Blender, Three.js, Manim, Revideo,
+Motion Canvas, and Playwright with their actual shipped adapter/probe/runtime
+status. It does not fake a native Blender, Manim, Revideo, or Motion Canvas
+render when that runtime is not installed.
+
+Regenerate the public demos:
+
+```bash
+pnpm demos:generate
+```
+
+The generator uses only keys present in `.env`. It does not require paid
+voice/music APIs; `MONTARA_TTS_PROVIDER=system` is the default demo voice path.
+
+## What Is Tested Today
+
+Latest local gate snapshot from the current public-polish branch:
 
 | Gate | Result |
 | --- | --- |
-| `npm.cmd run typecheck` | passed |
-| `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
-| `npm.cmd run verify` | 324 passed, 0 failed |
-| `npm.cmd run validate` | 101 passed, 0 failed |
-| `python -m pytest tests` | 399 passed, 8 skipped |
+| `pnpm typecheck` | passed on this public-polish pass |
+| `pnpm verify` | 324 passed, 0 failed on this public-polish pass |
+| `pnpm validate` | 101 passed, 0 failed on this public-polish pass |
+| `pnpm run montara stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks on this public-polish pass |
+| `python -m pytest tests` | not rerun here because the available Python 3.13 interpreter does not have `pytest`; last recorded Stage 4 gate was 399 passed, 8 skipped |
 
-## Agent Entry Points
+These tests cover:
 
-- [AGENT_GUIDE.md](./AGENT_GUIDE.md) is the assistant-agnostic operating contract.
-- [skills/INDEX.md](./skills/INDEX.md) is the skill map.
-- [docs/DEMOS.md](./docs/DEMOS.md) is the checked-in demo gallery and artifact ledger.
-- [docs/LAUNCH-PLAN.md](./docs/LAUNCH-PLAN.md) turns the demo proofs into public YouTube/community launch assets without overclaiming runtimes.
-- [docs/PROVIDER-AUDIT.md](./docs/PROVIDER-AUDIT.md) records current cloud-provider request shapes and live-audit gaps.
-- [PROMPT_GALLERY.md](./PROMPT_GALLERY.md) contains prompts that exercise the real system without overclaiming runtimes.
-- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) explains what is solid, adapter-backed, or planned.
+- Timeline IR validation, editing operations, render paths, and editor bridge export/import
+- FFmpeg real MP4 rendering and post-render QA
+- Remotion native smoke when installed and FFmpeg fallback when not
+- HyperFrames kinetic and character-rig paths when available
+- provider request builders, redaction, dry-run/live-audit plumbing
+- local fallbacks for video/image/speech/music
+- corpus/search/compose workflows for documentary montage
+- Playwright/capture command surfaces and Python capture tests
+- documentary evidence gates and transcript-safe short cuts
 
-Agents should run the same loop every time: inspect sources, read the relevant
-skills, produce or update the Timeline IR, render, QA the MP4, and export editor
-formats when requested.
-Use `montara status --json --out out/montara-status.json` before broad parity
-claims, and `montara stage1-audit --json --out out/stage1-audit.json` before
-claiming Stage 1A-D complete.
+Not fully tested yet:
+
+- real live-key confirmation for every cloud provider
+- full feature-length movie workflows
+- installed-runtime native proofs for every renderer on every OS
+- BLIP/default local vision captioning beyond optional CLIP/signalstats paths
+- public SDK and GUI/WARCUT product surfaces
+
+## Provider Surface
+
+Montara exposes many provider paths, but it is careful about the word
+"supported":
+
+- **Verified offline:** request shape, redaction, fallback behavior, and dry-run
+  ledger are tested.
+- **Live confirmed:** a real key was used recently and a sanitized artifact was
+  recorded.
+- **Runtime-gated:** it works only if you installed the local runtime or model.
+- **Planned:** the architecture has a slot, but it should not be sold as shipped.
+
+Current registry surface:
+
+| Category | Providers / runtimes | Current truth |
+| --- | --- | --- |
+| Video cloud | Kling, Runway Gen-4.5, Google Veo 3.1, xAI Grok Video, Higgsfield, MiniMax, HeyGen | request builders + sanitized fixtures; real-key confirmations still BYOK follow-up |
+| Video local | WAN, Hunyuan, CogVideo, LTX via ComfyUI | runtime manager and request surface; actual quality depends on local GPU/models |
+| Stock video | Pexels, Pixabay, Wikimedia | Pexels/Pixabay key paths; Wikimedia keyless network opt-in |
+| Image cloud | BFL FLUX.2, Google Gemini image, xAI Grok image, OpenAI Images, Recraft | request builders + sanitized fixtures; live confirmation per key |
+| Image local/stock | Stable Diffusion via ComfyUI/A1111, Manim frames, Pexels, Pixabay, Unsplash | runtime/stock gated |
+| TTS | system voice, Piper, ElevenLabs, Google TTS, OpenAI TTS, Doubao Speech in Python tools | system/local fallbacks tested; cloud request builders and tools require keys |
+| Music/SFX | tone-score fallback, Suno, ElevenLabs Music, ElevenLabs SFX | fallback tested; cloud paths BYOK/live-audit gated |
+| STT/captions | Groq Whisper when key exists, faster-whisper when installed | Groq path is implemented; local faster-whisper remains runtime-gated |
+
+Before spending money, run:
+
+```bash
+pnpm run montara providers audit --out out/provider-audit-fixtures.json
+pnpm run montara providers live-audit --out out/provider-live-audit.json
+pnpm run montara providers smoke flux --category image --json
+```
+
+Live calls require:
+
+```bash
+MONTARA_LIVE_PROVIDER_SMOKE=1
+```
+
+plus the provider key and `--live`.
+
+## Environment
+
+Copy `.env.example` to `.env`. The example file intentionally lists more than
+the demo minimum so a founder, evaluator, or agent can see the provider surface.
+Empty values are safe; Montara falls back locally when keys are absent.
+
+Never commit `.env`, auth state files, model weights, customer media, or private
+generated outputs.
+
+## Core Commands
+
+```bash
+pnpm run montara doctor
+pnpm run montara status --json --out out/montara-status.json
+pnpm run montara stage1-audit --json --out out/stage1-audit.json
+pnpm run montara start
+pnpm run montara plan "Make a 45-second explainer about why the sky is blue"
+pnpm run montara make --brain --seconds 20 "Make a local-first documentary cold open"
+pnpm run montara render out/timeline.json
+pnpm run montara import out/edit.fcpxml
+pnpm run montara export out/timeline.json --to otio out/edit.otio
+pnpm run montara analyze https://example.com/reference-video
+pnpm run montara understand source.mp4 --vision auto
+pnpm run montara reel source.mp4 out/short.mp4 --style cinematic
+pnpm run montara capture login --url https://example.com
+pnpm run montara capture --url https://example.com out/browser-capture.mp4
+pnpm run montara corpus sources
+pnpm run montara runtimes status --json --out out/runtimes-status.json
+pnpm run montara providers live-audit --out out/provider-live-audit.json
+```
+
+## Engines And Runtimes
+
+| Engine/runtime | Role | Current status |
+| --- | --- | --- |
+| FFmpeg | universal assembly, encode, probe, audio, thumbnails, shorts | working local floor |
+| Remotion | React motion graphics, explainer/documentary compositions | native smoke validate-gated when composer deps installed; `REMOTION_ENABLED=1` opts in |
+| HyperFrames | HTML/CSS/GSAP kinetic typography and character SVG rigs | validate-gated when `npx hyperframes` resolves |
+| Blender | external 3D rendering | adapter exists; native runtime-gated |
+| Three.js | headless/WebGL 3D proofs | adapter exists; runtime-gated/fallback path |
+| Manim | math/diagram animation | adapter exists; runtime-gated |
+| Revideo | MIT composition fallback target | selector/probe exists; installed MP4 proof pending |
+| Motion Canvas | kinetic typography target | adapter/probe exists; installed MP4 proof pending |
+| Playwright | browser capture, login storageState | CLI and tests exist; live browser runtime-gated |
+| ComfyUI / A1111 | local image/video model servers | external runtime manager, dry-run install/launch guidance |
+| Piper / faster-whisper / Transformers.js | local TTS, STT, CLIP-style vision | runtime inventory and optional paths |
+
+Montara never vendors model weights. Keep runtimes, caches, and model licenses
+outside the repository.
+
+## Architecture
+
+```text
+idea/source/reference
+  -> research / understand / hear
+  -> pipeline skills
+  -> ScenePlan / edit decisions
+  -> Timeline IR
+  -> renderer adapter
+  -> MP4 + QA + self-review
+  -> optional EDL / OTIO / FCPXML
+```
+
+The Python engine at repo root (`tools/`, `lib/`, `pipeline_defs/`, `schemas/`)
+is driven through `engine_bridge.py` and the TypeScript CLI. The TypeScript side
+owns the IR, provider registry, render adapters, gates, and public command
+surface.
+
+## Roadmap
+
+What is already solid:
+
+- Timeline IR core
+- FFmpeg render floor
+- editor export/import
+- Stage 1 parity audit
+- provider request fixtures and live-readiness ledger
+- public demo gallery
+- documentary evidence gates
+- local-brain fallback path for `montara make --brain`
+
+What still needs hardening:
+
+- real BYOK live smokes for the long-tail cloud providers
+- Motion Canvas and Revideo installed-runtime MP4 proofs
+- full cached local CLIP/BLIP vision validation
+- longer documentary/film-scale workflows with continuity and budget QA
+- public SDK
+- `montara serve` web GUI
+- WARCUT desktop GUI on the same IR
+
+## Repository Hygiene
+
+Tracked on purpose:
+
+- source code, skills, docs, schemas, tests
+- public demo MP4s/posters in `demos/`
+- demo manifest and reproducible generator script
+
+Ignored on purpose:
+
+- `.env`, auth state, service-account files, API tokens
+- `out/`, `projects/`, scratch outputs, private generated media
+- model weights, ONNX/GGUF files, runtime caches
+- demo scratch workspace `demos/.work/` and demo generation logs
+
+## Important Docs
+
+- [PLAN.md](PLAN.md): master build plan and staged roadmap
+- [AGENT_GUIDE.md](AGENT_GUIDE.md): operating contract for assistants
+- [docs/CAPABILITY-SNAPSHOT.md](docs/CAPABILITY-SNAPSHOT.md): what works now
+- [docs/MONTARA-PARITY.md](docs/MONTARA-PARITY.md): parity/moat checklist
+- [docs/PROVIDER-AUDIT.md](docs/PROVIDER-AUDIT.md): provider fixture and live-smoke policy
+- [docs/DEMOS.md](docs/DEMOS.md): proof ledger
+- [PROMPT_GALLERY.md](PROMPT_GALLERY.md): prompts that exercise real paths
+- [docs/PORTING-PROVENANCE.md](docs/PORTING-PROVENANCE.md): provenance and attribution record
 
 ## License
 
-Montara is AGPL-3.0 and open by design. Do not commit secrets, generated private
-media, or third-party model weights.
+Montara is AGPL-3.0. See [LICENSE](LICENSE), [NOTICE](NOTICE), and
+[docs/ATTRIBUTION.md](docs/ATTRIBUTION.md).
+
+Do not commit secrets, private customer media, third-party model weights, or
+provider outputs whose license does not allow public redistribution.

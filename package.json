@@ -8,6 +8,7 @@
     "verify": "esbuild scripts/verify.ts --bundle --platform=node --format=esm --outfile=scripts/.verify.mjs && node scripts/.verify.mjs",
     "doctor": "esbuild scripts/doctor.ts --bundle --platform=node --format=esm --outfile=scripts/.doctor.mjs && node scripts/.doctor.mjs",
     "validate": "esbuild scripts/validate.ts --bundle --platform=node --format=esm --outfile=scripts/.validate.mjs && node scripts/.validate.mjs",
+    "demos:generate": "node scripts/generate-github-demos.mjs",
     "typecheck": "tsc -b",
     "pytest": "python -m pytest tests"
   },

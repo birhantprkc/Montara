@@ -36,6 +36,20 @@ declare module "node:child_process" {
   export function spawnSync(command: string, args?: string[], options?: Record<string, unknown>): SpawnSyncResult;
 }
 
+declare module "node:process" {
+  export const stdin: unknown;
+  export const stdout: unknown;
+}
+
+declare module "node:readline/promises" {
+  export interface Interface {
+    question(prompt: string): Promise<string>;
+    close(): void;
+  }
+
+  export function createInterface(options: { input: unknown; output: unknown }): Interface;
+}
+
 declare module "node:buffer" {
   export class Buffer extends Uint8Array {
     static alloc(size: number): Buffer;

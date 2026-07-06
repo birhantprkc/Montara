@@ -73,6 +73,8 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/bridge: {}
+
   packages/cli:
     dependencies:
       '@montara/agent':
@@ -114,9 +116,48 @@ importers:
 
   packages/core: {}
 
+  packages/documentary-studio:
+    dependencies:
+      '@remotion/google-fonts':
+        specifier: 4.0.441
+        version: 4.0.441(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      d3-geo:
+        specifier: ^3.1.1
+        version: 3.1.1
+      react:
+        specifier: 18.2.0
+        version: 18.2.0
+      react-dom:
+        specifier: 18.2.0
+        version: 18.2.0(react@18.2.0)
+      remotion:
+        specifier: 4.0.441
+        version: 4.0.441(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      topojson-client:
+        specifier: ^3.1.0
+        version: 3.1.0
+      world-atlas:
+        specifier: ^2.0.2
+        version: 2.0.2
+    devDependencies:
+      '@types/d3-geo':
+        specifier: ^3.1.0
+        version: 3.1.0
+      '@types/react':
+        specifier: ^18.2.0
+        version: 18.3.31
+      '@types/topojson-client':
+        specifier: ^3.1.5
+        version: 3.1.5
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   packages/engine: {}
 
   packages/hear: {}
+
+  packages/llm: {}
 
   packages/providers:
     dependencies:
@@ -156,6 +197,10 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/render-manim: {}
+
+  packages/render-motioncanvas: {}
+
   packages/render-remotion:
     dependencies:
       '@montara/core':
@@ -164,6 +209,10 @@ importers:
       '@montara/render-ffmpeg':
         specifier: workspace:*
         version: link:../render-ffmpeg
+
+  packages/render-revideo: {}
+
+  packages/render-three: {}
 
   packages/research:
     dependencies:
@@ -339,18 +388,89 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@remotion/google-fonts@4.0.441':
+    resolution: {integrity: sha512-io8HCdm+38g7QrbCs9Jww608HRBJpwv9Fy5T+9Itzt1QNSiKVHHZs/PrRoP/6Ljqn5XGLTI2QrDblUXTbDLytQ==}
+
+  '@types/d3-geo@3.1.0':
+    resolution: {integrity: sha512-856sckF0oP/diXtS4jNsiQw/UuK5fQG8l/a9VVLeSouf1/PPbBE1i1W852zVwKwYCBkFJJB7nCFTbk6UMEXBOQ==}
+
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
+  '@types/prop-types@15.7.15':
+    resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
+
+  '@types/react@18.3.31':
+    resolution: {integrity: sha512-vfEqpXTvwT91yhmwdfouStN2hSKwTvyRs8qpLfADyrq/kxDw0hZM7Wk9Ug1FELj8hIby+S/+kQCSRFF32nv2Qw==}
+
+  '@types/topojson-client@3.1.5':
+    resolution: {integrity: sha512-C79rySTyPxnQNNguTZNI1Ct4D7IXgvyAs3p9HPecnl6mNrJ5+UhvGNYcZfpROYV2lMHI48kJPxwR+F9C6c7nmw==}
+
+  '@types/topojson-specification@1.0.5':
+    resolution: {integrity: sha512-C7KvcQh+C2nr6Y2Ub4YfgvWvWCgP2nOQMtfhlnwsRL4pYmmwzBS7HclGiS87eQfDOU/DLQpX6GEscviaz4yLIQ==}
+
+  commander@2.20.3:
+    resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
+
+  csstype@3.2.3:
+    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  d3-array@3.2.4:
+    resolution: {integrity: sha512-tdQAmyA18i4J7wprpYq8ClcxZy3SC31QMeByyCFyRt7BVHdREQZ5lpzoe5mFEYZUWe+oq8HBvk9JjpibyEV4Jg==}
+    engines: {node: '>=12'}
+
+  d3-geo@3.1.1:
+    resolution: {integrity: sha512-637ln3gXKXOwhalDzinUgY83KzNWZRKbYubaG+fGVuc/dxO64RRljtCTnf5ecMyE1RIdtqpkVcq0IbtU2S8j2Q==}
+    engines: {node: '>=12'}
+
   esbuild@0.24.2:
     resolution: {integrity: sha512-+9egpBW8I3CD5XPe0n6BfT5fxLzxrlDzqydF3aviG+9ni1lDC/OvMHcxqEFV0+LANZG5R1bFMWfUrjVsdwxJvA==}
     engines: {node: '>=18'}
     hasBin: true
 
+  internmap@2.0.3:
+    resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
+    engines: {node: '>=12'}
+
+  js-tokens@4.0.0:
+    resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
+
+  loose-envify@1.4.0:
+    resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
+    hasBin: true
+
+  react-dom@18.2.0:
+    resolution: {integrity: sha512-6IMTriUmvsjHUjNtEDudZfuDQUoWXVxKHhlEGSk81n4YFS+r/Kl99wXiwlVXtPBtJenozv2P+hxDsw9eA7Xo6g==}
+    peerDependencies:
+      react: ^18.2.0
+
+  react@18.2.0:
+    resolution: {integrity: sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==}
+    engines: {node: '>=0.10.0'}
+
+  remotion@4.0.441:
+    resolution: {integrity: sha512-m0010sJn8KpW4mEB7aq0CKSNnw048w5cG/uvT9AqGNMfERjXyE+uLBaX769tP/lJ0pNfUWGii/iQMkd5pHZC3A==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  scheduler@0.23.2:
+    resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
+
   three@0.185.0:
     resolution: {integrity: sha512-+yRrcRO2iZa8uzvNNl0d7cL4huhgKgBvVJ0njcTe8xFqZ6DMAFZdCKDP91SEAuj25bNAj7k1QQdf+srZywVK6w==}
+
+  topojson-client@3.1.0:
+    resolution: {integrity: sha512-605uxS6bcYxGXw9qi62XyrV6Q3xwbndjachmNxu8HWTtVPxZfEJN9fd/SZS1Q54Sn2y0TMyMxFj/cJINqGHrKw==}
+    hasBin: true
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
+
+  world-atlas@2.0.2:
+    resolution: {integrity: sha512-IXfV0qwlKXpckz1FhwXVwKRjiIhOnWttOskm5CtxMsjgE/MXAYRHWJqgXOpM8IkcPBoXnyTU5lFHcYa5ChG0LQ==}
 
 snapshots:
 
@@ -429,6 +549,47 @@ snapshots:
   '@esbuild/win32-x64@0.24.2':
     optional: true
 
+  '@remotion/google-fonts@4.0.441(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+    dependencies:
+      remotion: 4.0.441(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+    transitivePeerDependencies:
+      - react
+      - react-dom
+
+  '@types/d3-geo@3.1.0':
+    dependencies:
+      '@types/geojson': 7946.0.16
+
+  '@types/geojson@7946.0.16': {}
+
+  '@types/prop-types@15.7.15': {}
+
+  '@types/react@18.3.31':
+    dependencies:
+      '@types/prop-types': 15.7.15
+      csstype: 3.2.3
+
+  '@types/topojson-client@3.1.5':
+    dependencies:
+      '@types/geojson': 7946.0.16
+      '@types/topojson-specification': 1.0.5
+
+  '@types/topojson-specification@1.0.5':
+    dependencies:
+      '@types/geojson': 7946.0.16
+
+  commander@2.20.3: {}
+
+  csstype@3.2.3: {}
+
+  d3-array@3.2.4:
+    dependencies:
+      internmap: 2.0.3
+
+  d3-geo@3.1.1:
+    dependencies:
+      d3-array: 3.2.4
+
   esbuild@0.24.2:
     optionalDependencies:
       '@esbuild/aix-ppc64': 0.24.2
@@ -457,6 +618,39 @@ snapshots:
       '@esbuild/win32-ia32': 0.24.2
       '@esbuild/win32-x64': 0.24.2
 
+  internmap@2.0.3: {}
+
+  js-tokens@4.0.0: {}
+
+  loose-envify@1.4.0:
+    dependencies:
+      js-tokens: 4.0.0
+
+  react-dom@18.2.0(react@18.2.0):
+    dependencies:
+      loose-envify: 1.4.0
+      react: 18.2.0
+      scheduler: 0.23.2
+
+  react@18.2.0:
+    dependencies:
+      loose-envify: 1.4.0
+
+  remotion@4.0.441(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0(react@18.2.0)
+
+  scheduler@0.23.2:
+    dependencies:
+      loose-envify: 1.4.0
+
   three@0.185.0: {}
 
+  topojson-client@3.1.0:
+    dependencies:
+      commander: 2.20.3
+
   typescript@5.9.3: {}
+
+  world-atlas@2.0.2: {}

@@ -121,7 +121,9 @@ export class TTSSelector extends BaseTool {
     candidates: BaseTool[],
     taskContext: Record<string, unknown>,
   ): { tool: BaseTool | null; score: ProviderScore | null } {
-    const preferred = typeof inputs.preferred_provider === "string" ? inputs.preferred_provider : "auto";
+    let preferred = typeof inputs.preferred_provider === "string" ? inputs.preferred_provider : "auto";
+    const envVoice = process.env.MONTARA_TTS_PROVIDER?.trim();
+    if (envVoice && envVoice !== "auto") preferred = envVoice;
     const allowed = new Set(Array.isArray(inputs.allowed_providers) ? inputs.allowed_providers.map((p) => String(p)) : []);
     let pool = candidates;
     if (allowed.size) pool = pool.filter((t) => allowed.has(t.provider));

@@ -2,28 +2,30 @@
 
 This gallery is the public proof set for Montara's local-first video system.
 Every entry names the prompt, pipeline, tools, runtime, cost, and artifact to
-inspect. The checked-in assets are Montara-owned generated media and can be
-regenerated with `scripts/render-demo-assets.ts`.
+inspect. The checked-in demo videos live under `demos/` and can be regenerated
+with `pnpm demos:generate` or `node scripts/generate-github-demos.mjs`.
 
-## Checked-In Assets
+## Checked-In Public Demos
 
 | Demo | Prompt / brief | Pipeline | Tools and runtime | Cost | Artifact |
 | --- | --- | --- | --- | --- | --- |
-| Montara showcase | "Explain Montara's one Timeline IR and local fallback story in a compact capability reel." | animated-explainer | `renderScenePlan` -> FFmpeg native MP4 | `$0` | `assets/montara-showcase.mp4` |
-| Showcase poster | "Create a poster frame for the Montara showcase clip." | publish asset | FFmpeg frame extraction | `$0` | `assets/showcase.jpg` |
-| Three.js engine proof | "Reserve a 3D engine slot and render a proof even when native WebGL capture is unavailable." | animation / 3D | render-engine selector; current artifact uses `degraded-ffmpeg` fallback | `$0` | `assets/montara-threejs-proof.mp4` |
-| Manim engine proof | "Reserve a math-animation slot and render a proof even when Manim is not installed." | animation / math | render-engine selector; current artifact uses `degraded-ffmpeg` fallback | `$0` | `assets/montara-manim-proof.mp4` |
-| Blender engine proof | "Render a Montara 3D title when Blender is installed." | 3D title | Blender external adapter; current artifact records native/fallback status in manifest | `$0` | `assets/montara-blender-proof.mp4` |
-| Social preview | "Make a share card that says Timeline IR, Python engine, any assistant." | publish asset | local FFmpeg still-card generation | `$0` | `assets/social_preview.png` |
+| Full engine matrix | "Show every shipped Montara render/capture surface honestly in one founder-grade demo." | Remotion engine matrix -> FFmpeg mux/probe/poster | Remotion native local composition; FFmpeg mux/poster/probe; Windows system TTS when available | `$0` | `demos/01-engine-matrix.mp4` + `demos/posters/01-engine-matrix-poster.jpg` |
+| Documentary studio proof | "Show the documentary UI layer with map motion, source framing, and niche-ready positioning." | Remotion documentary-studio composition -> FFmpeg mux/probe/poster | Remotion, d3-geo, FFmpeg; Windows system TTS when available | `$0` | `demos/02-documentary-studio.mp4` + `demos/posters/02-documentary-studio-poster.jpg` |
 
-Asset metadata lives in `assets/montara-assets.json`.
+The engine matrix covers FFmpeg, Remotion, HyperFrames, Blender, Three.js,
+Manim, Revideo, Motion Canvas, and Playwright. It is deliberately honest:
+FFmpeg and Remotion are demonstrated as local render/mux paths; runtime-gated
+engines are shown with their adapter/probe status instead of being mislabelled as
+native renders.
+
+Demo metadata lives in `demos/manifest.json`.
 
 ## Validate-Generated Proofs
 
 Run:
 
 ```bash
-npm.cmd run validate
+pnpm validate
 ```
 
 Then inspect:
@@ -46,15 +48,14 @@ Then inspect:
 | Editor handoff | "Export the same Timeline IR to a pro-editor format." | handoff | `montara export <timeline.json> --to otio|edl|fcpxml` | `$0` | generated on demand |
 | Corpus discovery | "Show available stock/corpus sources without downloading media." | documentary preflight | `montara corpus sources` -> Python `corpus_builder.get_info()` | `$0` | stdout JSON/table |
 
-## Regenerate Checked-In Demo Assets
+## Regenerate Checked-In Public Demos
 
-```powershell
-node .\node_modules\esbuild\bin\esbuild scripts\render-demo-assets.ts --bundle --platform=node --format=esm --outfile=scripts\.render-demo-assets.mjs
-node scripts\.render-demo-assets.mjs
+```bash
+pnpm demos:generate
 ```
 
-If a native runtime is missing, the generator records the fallback renderer in
-`assets/montara-assets.json` instead of pretending native output was produced.
+The generator does not make paid API calls. If system TTS is unavailable, it
+keeps the video playable by muxing a silent AAC track.
 
 ## Prompt Coverage
 

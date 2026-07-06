@@ -1,14 +1,26 @@
 node_modules/
+.pnpm-store/
 dist/
 *.tsbuildinfo
 .env
 .env.*
+!.env.example
 
 # downloaded GGUF / ONNX weights - never commit
 models/
 
 # generated outputs / caches
 out/
+!demos/
+!demos/*.mp4
+!demos/manifest.json
+!demos/posters/
+!demos/posters/**
+demos/.work/
+demos/assets/
+demos/*.log
+demos/*-log.txt
+demos/*-err.txt
 .montara-cache/
 .python-packages/
 .pytest-deps/

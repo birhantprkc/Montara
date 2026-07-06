@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-07-06T21:28:55.427Z",
+  "generator": "scripts/generate-github-demos.mjs",
+  "apisUsed": [],
+  "audio": {
+    "preference": "system TTS when available, silent AAC fallback otherwise",
+    "provider": "Windows System.Speech"
+  },
+  "demos": [
+    {
+      "id": "01-engine-matrix",
+      "title": "Full engine matrix",
+      "video": "demos/01-engine-matrix.mp4",
+      "renderer": "Remotion visual composition + FFmpeg mux/probe/poster",
+      "voice": "system",
+      "technologies": [
+        "FFmpeg",
+        "Remotion",
+        "HyperFrames",
+        "Blender",
+        "Three.js",
+        "Manim",
+        "Revideo",
+        "Motion Canvas",
+        "Playwright"
+      ],
+      "truth": [
+        "FFmpeg and Remotion are demonstrated as local render/mux paths",
+        "HyperFrames, Blender, Three.js, Manim, Revideo, Motion Canvas, and Playwright are shown with their shipped adapter/probe/runtime-gated status"
+      ],
+      "poster": "demos/posters/01-engine-matrix-poster.jpg",
+      "durationSec": 63.1,
+      "videoProbe": "h264,1920,1080"
+    },
+    {
+      "id": "02-documentary-studio",
+      "title": "Documentary studio proof",
+      "video": "demos/02-documentary-studio.mp4",
+      "renderer": "Remotion documentary-studio composition + FFmpeg mux/probe/poster",
+      "voice": "system",
+      "technologies": [
+        "Remotion",
+        "d3-geo",
+        "Timeline IR style system",
+        "FFmpeg"
+      ],
+      "truth": [
+        "Local polished visual proof for documentary openings and map-driven scenes",
+        "Long-form documentary and one-hour film workflows remain roadmap validation work"
+      ],
+      "poster": "demos/posters/02-documentary-studio-poster.jpg",
+      "durationSec": 22.1,
+      "videoProbe": "h264,1920,1080"
+    }
+  ]
+}
