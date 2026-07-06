@@ -43,7 +43,7 @@ export function renderViaEngineComposer(name: string, outPath: string, root: str
   if (!engineRemotionAvailable(root)) {
     return { ok: false, path: null, engine: "remotion", fellBack: false, error: "remotion composer not installed" };
   }
-  const r = spawnSync(py, [join(root, "render_demo.py"), name], { cwd: root, encoding: "utf8" });
+  const r = spawnSync(py, [join(root, "scripts", "render_demo.py"), name], { cwd: root, encoding: "utf8" });
   const produced = join(root, "projects", "demos", "renders", `${name}.mp4`);
   if (r.status !== 0 || !existsSync(produced)) {
     return { ok: false, path: null, engine: "remotion", fellBack: false, error: (r.stderr || "engine render failed").slice(0, 200) };

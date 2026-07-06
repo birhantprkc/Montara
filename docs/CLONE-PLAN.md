@@ -8,7 +8,7 @@ only when a verified replacement is better.
 
 - Python engine mirror: root-level `tools/`, `lib/`, `skills/`, `pipeline_defs/`, and `schemas/`
 - Montara planning contract: `PLAN.md`
-- Branding/provenance contract: `BRANDING-PROVENANCE-PLAN.md`
+- Branding/provenance contract: `docs/BRANDING-PROVENANCE-PLAN.md`
 - Provenance record: `docs/PORTING-PROVENANCE.md`
 - Parity tracker: `docs/MONTARA-PARITY.md`
 

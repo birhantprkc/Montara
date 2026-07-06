@@ -54,7 +54,7 @@ Publish these together:
 
 - `README.md`: quick start, state table, demo gallery, latest gates.
 - `docs/DEMOS.md`: proof ledger with prompt, pipeline, runtime, cost, artifact.
-- `PROMPT_GALLERY.md`: copy-paste prompts for users and assistants.
+- `docs/PROMPT_GALLERY.md`: copy-paste prompts for users and assistants.
 - `docs/CAPABILITY-SNAPSHOT.md`: current truth by subsystem.
 - `docs/PROVIDER-AUDIT.md`: cloud fixture/live status.
 - `AGENT_GUIDE.md`: how external assistants should operate Montara.
@@ -92,7 +92,7 @@ Before publishing a launch post or video:
   readiness, a recent live BYOK smoke record.
 - Demo artifacts are generated from public, synthetic, or licensed media.
 - Runtime caveats are visible in the post, not buried in a later issue.
-- The linked prompt lives in `PROMPT_GALLERY.md` or `docs/DEMOS.md`.
+- The linked prompt lives in `docs/PROMPT_GALLERY.md` or `docs/DEMOS.md`.
 
 ## Community Issues To Open
 

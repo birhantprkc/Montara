@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="demos/posters/01-engine-matrix-poster.jpg" alt="Montara full engine matrix preview" width="920" />
+  <video src="demos/01-engine-matrix.mp4" poster="demos/posters/01-engine-matrix-poster.jpg" controls muted width="920"></video>
+  <br/>
+  <a href="demos/01-engine-matrix.mp4">Watch the full engine matrix demo</a>
 </p>
 
 <h1 align="center">Montara</h1>
@@ -14,6 +16,7 @@
   <a href="#what-montara-is">What It Is</a> |
   <a href="#what-is-tested-today">Tested Today</a> |
   <a href="#provider-surface">Providers</a> |
+  <a href="#repository-layout">Layout</a> |
   <a href="#roadmap">Roadmap</a> |
   <a href="docs/ARCHITECTURE.md">Architecture</a>
 </p>
@@ -138,6 +141,8 @@ gallery because they did not represent the ambition of the engine.
 | Documentary studio proof | Remotion documentary UI, d3-geo map motion, source chips, cinematic evidence framing, and FFmpeg mux/probe/poster output | none | [video](demos/02-documentary-studio.mp4) / [poster](demos/posters/02-documentary-studio-poster.jpg) |
 
 <p align="center">
+  <video src="demos/01-engine-matrix.mp4" poster="demos/posters/01-engine-matrix-poster.jpg" controls muted width="760"></video>
+  <br/>
   <img src="demos/posters/01-engine-matrix-poster.jpg" alt="Full engine matrix poster" width="760" />
   <br/>
   <img src="demos/posters/02-documentary-studio-poster.jpg" alt="Documentary studio poster" width="760" />
@@ -299,6 +304,22 @@ is driven through `engine_bridge.py` and the TypeScript CLI. The TypeScript side
 owns the IR, provider registry, render adapters, gates, and public command
 surface.
 
+## Repository Layout
+
+The root stays intentionally small. Runtime-critical entrypoints remain at the
+top level, while reference docs and helper scripts live under their own folders.
+
+| Path | What belongs there |
+| --- | --- |
+| `README.md`, `PLAN.md`, `AGENTS.md`, `AGENT_GUIDE.md` | first-read project and agent contracts |
+| `packages/` | TypeScript workspaces: CLI, IR, renderers, providers, quality gates |
+| `tools/`, `lib/`, `schemas/`, `pipeline_defs/`, `skills/` | Python media engine and shared skill layer; kept at root for bridge compatibility |
+| `remotion-composer/` | native Remotion composition project and demo compositions |
+| `scripts/` | verification, validation, demo generation, and legacy demo render helpers |
+| `docs/` | architecture, provider docs, prompt gallery, provenance, launch notes |
+| `demos/` | checked-in public MP4s, posters, and demo manifest only |
+| `out/`, `projects/`, `.python-packages/`, `.pnpm-store/` | local generated/runtime state; ignored |
+
 ## Roadmap
 
 What is already solid:
@@ -345,8 +366,24 @@ Ignored on purpose:
 - [docs/MONTARA-PARITY.md](docs/MONTARA-PARITY.md): parity/moat checklist
 - [docs/PROVIDER-AUDIT.md](docs/PROVIDER-AUDIT.md): provider fixture and live-smoke policy
 - [docs/DEMOS.md](docs/DEMOS.md): proof ledger
-- [PROMPT_GALLERY.md](PROMPT_GALLERY.md): prompts that exercise real paths
+- [docs/PROMPT_GALLERY.md](docs/PROMPT_GALLERY.md): prompts that exercise real paths
+- [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md): architecture conventions
 - [docs/PORTING-PROVENANCE.md](docs/PORTING-PROVENANCE.md): provenance and attribution record
+
+## Provenance
+
+Montara is primarily inspired by and partially derived from
+`calesthio/OpenMontage` (AGPL-3.0), tracked in [NOTICE](NOTICE) and
+[docs/PORTING-PROVENANCE.md](docs/PORTING-PROVENANCE.md). The Montara-specific
+Timeline IR, TypeScript CLI/workspaces, runtime gates, provider audit layer,
+and public demo packaging are Montara / Warfront AI work unless a file says
+otherwise.
+
+Other projects named in this repo, including FFmpeg, Remotion, HyperFrames,
+Revideo, Motion Canvas, Three.js, Manim, Blender, ComfyUI, A1111, Piper,
+faster-whisper, and Transformers.js, are external tools or runtimes that
+Montara invokes or integrates with. See [docs/ATTRIBUTION.md](docs/ATTRIBUTION.md)
+for the attribution table.
 
 ## License
 

@@ -500,7 +500,7 @@ function buildMontaraStatusReport(): MontaraStatusReport {
   const python = engineReady();
   const brainBackends = brainCatalogue();
   const vision = visionModelStatus();
-  const docsReady = ["README.md", "AGENT_GUIDE.md", "docs/DEMOS.md", "PROMPT_GALLERY.md", "docs/LAUNCH-PLAN.md"].every(docExists);
+  const docsReady = ["README.md", "AGENT_GUIDE.md", "docs/DEMOS.md", "docs/PROMPT_GALLERY.md", "docs/LAUNCH-PLAN.md"].every(docExists);
   const providerAuditReady = buildProviderAuditReport().invalid === 0;
   const ffmpeg = engines.find((engine) => engine.id === "ffmpeg");
   const remotion = engines.find((engine) => engine.id === "remotion");

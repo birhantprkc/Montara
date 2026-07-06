@@ -412,7 +412,7 @@ A phase is **not done** unless:
 - ☑ `docs/PORTING-PROVENANCE.md`  
 - ☑ `docs/ATTRIBUTION.md`  
 
-See [BRANDING-PROVENANCE-PLAN.md](./BRANDING-PROVENANCE-PLAN.md).
+See [BRANDING-PROVENANCE-PLAN.md](./docs/BRANDING-PROVENANCE-PLAN.md).
 
 ---
 
@@ -476,14 +476,14 @@ When you say "continue the plan," work **top to bottom**:
 |----------|---------|
 | [README.md](./README.md) | User-facing quick start + honest status |
 | [AGENT_GUIDE.md](./AGENT_GUIDE.md) | Agent operating contract |
-| [PROMPT_GALLERY.md](./PROMPT_GALLERY.md) | Copy-paste production prompts |
+| [PROMPT_GALLERY.md](./docs/PROMPT_GALLERY.md) | Copy-paste production prompts |
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Runtime truth matrix |
 | [docs/MONTARA-PARITY.md](./docs/MONTARA-PARITY.md) | Parity checklist (sync with §7) |
 | [docs/PROVIDER-AUDIT.md](./docs/PROVIDER-AUDIT.md) | BYOK live executor notes |
 | [docs/SKILL-ROADMAP.md](./docs/SKILL-ROADMAP.md) | Layer 2/3 skill absorption plan |
 | [docs/CAPABILITY-SNAPSHOT.md](./docs/CAPABILITY-SNAPSHOT.md) | Point-in-time capability photo |
 | [docs/PORTING-PROVENANCE.md](./docs/PORTING-PROVENANCE.md) | Legal derivation record |
-| [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) | Architecture conventions |
+| [PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md) | Architecture conventions |
 
 ---
 

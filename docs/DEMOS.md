@@ -59,7 +59,7 @@ keeps the video playable by muxing a silent AAC track.
 
 ## Prompt Coverage
 
-Use [PROMPT_GALLERY.md](../PROMPT_GALLERY.md) for broader prompt coverage:
+Use [PROMPT_GALLERY.md](PROMPT_GALLERY.md) for broader prompt coverage:
 talking-head overlays, documentary evidence cuts, kinetic typography, browser
 demos behind login, editor handoff, style switches, and provider-aware prompts.
 For public packaging, titles, launch videos, and community checklists, use
