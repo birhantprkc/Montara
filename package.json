@@ -9,6 +9,8 @@
     "doctor": "esbuild scripts/doctor.ts --bundle --platform=node --format=esm --outfile=scripts/.doctor.mjs && node scripts/.doctor.mjs",
     "validate": "esbuild scripts/validate.ts --bundle --platform=node --format=esm --outfile=scripts/.validate.mjs && node scripts/.validate.mjs",
     "demos:generate": "node scripts/generate-github-demos.mjs",
+    "postinstall": "node scripts/postinstall.mjs",
+    "setup:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1",
     "typecheck": "tsc -b",
     "pytest": "python -m pytest tests"
   },

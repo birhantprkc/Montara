@@ -2,6 +2,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    "tsBuildInfoFile": "./out/tsconfig.tsbuildinfo",
     "lib": ["ES2022", "DOM"]
   },
   "include": [

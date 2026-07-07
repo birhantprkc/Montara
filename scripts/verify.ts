@@ -1203,7 +1203,7 @@ ok("Stage 1 audit records later-stage caveats instead of overclaiming",
 
 console.log("\n== Voice-ID hear engine (2.4) ==");
 ok("voice-ID availability is a boolean (degrade-friendly), never throws", typeof voiceIdAvailable() === "boolean");
-ok("voice_id.py speaker-embedding tool ships in the repo", existsSync(join(process.cwd(), "voice_id.py")));
+ok("voice_id.py speaker-embedding tool ships in the audio tools folder", existsSync(join(process.cwd(), "tools", "audio", "voice_id.py")));
 const speakerStatus = speakerIntelligenceStatus();
 ok("speaker intelligence reports Resemblyzer/SpeechBrain/pyannote availability as booleans",
   typeof speakerStatus.resemblyzer === "boolean" &&

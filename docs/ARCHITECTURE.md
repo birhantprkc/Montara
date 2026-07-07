@@ -163,7 +163,7 @@ CI should run:
 - TypeScript typecheck;
 - `pnpm verify`;
 - `pnpm validate`;
-- Python dependency install from `requirements-dev.txt`;
+- Python dependency install from `requirements/dev.txt`;
 - `python -m pytest tests`.
 
 Runtime-heavy native render checks should be split into optional jobs or

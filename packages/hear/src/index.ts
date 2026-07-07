@@ -1,5 +1,5 @@
 // @montara/hear — the audio-understanding boundary. Speaker differentiation (voice-ID) via
-// the Resemblyzer embedding tool. Shells out to `voice_id.py` (heavy: torch) and parses JSON,
+// the Resemblyzer embedding tool. Shells out to `tools/audio/voice_id.py` (heavy: torch) and parses JSON,
 // so nothing here pulls torch into the gate. Availability is checked with importlib.find_spec
 // (no torch import), keeping discovery fast.
 
@@ -8,8 +8,8 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { mediaBin } from "../../render-ffmpeg/src/index";
 
-const VOICE_ID_SCRIPT = "voice_id.py";
-const TRANSCRIBE_SCRIPT = "transcribe_local.py";
+const VOICE_ID_SCRIPT = join("tools", "audio", "voice_id.py");
+const TRANSCRIBE_SCRIPT = join("tools", "audio", "transcribe_local.py");
 
 function findPython(): string | null {
   for (const cand of ["python", "python3", "py"]) {

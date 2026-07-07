@@ -63,7 +63,7 @@ demo app.
 | --- | --- |
 | Animated explainers | Tested through `montara make`, Timeline IR, FFmpeg/Remotion fallback, and validate MP4s. |
 | YouTube Shorts / Reels | Tested through reel helpers, vertical output profiles, transcript-bound cut gates, and demo artifacts. |
-| Documentary montage | Tested with offline fixture corpus and a 60-second open-stock proof. Live publication footage depends on source adapters and provenance review. |
+| Documentary montage | Tested with offline fixture corpus and a 60-second open-stock proof. Live publication footage depends on source adapters and licensing review. |
 | Screen demos / product walkthroughs | Tested via capture artifact pickup and browser-capture CLI surfaces. Live Playwright recording is runtime-gated. |
 | Kinetic typography | HyperFrames strict smoke is validate-gated when runtime is present; Motion Canvas native proof remains runtime-gated. |
 | Character animation | SVG/GSAP rig to HyperFrames final MP4 is validate-gated when HyperFrames is present. |
@@ -83,10 +83,22 @@ Prerequisites:
 git clone https://github.com/abhinavshrivastava950/Montara.git
 cd Montara
 pnpm install
+python -m pip install -r requirements/dev.txt
 copy .env.example .env
 pnpm run montara doctor
 pnpm run montara start
 ```
+
+Windows shortcut:
+
+```bat
+scripts\setup.bat
+```
+
+`pnpm run montara start` runs `doctor` first, so missing FFmpeg or workspace
+dependencies are caught before a render starts. Use `pnpm run montara doctor
+--fix` for guided setup commands, or `pnpm run montara doctor --fix --yes` to
+run project-local install steps.
 
 PowerShell-friendly commands:
 
@@ -316,7 +328,7 @@ top level, while reference docs and helper scripts live under their own folders.
 | `tools/`, `lib/`, `schemas/`, `pipeline_defs/`, `skills/` | Python media engine and shared skill layer; kept at root for bridge compatibility |
 | `remotion-composer/` | native Remotion composition project and demo compositions |
 | `scripts/` | verification, validation, demo generation, and legacy demo render helpers |
-| `docs/` | architecture, provider docs, prompt gallery, provenance, launch notes |
+| `docs/` | architecture, provider docs, prompt gallery, attribution, launch notes |
 | `demos/` | checked-in public MP4s, posters, and demo manifest only |
 | `out/`, `projects/`, `.python-packages/`, `.pnpm-store/` | local generated/runtime state; ignored |
 
@@ -361,6 +373,7 @@ Ignored on purpose:
 ## Important Docs
 
 - [PLAN.md](PLAN.md): master build plan and staged roadmap
+- [CONTRIBUTING.md](CONTRIBUTING.md): human developer setup and PR guide
 - [AGENT_GUIDE.md](AGENT_GUIDE.md): operating contract for assistants
 - [docs/CAPABILITY-SNAPSHOT.md](docs/CAPABILITY-SNAPSHOT.md): what works now
 - [docs/MONTARA-PARITY.md](docs/MONTARA-PARITY.md): parity/moat checklist
@@ -368,22 +381,12 @@ Ignored on purpose:
 - [docs/DEMOS.md](docs/DEMOS.md): proof ledger
 - [docs/PROMPT_GALLERY.md](docs/PROMPT_GALLERY.md): prompts that exercise real paths
 - [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md): architecture conventions
-- [docs/PORTING-PROVENANCE.md](docs/PORTING-PROVENANCE.md): provenance and attribution record
+## Acknowledgements
 
-## Provenance
-
-Montara is primarily inspired by and partially derived from
-`calesthio/OpenMontage` (AGPL-3.0), tracked in [NOTICE](NOTICE) and
-[docs/PORTING-PROVENANCE.md](docs/PORTING-PROVENANCE.md). The Montara-specific
-Timeline IR, TypeScript CLI/workspaces, runtime gates, provider audit layer,
-and public demo packaging are Montara / Warfront AI work unless a file says
-otherwise.
-
-Other projects named in this repo, including FFmpeg, Remotion, HyperFrames,
-Revideo, Motion Canvas, Three.js, Manim, Blender, ComfyUI, A1111, Piper,
-faster-whisper, and Transformers.js, are external tools or runtimes that
-Montara invokes or integrates with. See [docs/ATTRIBUTION.md](docs/ATTRIBUTION.md)
-for the attribution table.
+Conceptual thanks to `calesthio/OpenMontage` and the Claude video-skills
+ecosystem for helping shape the local-first video-agent direction. Montara's
+public Timeline IR, TypeScript workspace, CLI, runtime gates, and demo packaging
+are built as Montara.
 
 ## License
 

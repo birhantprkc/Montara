@@ -8,9 +8,9 @@ Heavy (imports torch via Resemblyzer), so it runs as a standalone tool — never
 verify/validate gates. JSON in, JSON out.
 
 Usage:
-    python voice_id.py embed   <wav>
-    python voice_id.py verify  <a.wav> <b.wav> [threshold]
-    python voice_id.py compare <test.wav> <labelA> <refA.wav> <labelB> <refB.wav> [...]
+    python tools/audio/voice_id.py embed   <wav>
+    python tools/audio/voice_id.py verify  <a.wav> <b.wav> [threshold]
+    python tools/audio/voice_id.py compare <test.wav> <labelA> <refA.wav> <labelB> <refB.wav> [...]
 """
 import json
 import sys

@@ -2221,8 +2221,8 @@ function printHelp(): void {
   console.log(`montara <command>
 
 Commands:
-  start                           interactive studio welcome — pick create/edit, format, niche, then produce
-  doctor [--fix]                  check local render prerequisites + Python engine; print setup guide with --fix
+  start [--skip-doctor]            interactive studio welcome — runs doctor, then pick create/edit, format, niche
+  doctor [--fix] [--yes]           check local setup; --fix prints guidance, --fix --yes runs project-local fixes
   status [--json] [--out path]     summarize local capability, gates, and upstream parity categories
   stage1-audit [--json] [--out path]
                                   prove Stage 1A-D parity gates from local bridge/provider/runtime evidence

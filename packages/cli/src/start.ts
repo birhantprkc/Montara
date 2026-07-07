@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { stdin as input, stdout as output } from "node:process";
 import { createInterface } from "node:readline/promises";
 import { join } from "node:path";
+import { runDoctor } from "./doctor";
 
 const VIDEO_KINDS = ["reel", "short", "youtube", "documentary", "explainer", "screen-demo"] as const;
 type VideoKind = (typeof VIDEO_KINDS)[number];
@@ -84,12 +85,13 @@ function runMontara(args: string[]): number {
 export async function runStartCommand(argv: string[]): Promise<number> {
   if (argv.includes("--help") || argv.includes("-h")) {
     console.log(
-      "usage: montara start [--non-interactive create|edit] [--kind reel|short|youtube|documentary|explainer|screen-demo] [--niche TEXT] [--topic TEXT]",
+      "usage: montara start [--skip-doctor] [--non-interactive create|edit] [--kind reel|short|youtube|documentary|explainer|screen-demo] [--niche TEXT] [--topic TEXT]",
     );
     return 0;
   }
 
   const nonInteractive = argv.includes("--non-interactive");
+  const skipDoctor = argv.includes("--skip-doctor");
   const getFlag = (name: string): string | undefined => {
     const eq = argv.find((arg) => arg.startsWith(`${name}=`));
     if (eq) return eq.slice(name.length + 1);
@@ -98,6 +100,16 @@ export async function runStartCommand(argv: string[]): Promise<number> {
   };
 
   let choices: StartChoices;
+
+  if (!skipDoctor) {
+    console.log("Running preflight checks...\n");
+    const doctorStatus = runDoctor([]);
+    if (doctorStatus !== 0) {
+      console.log("\nFix setup first, or rerun with --skip-doctor if you know what you are doing.");
+      return doctorStatus;
+    }
+    console.log("");
+  }
 
   if (nonInteractive) {
     const nonInteractiveIndex = argv.indexOf("--non-interactive");

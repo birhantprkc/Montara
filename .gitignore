@@ -67,6 +67,7 @@ service_account*.json
 pexels_video_*.mp4
 pixabay_music_*
 generated_image.png
+diagram.png
 logo_*.png
 scratch/
 internal/

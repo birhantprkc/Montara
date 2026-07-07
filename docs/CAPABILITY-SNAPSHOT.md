@@ -30,7 +30,7 @@ Snapshot date: 2026-07-02.
 - **Source understanding:** `montara understand` writes model-aware source JSON. The
   default path stays FFmpeg/signalstats; optional Transformers.js CLIP frame
   classification runs only when the package and model opt-in are present.
-- **Voice similarity:** `voice_id.py` and `@montara/hear` expose optional Resemblyzer/SpeechBrain/
+- **Voice similarity:** `tools/audio/voice_id.py` and `@montara/hear` expose optional Resemblyzer/SpeechBrain/
   pyannote status without hard-failing.
 - **Documentary evidence craft:** generalized Montara skill at
   `skills/meta/documentary-evidence-craft.md`; `warfront-craft.md` is a compatibility alias.
@@ -53,10 +53,10 @@ Snapshot date: 2026-07-02.
 
 | Gate | Result |
 | --- | --- |
-| `npm.cmd run typecheck` | passed |
+| `pnpm typecheck` | passed |
 | `pnpm montara -- stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
-| `npm.cmd run verify` | 324 passed, 0 failed |
-| `npm.cmd run validate` | 101 passed, 0 failed |
+| `pnpm verify` | 324 passed, 0 failed |
+| `pnpm validate` | 101 passed, 0 failed |
 | `python -m pytest tests` | 399 passed, 8 skipped |
 
 ## Example Outputs
@@ -136,7 +136,7 @@ Best current path:
 
 1. Use `hear` for LUFS, onset/pacing, loudness, spectral, and music QA.
 2. Use scene-mapped music cues: fades, gain, intentional silence, no hard loops.
-3. Use `voice_id.py` for consented speaker-similarity when optional dependencies are installed.
+3. Use `tools/audio/voice_id.py` for consented speaker-similarity when optional dependencies are installed.
 4. Keep celebrity/corpus matching as labelled-reference matching; do not imply rights to use a voice.
 5. Use `skills/creative/music-intelligence.md`,
    `skills/creative/speaker-voice-intelligence.md`, and

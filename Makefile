@@ -5,8 +5,11 @@ PYTHON ?= python3
 # ---- One-command setup ----
 
 setup:
+	@echo "==> Installing Node workspace dependencies..."
+	pnpm install
+	@echo ""
 	@echo "==> Installing Python dependencies..."
-	$(PYTHON) -m pip install -r requirements.txt
+	$(PYTHON) -m pip install -r requirements/dev.txt
 	@echo ""
 	@echo "==> Installing Remotion composer..."
 	cd remotion-composer && npm install
@@ -31,13 +34,13 @@ setup:
 # ---- Individual installs ----
 
 install:
-	$(PYTHON) -m pip install -r requirements.txt
+	$(PYTHON) -m pip install -r requirements/base.txt
 
 install-dev:
-	$(PYTHON) -m pip install -r requirements-dev.txt
+	$(PYTHON) -m pip install -r requirements/dev.txt
 
 install-gpu:
-	$(PYTHON) -m pip install -r requirements-gpu.txt
+	$(PYTHON) -m pip install -r requirements/gpu.txt
 	$(PYTHON) -m pip install diffusers transformers accelerate
 
 # ---- Testing ----

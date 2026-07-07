@@ -2,21 +2,21 @@
 """Local speech-to-text for Montara captions. Uses faster-whisper (CPU, int8) — no API key.
 Emits JSON segments [{start, end, text}] on stdout. Heavy (ctranslate2); kept out of the gates.
 
-Usage: python transcribe_local.py <media> [model] [language]
+Usage: python tools/audio/transcribe_local.py <media> [model] [language]
   model: tiny|base|small|medium  (default: base)
 """
 import json
 import sys
 from pathlib import Path
 
-VENDOR_PACKAGES = Path(__file__).resolve().parent / ".python-packages"
+VENDOR_PACKAGES = Path(__file__).resolve().parents[2] / ".python-packages"
 if VENDOR_PACKAGES.exists():
     sys.path.insert(0, str(VENDOR_PACKAGES))
 
 
 def main() -> int:
     if len(sys.argv) < 2:
-        print(json.dumps({"error": "usage: transcribe_local.py <media> [model] [language]"}))
+        print(json.dumps({"error": "usage: tools/audio/transcribe_local.py <media> [model] [language]"}))
         return 2
     media = sys.argv[1]
     model_name = sys.argv[2] if len(sys.argv) > 2 else "base"

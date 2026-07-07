@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { mediaBin } from "../../render-ffmpeg/src/index";
 import { engineReady, engineProviders } from "../../engine/src/index";
 import { probeHyperframes } from "../../render-engines/src/index";
@@ -12,15 +14,81 @@ const tool = (label: string, bin: string): boolean => {
   return ok;
 };
 
+const commandName = (name: string): string => process.platform === "win32" ? `${name}.cmd` : name;
+
+function commandOk(command: string, args: string[] = ["--version"]): boolean {
+  const r = spawnSync(command, args, { encoding: "utf8", shell: process.platform === "win32" });
+  return r.status === 0;
+}
+
+function workspaceDepsOk(root: string = process.cwd()): boolean {
+  const required = [
+    join(root, "node_modules", ".pnpm"),
+    join(root, "node_modules", "@montara", "core"),
+    join(root, "node_modules", "@montara", "cli"),
+    join(root, "packages", "cli", "node_modules"),
+  ];
+  return required.every((path) => existsSync(path));
+}
+
+function remotionDepsOk(root: string = process.cwd()): boolean {
+  return existsSync(join(root, "remotion-composer", "node_modules"));
+}
+
+function printSetupStatus(): { pnpmOk: boolean; workspaceOk: boolean; remotionOk: boolean } {
+  const pnpmOk = commandOk(commandName("pnpm"));
+  const workspaceOk = workspaceDepsOk();
+  const remotionOk = remotionDepsOk();
+  console.log(`  ${pnpmOk ? "ok" : "missing"} pnpm     ${pnpmOk ? "available" : "install pnpm first"}`);
+  console.log(`  ${workspaceOk ? "ok" : "missing"} workspace ${workspaceOk ? "pnpm links present" : "run pnpm install"}`);
+  console.log(`  ${remotionOk ? "ok" : "warn"} remotion ${remotionOk ? "composer deps present" : "run npm install in remotion-composer for native demos"}`);
+  return { pnpmOk, workspaceOk, remotionOk };
+}
+
+function runStep(label: string, command: string, args: string[], cwd = process.cwd()): boolean {
+  console.log(`\n==> ${label}`);
+  console.log(`    ${command} ${args.join(" ")}`);
+  const r = spawnSync(command, args, {
+    cwd,
+    encoding: "utf8",
+    stdio: "inherit",
+    shell: process.platform === "win32",
+  });
+  const ok = r.status === 0;
+  console.log(ok ? `    ok: ${label}` : `    failed: ${label}`);
+  return ok;
+}
+
+function runProjectFixes(): boolean {
+  const root = process.cwd();
+  const pnpm = commandName("pnpm");
+  const npm = commandName("npm");
+  const py = process.platform === "win32" ? "python" : "python3";
+  const steps = [
+    () => runStep("Install workspace dependencies", pnpm, ["install"], root),
+    () => runStep("Install Python development dependencies", py, ["-m", "pip", "install", "-r", "requirements/dev.txt"], root),
+    () => runStep("Install Remotion composer dependencies", npm, ["install"], join(root, "remotion-composer")),
+  ];
+  return steps.map((step) => step()).every(Boolean);
+}
+
 function printFixGuide(hyperframes: HyperframesStatus, ollamaOk: boolean): void {
   console.log("\n== guided setup ==");
   console.log("Montara will not install tools without your approval. Use the commands that fit your machine:\n");
   console.log("Windows:");
   console.log("  winget install Gyan.FFmpeg");
   console.log("  winget install OpenJS.NodeJS.LTS");
-  console.log("  python -m pip install -r requirements-dev.txt");
+  console.log("  pnpm install");
+  console.log("  python -m pip install -r requirements/dev.txt");
+  console.log("  scripts\\setup.bat");
   console.log("  npm install -D playwright @playwright/test");
   console.log("  npx playwright install chromium\n");
+  console.log("macOS/Linux:");
+  console.log("  pnpm install");
+  console.log("  python3 -m pip install -r requirements/dev.txt");
+  console.log("  bash scripts/render-demo.sh --list\n");
+  console.log("To run project-local setup steps automatically:");
+  console.log("  pnpm run montara doctor --fix --yes\n");
   console.log("Optional composition/runtime unlocks:");
   console.log("  Remotion: install project dependencies for remotion-composer, then validate native render locally");
   console.log("  HyperFrames: npx --yes hyperframes doctor");
@@ -42,6 +110,7 @@ function printFixGuide(hyperframes: HyperframesStatus, ollamaOk: boolean): void 
 export function runDoctor(args: string[] = []): number {
   console.log("== montara doctor ==\n");
   console.log(`  ok node     ${process.version}`);
+  const setup = printSetupStatus();
   const ffmpeg = tool("ffmpeg", mediaBin("ffmpeg"));
   const ffprobe = tool("ffprobe", mediaBin("ffprobe"));
 
@@ -66,10 +135,16 @@ export function runDoctor(args: string[] = []): number {
   console.log(`  ${ollamaOk ? "ok" : "warn"} local llm ${brainCatalogue().map((b) => b.id).join(", ")}${ollamaOk ? " (ollama cli)" : " (no local CLI detected)"}`);
 
   console.log(
-    ffmpeg && ffprobe
+    ffmpeg && ffprobe && setup.workspaceOk
       ? "\n  Ready to render."
-      : "\n  Install FFmpeg (for example `winget install Gyan.FFmpeg`) to render.",
+      : "\n  Setup incomplete. Run `pnpm run montara doctor --fix` for the guided commands.",
   );
-  if (args.includes("--fix")) printFixGuide(hyperframes, ollamaOk);
-  return ffmpeg && ffprobe ? 0 : 1;
+  if (args.includes("--fix")) {
+    printFixGuide(hyperframes, ollamaOk);
+    if (args.includes("--yes") || args.includes("--apply")) {
+      const fixed = runProjectFixes();
+      return fixed ? runDoctor(args.filter((arg) => !["--fix", "--yes", "--apply"].includes(arg))) : 1;
+    }
+  }
+  return ffmpeg && ffprobe && setup.workspaceOk ? 0 : 1;
 }
