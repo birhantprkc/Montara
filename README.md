@@ -1,7 +1,9 @@
 <p align="center">
-  <video src="demos/01-engine-matrix.mp4" poster="demos/posters/01-engine-matrix-poster.jpg" controls muted width="920"></video>
+  <a href="https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4">
+    <img src="demos/previews/01-engine-matrix-preview.gif" alt="Montara engine matrix demo preview" width="920" />
+  </a>
   <br/>
-  <a href="demos/01-engine-matrix.mp4">Watch the full engine matrix demo</a>
+  <a href="https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4">Watch/download the full engine matrix MP4</a>
 </p>
 
 <h1 align="center">Montara</h1>
@@ -149,11 +151,13 @@ gallery because they did not represent the ambition of the engine.
 
 | Demo | What it proves | API used for checked artifact | Preview |
 | --- | --- | --- | --- |
-| Full engine matrix | One polished chaptered video covering FFmpeg, Remotion, HyperFrames, Blender, Three.js, Manim, Revideo, Motion Canvas, and Playwright, with status labels for runtime-gated engines | none | [video](demos/01-engine-matrix.mp4) / [poster](demos/posters/01-engine-matrix-poster.jpg) |
-| Documentary studio proof | Remotion documentary UI, d3-geo map motion, source chips, cinematic evidence framing, and FFmpeg mux/probe/poster output | none | [video](demos/02-documentary-studio.mp4) / [poster](demos/posters/02-documentary-studio-poster.jpg) |
+| Full engine matrix | One polished chaptered video covering FFmpeg, Remotion, HyperFrames, Blender, Three.js, Manim, Revideo, Motion Canvas, and Playwright, with status labels for runtime-gated engines | none | [preview GIF](demos/previews/01-engine-matrix-preview.gif) / [raw MP4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4) / [poster](demos/posters/01-engine-matrix-poster.jpg) |
+| Documentary studio proof | Remotion documentary UI, d3-geo map motion, source chips, cinematic evidence framing, and FFmpeg mux/probe/poster output | none | [raw MP4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/02-documentary-studio.mp4) / [poster](demos/posters/02-documentary-studio-poster.jpg) |
 
 <p align="center">
-  <video src="demos/01-engine-matrix.mp4" poster="demos/posters/01-engine-matrix-poster.jpg" controls muted width="760"></video>
+  <a href="https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4">
+    <img src="demos/previews/01-engine-matrix-preview.gif" alt="Full engine matrix animated preview" width="760" />
+  </a>
   <br/>
   <img src="demos/posters/01-engine-matrix-poster.jpg" alt="Full engine matrix poster" width="760" />
   <br/>

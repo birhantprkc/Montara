@@ -11,6 +11,7 @@
       "id": "01-engine-matrix",
       "title": "Full engine matrix",
       "video": "demos/01-engine-matrix.mp4",
+      "preview": "demos/previews/01-engine-matrix-preview.gif",
       "renderer": "Remotion visual composition + FFmpeg mux/probe/poster",
       "voice": "system",
       "technologies": [

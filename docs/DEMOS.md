@@ -9,7 +9,7 @@ with `pnpm demos:generate` or `node scripts/generate-github-demos.mjs`.
 
 | Demo | Prompt / brief | Pipeline | Tools and runtime | Cost | Artifact |
 | --- | --- | --- | --- | --- | --- |
-| Full engine matrix | "Show every shipped Montara render/capture surface honestly in one founder-grade demo." | Remotion engine matrix -> FFmpeg mux/probe/poster | Remotion native local composition; FFmpeg mux/poster/probe; Windows system TTS when available | `$0` | `demos/01-engine-matrix.mp4` + `demos/posters/01-engine-matrix-poster.jpg` |
+| Full engine matrix | "Show every shipped Montara render/capture surface honestly in one founder-grade demo." | Remotion engine matrix -> FFmpeg mux/probe/poster | Remotion native local composition; FFmpeg mux/poster/probe; Windows system TTS when available | `$0` | `demos/01-engine-matrix.mp4` + `demos/previews/01-engine-matrix-preview.gif` + `demos/posters/01-engine-matrix-poster.jpg` |
 | Documentary studio proof | "Show the documentary UI layer with map motion, source framing, and niche-ready positioning." | Remotion documentary-studio composition -> FFmpeg mux/probe/poster | Remotion, d3-geo, FFmpeg; Windows system TTS when available | `$0` | `demos/02-documentary-studio.mp4` + `demos/posters/02-documentary-studio-poster.jpg` |
 
 The engine matrix covers FFmpeg, Remotion, HyperFrames, Blender, Three.js,

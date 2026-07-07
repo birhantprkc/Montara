@@ -24,12 +24,14 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const demosDir = join(root, "demos");
 const postersDir = join(demosDir, "posters");
+const previewsDir = join(demosDir, "previews");
 const workDir = join(demosDir, ".work");
 const composerDir = join(root, "remotion-composer");
 const isWindows = process.platform === "win32";
 
 mkdirSync(demosDir, { recursive: true });
 mkdirSync(postersDir, { recursive: true });
+mkdirSync(previewsDir, { recursive: true });
 mkdirSync(workDir, { recursive: true });
 
 loadDotEnv(join(root, ".env"));
@@ -252,22 +254,50 @@ function makePoster(videoPath, posterPath, label) {
   return existsSync(posterPath);
 }
 
+function makePreview(videoPath, previewPath, label) {
+  const palettePath = join(workDir, `${label}-preview-palette.png`);
+  ffmpeg(
+    "-ss", "2",
+    "-t", "8",
+    "-i", videoPath,
+    "-vf", "fps=8,scale=720:-1:flags=lanczos,palettegen=stats_mode=diff",
+    "-frames:v", "1",
+    "-update", "1",
+    palettePath,
+  );
+  ffmpeg(
+    "-ss", "2",
+    "-t", "8",
+    "-i", videoPath,
+    "-i", palettePath,
+    "-lavfi", "fps=8,scale=720:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=5",
+    previewPath,
+  );
+  return existsSync(previewPath);
+}
+
 function cleanStaleDemos() {
   for (const id of staleDemoIds) {
     rmSync(join(demosDir, `${id}.mp4`), { force: true });
     rmSync(join(postersDir, `${id}-poster.jpg`), { force: true });
+    rmSync(join(previewsDir, `${id}-preview.gif`), { force: true });
   }
 }
 
 function recordDemo(manifest, entry) {
+  const { previewGif, ...demoEntry } = entry;
   const posterPath = join(postersDir, `${entry.id}-poster.jpg`);
+  const previewPath = join(previewsDir, `${entry.id}-preview.gif`);
   makePoster(join(root, entry.video), posterPath, entry.id);
-  manifest.demos.push({
-    ...entry,
+  if (previewGif) makePreview(join(root, entry.video), previewPath, entry.id);
+  const demo = {
+    ...demoEntry,
     poster: existsSync(posterPath) ? `demos/posters/${entry.id}-poster.jpg` : null,
     durationSec: Number(probeDuration(join(root, entry.video)).toFixed(1)),
     videoProbe: probeVideo(join(root, entry.video)),
-  });
+  };
+  if (previewGif && existsSync(previewPath)) demo.preview = `demos/previews/${entry.id}-preview.gif`;
+  manifest.demos.push(demo);
 }
 
 console.log("Montara public demo generator");
@@ -299,6 +329,7 @@ recordDemo(manifest, {
   id: "01-engine-matrix",
   title: "Full engine matrix",
   video: "demos/01-engine-matrix.mp4",
+  previewGif: true,
   renderer: "Remotion visual composition + FFmpeg mux/probe/poster",
   voice: engineNarrationOk ? "system" : "silent fallback",
   technologies: technologyList,
