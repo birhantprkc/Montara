@@ -9,8 +9,8 @@ Timeline IR, CLI, render/export adapters, and verification gates.
   `pipeline_defs/`, `schemas/`, `styles/`, and `tests/`.
 - Generated/private/runtime artifacts are excluded: VCS history, virtualenvs, caches,
   local outputs, corpora, secrets, token files, model weights, and generated media.
-- Product-facing naming is Montara; legal/provenance attribution stays in `NOTICE`,
-  `LICENSE`, and `docs/PORTING-PROVENANCE.md`.
+- Product-facing naming is Montara; attribution stays in `NOTICE`, `LICENSE`,
+  and `docs/ATTRIBUTION.md`.
 - The dependency-free `engine_bridge.py` boundary lets TypeScript discover and invoke
   the Python engine through JSON.
 - Root gates stay green: typecheck, verify, validate, and pytest.

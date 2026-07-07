@@ -4,7 +4,7 @@ Last synced with [PLAN.md](../PLAN.md): 2026-07-02, after the Stage 4 trust gap 
 
 This checklist tracks two things:
 
-1. OpenMontage parity: what Montara must preserve or exceed from the source engine.
+1. Engine parity: what Montara must preserve or exceed from the reference engine surface.
 2. Montara moat: Timeline IR, editor bridges, local-first CLI, runtime honesty, content-aware reels,
    Playwright auth capture, and generalized documentary evidence craft.
 
@@ -32,7 +32,7 @@ Latest local gates before this sync:
 | CI | ☑ | typecheck + verify + validate + pytest. |
 | Docs honesty | ☑ | README/AGENT_GUIDE/ARCHITECTURE/PROVIDER-AUDIT/SKILL-ROADMAP/CAPABILITY-SNAPSHOT synced. Native render validation, provider-audit, launch-plan, and status-report guidance added. |
 | Agent contract | ☑ | AGENT_GUIDE now includes onboarding, runtime honesty, tool protocols, checkpoints, and commit rules. |
-| Prompt gallery | ☑ | Expanded beyond OpenMontage coverage; README + docs/DEMOS.md map local demos to commands/costs/assets. |
+| Prompt gallery | ☑ | Expanded beyond baseline coverage; README + docs/DEMOS.md map local demos to commands/costs/assets. |
 | Public launch plan | ☑ | `docs/LAUNCH-PLAN.md` maps YouTube/community proof videos to commands, artifacts, costs, caveats, and provider-audit rules. |
 | Compare report automation | ☑ | `montara status --json --out ...` emits local capability, latest documented gates, and Montara-vs-upstream categories. |
 | Playwright capture | ◐ | Tool/selector/skills, pytest coverage, and `montara capture` CLI exist; native browser runtime remains Playwright-gated. |
@@ -83,7 +83,7 @@ Latest local gates before this sync:
 | character-animation | ☑ | Contract tests plus validate-gated HyperFrames SVG rig -> final MP4 when runtime is available. |
 | kinetic-typography | ☑ | Manifest + HyperFrames-aware stage skills; native strict kinetic smoke validate-gated; Motion Canvas picker target is runtime-gated. |
 
-## C-K. OpenMontage Parity Categories
+## C-K. Engine Parity Categories
 
 | Category | Status | Notes |
 | --- | --- | --- |

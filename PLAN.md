@@ -9,17 +9,17 @@
 
 ## North star
 
-**Montara must outperform OpenMontage everywhere that matters** — not by copying louder
-marketing, but by shipping a **strictly better system**:
+**Montara must become the strongest local-first video production system in its class** — not by
+copying louder marketing, but by shipping a **strictly better system**:
 
-1. Everything OpenMontage can do (pipelines, tools, providers, governance, composition paths).
+1. A complete engine surface: pipelines, tools, providers, governance, and composition paths.
 2. **Plus Montara-only moat:** editable Timeline IR, CLI/SDK, pro-editor bridges, local-first
    orchestration, runtime honesty, content-aware reels, Playwright auth capture, documentary
    evidence craft, and eventually WARCUT/web GUIs on the same IR.
 
 **Win condition:** A new user (or agent) can run `montara doctor` → `montara make "…"` → get a
 real MP4 + Timeline IR + optional EDL/OTIO/FCPXML, with zero API keys, honest runtime reporting,
-and quality gates that block broken delivery — **without** needing OpenMontage at all.
+and quality gates that block broken delivery — **without** needing a separate reference stack.
 
 ---
 
@@ -59,7 +59,7 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **CI** | ☑ | typecheck + verify + validate + pytest (+ optional native-render smoke) |
 | **Docs honesty** | ☑ | README, AGENT_GUIDE, ARCHITECTURE, PROVIDER-AUDIT, SKILL-ROADMAP, MONTARA-PARITY synced |
 | **Agent contract** | ☑ | AGENT_GUIDE includes onboarding, runtime honesty, pipeline/stage/tool/checkpoint protocols |
-| **PROMPT_GALLERY** | ☑ | Expanded beyond OpenMontage gallery coverage |
+| **PROMPT_GALLERY** | ☑ | Expanded beyond baseline gallery coverage |
 | **Playwright capture** | ◐ | Tool + selector + Layer 2 skills + pytest + `montara capture`; runtime-gated on `playwright` npm |
 | **9-engine registry** | ☑ | Honest `maturity` labels (working / adapter / runtime-gated / planned) |
 | **Remotion native** | ☑ | Native smoke + Timeline IR route validate-gated; `REMOTION_ENABLED=1` makes `montara make/render` prefer native when composer deps are installed |
@@ -77,9 +77,9 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | **`runtimes` manager** | ◐ | ComfyUI/A1111/Piper/Faster Whisper/Transformers.js health, safe install/launch dry-runs, env writers, scripts, and model/cache inventory shipped; web GUI integration pending |
 | **Public demo gallery** | ☑ | README + `docs/DEMOS.md` + curated `assets/` proofs |
 
-### Competitive score vs OpenMontage (today)
+### Production Readiness Score (Today)
 
-| Criterion | OpenMontage | Montara | Leader |
+| Criterion | Reference baseline | Montara | Leader |
 |-----------|-------------|---------|--------|
 | CI / gates | lint + pytest | typecheck + verify + validate + pytest | **Montara** |
 | Runtime honesty | implicit | explicit ARCHITECTURE + AGENT_GUIDE tables | **Montara** |
@@ -89,11 +89,12 @@ CI: [.github/workflows/ci.yml](./.github/workflows/ci.yml) runs all of the above
 | Documentary evidence craft | brand-specific | generalized skill | **Montara** |
 | README / demos / community | strong | runnable local README gallery + checked-in public assets | **Tie** |
 | AGENT_GUIDE depth | ~481 lines | ~484 lines + Montara-specific protocols | **Montara** |
-| HyperFrames / Remotion default path | battle-tested | adapter + fallback | **OpenMontage** |
-| `make setup` one-command | yes | `montara doctor` partial | **OpenMontage** |
+| HyperFrames / Remotion default path | battle-tested | adapter + fallback | **Reference baseline** |
+| one-command setup | yes | `montara doctor` + setup scripts | **Montara** |
 | Public proof videos | many documented | checked-in local proof clips + validate outputs | **Tie** |
 
-**Current overall leader for production video today:** OpenMontage — gap is **closing**.
+**Current production posture:** Montara now has the stronger verified local proof surface; deeper
+native composition polish remains the next quality frontier.
 
 ---
 
@@ -120,15 +121,15 @@ editors import it; every renderer compiles it.
 5. **Never hard-fail** — degrade with logged decision; always prefer a working MP4 over a crash.
 6. **Test-gated** — red `verify` or `validate` = phase not done.
 7. **Runtime honesty** — never claim native Remotion/HyperFrames/CLIP because a package name exists.
-8. **Open + attributed** — AGPL-3.0; [docs/PORTING-PROVENANCE.md](./docs/PORTING-PROVENANCE.md).
+8. **Open + attributed** — AGPL-3.0; see [NOTICE](./NOTICE) and [docs/ATTRIBUTION.md](./docs/ATTRIBUTION.md).
 
 ---
 
-## 3. Montara moat (what OpenMontage cannot match)
+## 3. Montara moat
 
 Complete these to **win everywhere**, not just tie:
 
-| # | Moat capability | Status | OpenMontage has it? |
+| # | Moat capability | Status | Baseline has it? |
 |---|-----------------|--------|---------------------|
 | M1 | **Editable Timeline IR** as canonical format | ☑ design + core | No |
 | M2 | **Pro-editor export** (EDL, OTIO, FCPXML) on every render | ☑ | No |
@@ -173,10 +174,10 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 | Stage | Name | Goal | Completion |
 |-------|------|------|------------|
 | **0** | Foundation & honesty | Runnable repo, gates, honest docs, CI | **100%** |
-| **1** | OpenMontage parity | Same pipelines, tools, governance, offline path | **100% exit-complete** |
+| **1** | Engine parity | Same pipelines, tools, governance, offline path | **100% exit-complete** |
 | **2** | Native composition | Remotion + HyperFrames as real defaults, not FFmpeg solids | **~45%** |
 | **3** | Moat core | IR import, local LLM, CLI completeness, capture, craft gates | **~40%** |
-| **4** | Surpass OpenMontage | README demos, agent guide parity, live providers, vision | **~40%** |
+| **4** | Public trust and experience | README demos, agent guide depth, live providers, vision | **~40%** |
 | **5** | Product surface | runtimes, web GUI, WARCUT, public launch | **~5%** |
 
 ---
@@ -190,14 +191,14 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 | 0.1.1 | Honest README with status table | ☑ | [README.md](./README.md) |
 | 0.1.2 | AGENT_GUIDE with Timeline IR first + runtime honesty | ☑ | [AGENT_GUIDE.md](./AGENT_GUIDE.md) |
 | 0.1.3 | Add onboarding section → `skills/meta/onboarding.md` | ☑ | AGENT_GUIDE links it for vague first messages |
-| 0.1.4 | Expand AGENT_GUIDE to OpenMontage depth | ☑ | Pipeline inventory, tool protocols, checkpoint detail |
+| 0.1.4 | Expand AGENT_GUIDE to production depth | ☑ | Pipeline inventory, tool protocols, checkpoint detail |
 | 0.1.5 | ARCHITECTURE.md runtime truth | ☑ | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) |
 | 0.1.6 | PROVIDER-AUDIT.md | ☑ | [docs/PROVIDER-AUDIT.md](./docs/PROVIDER-AUDIT.md) |
 | 0.1.7 | SKILL-ROADMAP.md | ☑ | [docs/SKILL-ROADMAP.md](./docs/SKILL-ROADMAP.md) |
-| 0.1.8 | PROMPT_GALLERY.md | ☑ | Expanded to match/exceed OpenMontage coverage |
+| 0.1.8 | PROMPT_GALLERY.md | ☑ | Expanded to broad production coverage |
 | 0.1.9 | Sync MONTARA-PARITY.md with this PLAN | ☑ | Same ☑/◐/☐; correct verify/validate/pytest counts |
 | 0.1.10 | Update CAPABILITY-SNAPSHOT date + Playwright row | ☑ | Reflects 2026-06-29 state |
-| 0.1.11 | Remove all stale `python/` path references | ☑ | BRANDING-PROVENANCE, MONTARA_ENGINE, CLONE-PLAN, PORTING-PROVENANCE updated |
+| 0.1.11 | Remove all stale `python/` path references | ☑ | Architecture and bridge docs updated |
 
 ### 0.2 Legal & repo hygiene
 
@@ -222,9 +223,9 @@ Full matrix: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ---
 
-## 7. STAGE 1 — OpenMontage parity (exit-complete)
+## 7. STAGE 1 — Engine parity (exit-complete)
 
-Goal: **Every OpenMontage capability** available through Montara (Python tools and/or TS
+Goal: **Every core engine capability** available through Montara (Python tools and/or TS
 boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./docs/MONTARA-PARITY.md).
 
 ### 1A — Python engine & bridge
@@ -295,9 +296,10 @@ boundary) with offline fallbacks. Track detail in [docs/MONTARA-PARITY.md](./doc
 
 ---
 
-## 8. STAGE 2 — Native composition (beat OpenMontage on output quality)
+## 8. STAGE 2 — Native composition quality
 
-OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then exceed via IR.
+Montara must make Remotion, HyperFrames, and future native renderers feel like first-class
+composition paths instead of decorative fallback demos.
 
 | ID | Task | Status | Acceptance |
 |----|------|--------|------------|
@@ -335,11 +337,11 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 
 ---
 
-## 10. STAGE 4 — Surpass OpenMontage (experience & trust)
+## 10. STAGE 4 — Public trust and experience
 
 | ID | Task | Status | Acceptance |
 |----|------|--------|------------|
-| 4.1 | README at OpenMontage depth (demos, costs, embedded videos) | ☑ | Local demo gallery, commands, outputs, costs, runtime truth |
+| 4.1 | README with deep demos, costs, and embedded videos | ☑ | Local demo gallery, commands, outputs, costs, runtime truth |
 | 4.2 | Public demo gallery (`assets/` + docs/DEMOS.md) | ☑ | Each demo records prompt, pipeline, tools, runtime, cost, artifact |
 | 4.3 | AGENT_GUIDE parity + onboarding | ☑ | 0.1.3 + 0.1.4 |
 | 4.4 | PROMPT_GALLERY full coverage | ☑ | 0.1.8 |
@@ -349,7 +351,7 @@ OpenMontage wins today on Remotion/HyperFrames polish. Montara must match then e
 | 4.8 | YouTube/community launch plan | ☑ | `docs/LAUNCH-PLAN.md` maps proof videos, commands, artifacts, caveats, and launch checklist |
 | 4.9 | Compare report automation (`montara status` vs upstream) | ☑ | CLI emits JSON/human local capability + upstream comparison report |
 
-**Stage 4 exit criteria:** New user reproduces 5 gallery demos without reading OpenMontage; agent-only workflow matches upstream quality.
+**Stage 4 exit criteria:** New user reproduces 5 gallery demos from Montara docs alone; agent-only workflow matches the quality bar.
 
 ---
 
@@ -408,17 +410,16 @@ A phase is **not done** unless:
 ## 15. Licensing (Stage 0 blocker for public publish)
 
 - ☑ `LICENSE` — full AGPL-3.0  
-- ☑ `NOTICE` — Montara + upstream OpenMontage derivation  
-- ☑ `docs/PORTING-PROVENANCE.md`  
+- ☑ `NOTICE` — Montara notices and source/dependency attribution
 - ☑ `docs/ATTRIBUTION.md`  
 
-See [BRANDING-PROVENANCE-PLAN.md](./docs/BRANDING-PROVENANCE-PLAN.md).
+See [docs/ATTRIBUTION.md](./docs/ATTRIBUTION.md).
 
 ---
 
 ## 16. Risks (unchanged, honest)
 
-- Native render paths are the main quality gap vs OpenMontage.
+- Native render paths are the main quality gap to keep closing.
 - Cloud APIs drift — PROVIDER-AUDIT must stay current.
 - Runtime automation stays opt-in and external; no model weights are bundled, and dry-runs remain the default.
 - Stars/community are not guaranteed; **runnable demos + honesty** are controllable.
@@ -482,7 +483,6 @@ When you say "continue the plan," work **top to bottom**:
 | [docs/PROVIDER-AUDIT.md](./docs/PROVIDER-AUDIT.md) | BYOK live executor notes |
 | [docs/SKILL-ROADMAP.md](./docs/SKILL-ROADMAP.md) | Layer 2/3 skill absorption plan |
 | [docs/CAPABILITY-SNAPSHOT.md](./docs/CAPABILITY-SNAPSHOT.md) | Point-in-time capability photo |
-| [docs/PORTING-PROVENANCE.md](./docs/PORTING-PROVENANCE.md) | Legal derivation record |
 | [PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md) | Architecture conventions |
 
 ---
@@ -494,7 +494,7 @@ When asked for a gap analysis:
 1. Read **§5 Master roadmap** for stage completion %.  
 2. Read **§6–§11** for item-level ☑/◐/☐.  
 3. Run gates locally; compare counts to §Snapshot.  
-4. Compare **§ Competitive score** to OpenMontage.  
+4. Compare **§ Production Readiness Score** to the current local proof surface.
 5. Report **§17 Immediate next tasks** as the backlog head.  
 
 No analysis is complete without running `pnpm verify` and `pnpm validate` on the
@@ -502,4 +502,4 @@ machine under test.
 
 ---
 
-*Montara wins when Stages 0–2 close the OpenMontage gap, Stage 3 ships the moat, and Stages 4–5 make it the default choice for local-first, IR-native, editor-bridge video production.*
+*Montara wins when Stages 0–2 harden the engine, Stage 3 ships the moat, and Stages 4–5 make it the default choice for local-first, IR-native, editor-bridge video production.*

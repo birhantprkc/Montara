@@ -9,14 +9,14 @@ commercial deployment.
 
 | Project | Role | License / note |
 | --- | --- | --- |
-| OpenMontage | Source-engine inspiration and derived Python/skill/test surfaces | AGPL-3.0 provenance boundary; see `docs/PORTING-PROVENANCE.md` and `NOTICE`. |
+| OpenMontage | Conceptual reference and historical source-engine context | AGPL-3.0 reference note; see `NOTICE`. |
 
 ## Core Tooling
 
 | Dependency | Role | Notes |
 | --- | --- | --- |
 | Node.js / TypeScript / esbuild | CLI, packages, test bundling | Development/runtime tooling. |
-| Python | Tool registry and media engine | Python dependencies are listed in `requirements*.txt`. |
+| Python | Tool registry and media engine | Python dependencies are listed under `requirements/`. |
 | FFmpeg / ffprobe | Media probe, render, audio, transcode, fallback path | External binary; license depends on build configuration. |
 | GitHub Actions | CI | Runs typecheck, verify, validate, pytest. |
 

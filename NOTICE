@@ -21,8 +21,7 @@ Montara-specific additions include, among other work:
 - Layer 2 Montara skills and Layer 3 skill wiring;
 - CI for typecheck, verify, validate, and pytest.
 
-Legal/provenance detail is maintained in docs/PORTING-PROVENANCE.md.
-Dependency attribution is maintained in docs/ATTRIBUTION.md.
+Attribution and dependency notes are maintained in docs/ATTRIBUTION.md.
 
 New Montara work may use the commit trailer:
 

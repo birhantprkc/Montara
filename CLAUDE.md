@@ -90,7 +90,7 @@ same files you do — keep knowledge here, not hardcoded.
 3. **Local-first default.** No API keys should be required to make a video.
 4. **Invoke, don't bundle.** ComfyUI/A1111/Blender/Manim/Remotion are external — never copy their
    source into this repo (license + size). Models carry their own licenses — check the card.
-5. **AGPL hygiene.** Keep Montara notices; record ports in `docs/PORTING-PROVENANCE.md`; everything
+5. **AGPL hygiene.** Keep Montara notices and dependency/source attribution in `NOTICE` and `docs/ATTRIBUTION.md`; everything
    stays open. (Selling a *closed* product is the only forbidden thing — out of scope.)
 6. **No secrets in the repo.** Keys via env/OS keychain only; never commit `.env`, never log keys.
 7. **Package boundaries.** `core` has no I/O. Renderers depend on `core`, not on each other.

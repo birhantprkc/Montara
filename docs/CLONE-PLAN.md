@@ -8,8 +8,7 @@ only when a verified replacement is better.
 
 - Python engine mirror: root-level `tools/`, `lib/`, `skills/`, `pipeline_defs/`, and `schemas/`
 - Montara planning contract: `PLAN.md`
-- Branding/provenance contract: `docs/BRANDING-PROVENANCE-PLAN.md`
-- Provenance record: `docs/PORTING-PROVENANCE.md`
+- Attribution notes: `docs/ATTRIBUTION.md`
 - Parity tracker: `docs/MONTARA-PARITY.md`
 
 ## Rules
@@ -18,7 +17,7 @@ only when a verified replacement is better.
    states another source.
 2. Product-facing code, comments, prompts, CLI messages, templates, generated artifacts, and docs
    use Montara naming.
-3. Legal attribution stays in `NOTICE`, `LICENSE`, and `docs/PORTING-PROVENANCE.md`.
+3. Legal attribution stays in `NOTICE`, `LICENSE`, and `docs/ATTRIBUTION.md`.
 4. Do not blindly rename imports, schema fields, checkpoint keys, provider payloads, or filenames
    that are externally required.
 5. Every bridge or replacement ships with a verification case.
