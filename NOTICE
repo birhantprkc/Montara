@@ -21,6 +21,12 @@ Montara-specific additions include, among other work:
 - Layer 2 Montara skills and Layer 3 skill wiring;
 - CI for typecheck, verify, validate, and pytest.
 
+Montara invokes local vision runtimes rather than bundling them. Robust Video
+Matting (GPL-3.0), SAM 2 (Apache-2.0), and Ultralytics YOLO (AGPL-3.0) are
+installed and run outside this repository, and their model weights carry their
+own licences. Ultralytics in particular requires a commercial licence from
+Ultralytics for commercial use.
+
 Attribution and dependency notes are maintained in docs/ATTRIBUTION.md.
 
 New Montara work may use the commit trailer:

@@ -48,7 +48,13 @@ export interface Crop {
   h: number;
 }
 
-export type MaskShape = "rect" | "ellipse" | "rounded-rect";
+export type MaskShape = "rect" | "ellipse" | "rounded-rect" | "polygon";
+
+/** A vertex in the clip box's normalized 0..1 space. */
+export interface Point2D {
+  x: number;
+  y: number;
+}
 
 /** Alpha mask applied in the clip box's own normalized 0..1 space. */
 export interface Mask {
@@ -64,6 +70,29 @@ export interface Mask {
   feather?: number;
   /** Keep outside instead of inside. */
   invert?: boolean;
+  /** Polygon vertices (normalized, >= 3) for shape "polygon". Cut garbage mattes by hand here. */
+  points?: Point2D[];
+}
+
+/**
+ * An externally generated alpha source for the clip — an RVM/SAM 2 matte, a rendered
+ * luma pass, or any grayscale media. The matte is stretched to the clip box and merged
+ * into the clip's alpha before compositing, which is how green-screen-free background
+ * replacement works.
+ */
+export interface Matte {
+  /** Grayscale (luma) or alpha-carrying media whose values drive the clip's alpha. */
+  path: string;
+  /** Whether to read the matte's luminance or its own alpha channel. */
+  kind?: "luma" | "alpha";
+  /** Swap keep/discard — use the background instead of the subject. */
+  invert?: boolean;
+  /** Soften the matte edge, in composition pixels. */
+  featherPx?: number;
+  /** Contract (negative) or expand (positive) the edge, in pixels. Kills fringing halos. */
+  chokePx?: number;
+  /** 0..1 multiplier on the matte, for a partial hold-out. */
+  opacity?: number;
 }
 
 export type EffectType =
@@ -91,6 +120,16 @@ export interface Keyframe<T = number> {
   easing?: Easing;
 }
 
+/**
+ * Keyframe channels the renderers understand.
+ *
+ * `x`/`y` move the clip box on the canvas. `zoom`/`panX`/`panY` are a camera *inside* the box:
+ * the box stays put and the content pushes in, which is what makes a still plate read as a
+ * live drone shot instead of a pasted-in photo. Panning is expressed as a normalized focal
+ * point so a move stays framed correctly at any output resolution.
+ */
+export type AnimatableChannel = "x" | "y" | "opacity" | "zoom" | "panX" | "panY";
+
 export interface ClipTransition {
   kind: "cut" | "fade" | "crossfade";
   durationSec: number;
@@ -116,6 +155,8 @@ export interface ClipBase {
   crop?: Crop;
   /** Alpha mask in the clip box. */
   mask?: Mask;
+  /** External alpha matte (background removal, rotoscoping) merged into the clip's alpha. */
+  matte?: Matte;
   /** Ordered visual effects applied before compositing. */
   effects?: Effect[];
 }
@@ -137,6 +178,23 @@ export interface MediaClip extends ClipBase {
   label?: string;
 }
 
+/**
+ * A hard edge the text is clipped against, so animating the text across it makes the glyphs
+ * emerge rather than slide in already-visible.
+ *
+ * This is the difference between a title that "moves" and a title that is *revealed*: with a
+ * reveal the letters appear to rise out of the scene, which is why it has to be a mask on the
+ * text rather than a transform of it.
+ */
+export interface TextReveal {
+  /** Edge position in composition pixels. */
+  edgePx: number;
+  /** Which side stays visible. "above" reveals text rising up from the edge. */
+  keep?: "above" | "below";
+  /** Softness of the edge in pixels. 0 = razor cut. */
+  featherPx?: number;
+}
+
 export interface TextClip extends ClipBase {
   type: "text";
   text: string;
@@ -148,6 +206,8 @@ export interface TextClip extends ClipBase {
     maxWidthPct?: number;
     shadow?: boolean;
   };
+  /** Clip the glyphs against an edge so animated text emerges instead of sliding. */
+  reveal?: TextReveal;
 }
 
 export interface AudioClip extends ClipBase {
@@ -336,6 +396,31 @@ export function validateTimeline(timeline: Timeline): string[] {
       if (isMediaClip(clip) && !clip.source.path) issues.push(`media clip ${clip.id} requires source.path`);
       if (clip.transform?.opacity != null && (clip.transform.opacity < 0 || clip.transform.opacity > 1)) {
         issues.push(`clip ${clip.id} opacity must be 0..1`);
+      }
+      if (clip.mask?.shape === "polygon" && (clip.mask.points?.length ?? 0) < 3) {
+        issues.push(`clip ${clip.id} polygon mask needs at least 3 points`);
+      }
+      if (clip.matte && !clip.matte.path) issues.push(`clip ${clip.id} matte requires a path`);
+      if (clip.matte?.opacity != null && (clip.matte.opacity < 0 || clip.matte.opacity > 1)) {
+        issues.push(`clip ${clip.id} matte opacity must be 0..1`);
+      }
+      // A zoom of 0 or less inverts or collapses the crop window and ffmpeg renders garbage
+      // rather than failing, so catch it here where the message can name the clip.
+      for (const frame of clip.keyframes?.zoom ?? []) {
+        if (!(frame.value > 0)) issues.push(`clip ${clip.id} zoom keyframe must be > 0`);
+      }
+      for (const channel of ["panX", "panY"] as const) {
+        for (const frame of clip.keyframes?.[channel] ?? []) {
+          if (frame.value < 0 || frame.value > 1) {
+            issues.push(`clip ${clip.id} ${channel} keyframe must be 0..1`);
+          }
+        }
+      }
+      if (clip.type === "text") {
+        const reveal = (clip as TextClip).reveal;
+        if (reveal && !Number.isFinite(reveal.edgePx)) {
+          issues.push(`clip ${clip.id} reveal requires a finite edgePx`);
+        }
       }
     }
   }

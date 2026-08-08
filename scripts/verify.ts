@@ -25,6 +25,16 @@ import {
   findClip,
   setTransform,
   setMask,
+  setMatte,
+  rippleDelete,
+  rollEdit,
+  slipClip,
+  slideClip,
+  jCut,
+  lCut,
+  closeGaps,
+  findGaps,
+  crossfade,
   addEffect,
   setCrop,
   setZ,
@@ -35,14 +45,46 @@ import {
   timelineToScenePlanArtifact,
   editDecisionsToTimeline,
   timelineToEditDecisions,
+  type Clip,
   type EditDecisionsArtifact,
   type ScenePlanArtifact,
   type ScenePlan,
+  type Timeline,
 } from "../packages/core/src/index";
+import {
+  describeHardware,
+  listVisionModels,
+  planVisionModels,
+  probeHardware,
+  selectVisionModel,
+  type HardwareProfile,
+} from "../packages/runtimes/src/index";
+import { autoMatte, reconcileHardware, removeBackground, segmentObject } from "../packages/vision/src/index";
+import { matchVoice, measureVoiceQuality } from "../packages/hear/src/index";
 import { directScene, directScript, resolveEmotion, planReelTreatment, createReelArtifacts } from "../packages/quality/src/index";
 import { exportTimeline, timelineToEDL, timelineToOTIO, timelineToFCPXML, framesToTimecode, importTimeline, edlToTimeline, otioToTimeline, fcpxmlToTimeline, detectEditorFormat, videoClips } from "../packages/bridge/src/index";
 import { brainCatalogue, ollamaInstalled } from "../packages/llm/src/index";
-import { renderScenePlan, renderTimeline, probeDuration } from "../packages/render-ffmpeg/src/index";
+import {
+  renderScenePlan,
+  renderTimeline,
+  probeDuration,
+  availableAudioFilters,
+  compositeTimeline,
+  fitFontSize,
+  hasAnimation,
+  keyframeExpr,
+  learnNoiseProfile,
+  measureTextWidth,
+  mediaBin,
+  multibandGraph,
+  noiseFloorOf,
+  denoiseStrengthFor,
+  expanderFor,
+  restoreVoice,
+  supportedFilters,
+  voiceFilterChain,
+} from "../packages/render-ffmpeg/src/index";
+import { spawnSync } from "node:child_process";
 import { remotionDefaultEnabled, timelineToRemotionProps } from "../packages/render-remotion/src/index";
 import { listPipelines, planVideo } from "../packages/ai/src/index";
 import {
@@ -716,6 +758,15 @@ const mixPath = join(process.cwd(), "out", "verify-mix.wav");
 mixAudioTracks({ tracks: [{ path: voicePath, volume: 1 }, { path: musicPath, volume: 0.5, delaySec: 0.2 }], outPath: mixPath, duckUnderFirst: true });
 ok("audio mixer combines voice + music into a real track", existsSync(mixPath) && probeDuration(mixPath) > 0.8);
 
+const scMixPath = join(process.cwd(), "out", "verify-mix-sidechain.wav");
+const scMix = mixAudioTracks({
+  tracks: [{ path: voicePath, volume: 1 }, { path: musicPath, volume: 0.6 }],
+  outPath: scMixPath,
+  sidechain: true,
+});
+ok("sidechain mix ducks the bed off the voice instead of holding a flat gain",
+  existsSync(scMixPath) && probeDuration(scMixPath) > 0.8 && scMix.metadata?.sidechain === true);
+
 const enhancedPath = join(process.cwd(), "out", "verify-enhanced.wav");
 enhanceAudio({ inputPath: mixPath, outPath: enhancedPath, targetLufs: -14 });
 ok("audio enhancer normalizes to a real output track", existsSync(enhancedPath) && probeDuration(enhancedPath) > 0.8);
@@ -1251,7 +1302,10 @@ ok("runtime install plans are guidance-only and keep setup external", (() => {
     whisper.includes("faster-whisper");
 })());
 const runtimeNoProbe = await runtimeStatusReport({ probe: false, env: {} });
-ok("runtime status report degrades without probing or configured env", runtimeNoProbe.summary.total === 5 && runtimeNoProbe.summary.missing === 5 && runtimeNoProbe.runtimes.every((runtime) => runtime.status === "not-configured"));
+ok("runtime status report degrades without probing or configured env",
+  runtimeNoProbe.summary.total === localRuntimes.length &&
+  runtimeNoProbe.summary.missing === runtimeNoProbe.summary.total &&
+  runtimeNoProbe.runtimes.every((runtime) => runtime.status === "not-configured"));
 const runtimeRoot = join(process.cwd(), "out", "verify-runtimes");
 const comfyInstall = managedRuntimePlan("comfyui", "install", { rootDir: runtimeRoot, platform: "win32" });
 ok("managed ComfyUI install plan clones outside repo and prepares requirements", comfyInstall.runtimeDir.startsWith(runtimeRoot) && comfyInstall.commands.some((cmd) => cmd.command === "git" && cmd.args.includes("https://github.com/comfyanonymous/ComfyUI.git")) && comfyInstall.commands.some((cmd) => cmd.args.includes("requirements.txt")));
@@ -1454,6 +1508,13 @@ ok("probeHyperframes reports a stable status shape and boolean convenience probe
     ["node_modules", "npx", "absent"].includes(hf.source) &&
     typeof hf.hint === "string" &&
     hyperframesAvailable() === hf.available;
+})());
+// Resolving the CLI is an `npx` spawn with a timeout, so an unmemoised probe answers differently
+// depending on how loaded the machine was. A toolchain probe has to be a property of the machine.
+ok("repeated HyperFrames probes agree with each other", (() => {
+  const first = probeHyperframes();
+  const second = probeHyperframes();
+  return first.available === second.available && first.source === second.source;
 })());
 
 // ---- Pro-editor bridges: export the IR to EDL / FCPXML / OTIO ----
@@ -1719,6 +1780,495 @@ const reelHardcodeText = reelHardcodeFiles.map((file) => readFileSync(file, "utf
 ok("reel path has no baked hooks or fixed ffmpeg layout/timing policy",
   !/WATCH THE TURN|ONE TAKE, SHARPER EDIT|WATCH THE CUT|WATCH THE POINT BUILD|THIS ISN'T ONE PROMPT|dynamicWindow|capY|capSize|wrapAt|fontFamily: "Arial"|follow warfront|warfront\.live/.test(reelHardcodeText) &&
   !/H \* 0\.[0-9]+|W \* 0\.[0-9]+|between\(t,[^)]+\)/.test(readFileSync(join(process.cwd(), "packages", "render-ffmpeg", "src", "reel.ts"), "utf8")));
+
+// ---------------------------------------------------------------------------
+// Editorial cutting, pro masking, hardware-gated vision models, voice restoration
+// ---------------------------------------------------------------------------
+
+/** findClip returns its track too; these assertions only care about the clip. */
+function clipOf(tl: Timeline, id: string) {
+  const found = findClip(tl, id);
+  if (!found) throw new Error(`verify fixture lost clip ${id}`);
+  return found.clip;
+}
+
+function cutFixture(): Timeline {
+  return {
+    version: "1.1",
+    composition: { width: 640, height: 360, fps: 24, durationSec: 9, background: "#000000" },
+    tracks: [
+      {
+        id: "v1",
+        type: "video",
+        clips: [
+          { id: "a", type: "video", startSec: 0, durationSec: 3, source: { kind: "video", path: "a.mp4" }, sourceInSec: 0 },
+          { id: "b", type: "video", startSec: 3, durationSec: 3, source: { kind: "video", path: "b.mp4" }, sourceInSec: 5 },
+          { id: "c", type: "video", startSec: 6, durationSec: 3, source: { kind: "video", path: "c.mp4" }, sourceInSec: 0 },
+        ],
+      },
+      {
+        id: "a1",
+        type: "audio",
+        clips: [
+          { id: "na", type: "audio", startSec: 3, durationSec: 3, source: { kind: "file", path: "vo.wav" } },
+        ],
+      },
+    ],
+  } as unknown as Timeline;
+}
+
+const splitSource = splitClip(cutFixture(), "b", 4.5);
+const splitRight = clipOf(splitSource, "b-b");
+ok("splitClip advances sourceInSec so the second half does not replay the first",
+  isMediaClip(splitRight) && splitRight.sourceInSec === 6.5,
+  `got ${(splitRight as { sourceInSec?: number }).sourceInSec}`);
+
+const rippled = rippleDelete(cutFixture(), "b");
+const rippledTrack = rippled.tracks[0]!;
+ok("rippleDelete removes the clip and pulls the tail back",
+  rippledTrack.clips.length === 2 && rippledTrack.clips[1]!.id === "c" && rippledTrack.clips[1]!.startSec === 3,
+  `got ${rippledTrack.clips.map((c) => `${c.id}@${c.startSec}`).join(" ")}`);
+ok("rippleDelete leaves no gaps behind", findGaps(rippled, "v1").length === 0);
+
+const rolled = rollEdit(cutFixture(), "a", "b", 0.5);
+ok("rollEdit moves the edit point without changing total duration",
+  timelineDuration(rolled) === timelineDuration(cutFixture()) &&
+  clipOf(rolled, "a").durationSec === 3.5 && clipOf(rolled, "b").startSec === 3.5,
+  `a=${clipOf(rolled, "a").durationSec} b@${clipOf(rolled, "b").startSec}`);
+ok("rollEdit past the neighbour's length is clamped, not allowed to invert the clip",
+  clipOf(rollEdit(cutFixture(), "a", "b", 99), "b").durationSec > 0);
+
+const slipped = slipClip(cutFixture(), "b", -2);
+const slippedClip = clipOf(slipped, "b");
+ok("slipClip changes what a clip shows without moving it on the timeline",
+  slippedClip.startSec === 3 && slippedClip.durationSec === 3 && isMediaClip(slippedClip) && slippedClip.sourceInSec === 3);
+ok("slipClip cannot slip a clip to a negative source in-point",
+  (clipOf(slipClip(cutFixture(), "b", -99), "b") as { sourceInSec?: number }).sourceInSec === 0);
+
+const slid = slideClip(cutFixture(), "b", 0.5);
+ok("slideClip moves a clip and absorbs the shift into its neighbours",
+  clipOf(slid, "b").startSec === 3.5 && clipOf(slid, "a").durationSec === 3.5 &&
+  clipOf(slid, "c").startSec === 6.5 && timelineDuration(slid) === timelineDuration(cutFixture()));
+
+const jCutTimeline = jCut(cutFixture(), "na", 0.8);
+const jClip = clipOf(jCutTimeline, "na");
+ok("jCut leads audio in under the outgoing shot",
+  Math.abs(jClip.startSec - 2.2) < 1e-6 && Math.abs(jClip.durationSec - 3.8) < 1e-6,
+  `${jClip.startSec}+${jClip.durationSec}`);
+const lCutTimeline = lCut(cutFixture(), "na", 0.8);
+ok("lCut holds audio over the incoming shot",
+  clipOf(lCutTimeline, "na").startSec === 3 && Math.abs(clipOf(lCutTimeline, "na").durationSec - 3.8) < 1e-6);
+ok("J/L cuts never pull audio before the head of the timeline",
+  clipOf(jCut(cutFixture(), "na", 99), "na").startSec === 0);
+
+const faded = crossfade(cutFixture(), "a", "b", 0.5);
+ok("crossfade overlaps the pair and records the transition",
+  clipOf(faded, "b").startSec === 2.5 && Boolean(clipOf(faded, "b").transitionIn));
+
+const gappy = removeClip(cutFixture(), "b");
+ok("findGaps reports the hole a plain delete leaves", findGaps(gappy, "v1").length === 1);
+ok("closeGaps pulls the remaining clips together", findGaps(closeGaps(gappy, "v1"), "v1").length === 0);
+ok("every cut operation returns a valid timeline",
+  [rippled, rolled, slipped, slid, jCutTimeline, lCutTimeline, faded, closeGaps(gappy, "v1")]
+    .every((tl) => validateTimeline(tl).length === 0));
+const cutInput = cutFixture();
+rippleDelete(cutInput, "b");
+ok("cut operations are immutable", cutInput.tracks[0]!.clips.length === 3);
+
+// Pro masking and external mattes in the IR.
+const polygonTimeline = setMask(cutFixture(), "a", {
+  shape: "polygon",
+  points: [{ x: 100, y: 40 }, { x: 500, y: 60 }, { x: 460, y: 320 }, { x: 120, y: 300 }],
+  feather: 8,
+});
+ok("polygon masks validate with three or more points", validateTimeline(polygonTimeline).length === 0);
+ok("polygon masks with fewer than three points are rejected",
+  validateTimeline(setMask(cutFixture(), "a", { shape: "polygon", points: [{ x: 0, y: 0 }] })).length === 1);
+
+const matteTimeline = setMatte(cutFixture(), "a", { path: "matte.mp4", kind: "luma", featherPx: 2, opacity: 0.9 });
+ok("setMatte attaches an external alpha source", clipOf(matteTimeline, "a").matte?.path === "matte.mp4");
+ok("setMatte(null) detaches it", clipOf(setMatte(matteTimeline, "a", null), "a").matte === undefined);
+ok("a matte without a path is rejected",
+  validateTimeline(setMatte(cutFixture(), "a", { path: "" })).length === 1);
+ok("matte opacity outside 0..1 is rejected",
+  validateTimeline(setMatte(cutFixture(), "a", { path: "m.mp4", opacity: 4 })).length === 1);
+
+// Hardware gating: the machine decides, and a machine that cannot run a model never downloads it.
+const gpuRig: HardwareProfile = {
+  generatedAt: new Date().toISOString(),
+  platform: "linux", arch: "x64", cpuCores: 16, ramMb: 32768, freeDiskMb: 100000,
+  accelerator: { kind: "cuda", name: "Test GPU", vramMb: 12288, detected: true },
+  notes: [],
+};
+const laptop: HardwareProfile = { ...gpuRig, ramMb: 8192, accelerator: { kind: "cpu", name: "CPU", vramMb: 0, detected: true } };
+const smallGpu: HardwareProfile = { ...gpuRig, accelerator: { kind: "cuda", name: "Small GPU", vramMb: 2048, detected: true } };
+const fullDisk: HardwareProfile = { ...gpuRig, freeDiskMb: 100 };
+
+ok("a big GPU is approved for the strongest variant",
+  selectVisionModel("sam2", gpuRig).chosen?.id === "sam2.1-hiera-large" && selectVisionModel("sam2", gpuRig).downloadApproved);
+ok("a small GPU is stepped down to a variant that fits its VRAM",
+  selectVisionModel("sam2", smallGpu).chosen?.id === "sam2.1-hiera-tiny",
+  `got ${selectVisionModel("sam2", smallGpu).chosen?.id}`);
+ok("a CPU-only machine only gets CPU-viable variants",
+  selectVisionModel("rvm", laptop).chosen?.id === "rvm-mobilenetv3" && selectVisionModel("rvm", laptop).device === "cpu");
+const cpuRvmRejects = selectVisionModel("rvm", laptop).rejected;
+ok("GPU-only variants are rejected on CPU with a reason",
+  cpuRvmRejects.some((r) => r.id === "rvm-resnet50" && /CPU/.test(r.reason)));
+ok("a machine that cannot run any variant is refused a download",
+  !selectVisionModel("sam2", { ...laptop, ramMb: 2048 }).downloadApproved &&
+  selectVisionModel("sam2", { ...laptop, ramMb: 2048 }).chosen === undefined);
+ok("a full disk blocks the download even when the model fits in memory",
+  selectVisionModel("sam2", fullDisk).chosen !== undefined && !selectVisionModel("sam2", fullDisk).downloadApproved);
+ok("forceCpu evaluates the CPU path even on a GPU box",
+  selectVisionModel("yolo", gpuRig, { forceCpu: true }).device === "cpu");
+ok("pinning an unknown variant is refused rather than silently substituted",
+  !selectVisionModel("yolo", gpuRig, { preferId: "yolo-does-not-exist" }).downloadApproved);
+ok("pinning a variant this machine cannot run is still refused",
+  !selectVisionModel("rvm", laptop, { preferId: "rvm-resnet50" }).downloadApproved);
+
+const laptopPlan = planVisionModels(laptop);
+ok("the model plan covers every family and names its licences",
+  laptopPlan.selections.length === 3 && laptopPlan.notes.some((note) => /AGPL/.test(note)));
+ok("listVisionModels filters by family", listVisionModels("rvm").every((model) => model.family === "rvm"));
+ok("hardware probing never throws and always names a device",
+  typeof describeHardware(probeHardware()) === "string" && describeHardware(laptop).includes("CPU only"));
+
+// Voice restoration: the chain is craft, so its order is a contract.
+const chain = voiceFilterChain({ denoise: "medium", dehum: 50, gateDb: -40 });
+ok("the voice chain cleans before it shapes and compresses last",
+  chain[0]!.startsWith("highpass") &&
+  chain.findIndex((f) => f.startsWith("afftdn")) < chain.findIndex((f) => f.startsWith("equalizer=f=300")) &&
+  chain.findIndex((f) => f.startsWith("acompressor")) === chain.length - 2 &&
+  chain[chain.length - 1]!.startsWith("alimiter"),
+  chain.join(" -> "));
+ok("dehum notches the mains frequency and its harmonics",
+  [50, 100, 150].every((hz) => chain.some((f) => f.startsWith(`equalizer=f=${hz}:`))));
+ok("the voice chain never stacks a second loudness stage on the master",
+  !chain.some((f) => f.startsWith("loudnorm")));
+ok("an RNNoise model replaces the FFT denoiser rather than stacking with it",
+  voiceFilterChain({ rnnoiseModel: "m.rnnn" }).some((f) => f.startsWith("arnndn")) &&
+  !voiceFilterChain({ rnnoiseModel: "m.rnnn" }).some((f) => f.startsWith("afftdn")));
+ok("denoise off drops the denoiser entirely", !voiceFilterChain({ denoise: "off" }).some((f) => f.startsWith("afftdn")));
+ok("filters missing from a build are dropped, not fatal",
+  supportedFilters(["highpass=f=80", "deesser=i=0.4", "alimiter=limit=0.95"], new Set(["highpass", "alimiter"])).length === 2);
+ok("a failed filter probe trusts the chain instead of stripping it",
+  supportedFilters(["highpass=f=80", "deesser=i=0.4"], new Set()).length === 2);
+ok("this ffmpeg build exposes the core restoration filters",
+  ["highpass", "afftdn", "acompressor", "alimiter", "equalizer"].every((f) => availableAudioFilters().has(f)),
+  [...availableAudioFilters()].length ? "probe ran" : "probe returned nothing");
+
+const restoreDir = join(process.cwd(), "out", "verify-restore");
+rmSync(restoreDir, { recursive: true, force: true });
+const noisyWav = join(restoreDir, "noisy.wav");
+mkdirSync(restoreDir, { recursive: true });
+const noisyBuild = spawnSync(mediaBin("ffmpeg"), [
+  "-y", "-v", "error",
+  "-f", "lavfi", "-i", "sine=frequency=180:duration=2",
+  "-f", "lavfi", "-i", "anoisesrc=d=2:c=pink:a=0.08",
+  "-filter_complex", "[0][1]amix=inputs=2",
+  "-ar", "48000", noisyWav,
+], { encoding: "utf8" });
+if (noisyBuild.status === 0) {
+  const restored = restoreVoice(noisyWav, join(restoreDir, "clean.wav"), { denoise: "strong", gateDb: -45 });
+  ok("restoreVoice writes a real cleaned file", restored.ok && existsSync(restored.outPath), restored.error ?? "");
+  const before = measureVoiceQuality(noisyWav);
+  const after = measureVoiceQuality(restored.outPath);
+  ok("voice measurement returns comparable numbers for both takes",
+    before.durationSec > 1.9 && after.durationSec > 1.9 && after.warmth >= 0 && after.warmth <= 1);
+  ok("matchVoice scores a take against itself as a match", matchVoice(before, before).verdict === "match");
+  ok("matchVoice separates a fast take from a slow one",
+    matchVoice(before, { ...before, onsetsPerSec: before.onsetsPerSec + 4 }).verdict === "different");
+} else {
+  ok("restoreVoice writes a real cleaned file", false, "could not synthesise test audio");
+}
+
+// Multiband restoration: measure each band's floor, expand each against it. A single gate cannot
+// treat rumble, hum, room tone and hiss at once — that is the claim these tests lock down.
+ok("noiseFloorOf reports the quiet percentile, not the mean or the minimum", (() => {
+  // Ten samples: the 10th percentile lands near the second-quietest, far from the mean (~-35)
+  // and deliberately not at the absolute minimum (which would be a hard digital silence).
+  const samples = [-80, -50, -48, -46, -44, -20, -18, -16, -14, -12];
+  const floor = noiseFloorOf(samples, 0.1);
+  const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+  return floor > -80 && floor <= -48 && floor < mean;
+})());
+ok("denoiseStrengthFor is silent on a clean band and capped on a loud one",
+  denoiseStrengthFor(-72) === 0 && denoiseStrengthFor(-20) <= 30);
+ok("the expander transfer curve drops below the measured floor and passes speech above it", (() => {
+  const expr = expanderFor(-40);
+  return /points=/.test(expr) && /-40\.0\/-58\.0/.test(expr) && /-30\.0\/-30\.0/.test(expr);
+})());
+ok("the multiband graph splits, treats each band, and sums without normalising", (() => {
+  const profile = {
+    crossovers: [150, 1200, 6000],
+    bands: [
+      { lo: 0, hi: 150, floorDb: -36, peakDb: -30 },
+      { lo: 150, hi: 1200, floorDb: -50, peakDb: -22 },
+      { lo: 1200, hi: 6000, floorDb: -44, peakDb: -28 },
+      { lo: 6000, hi: null, floorDb: -38, peakDb: -30 },
+    ],
+    windows: 40,
+  };
+  const graph = multibandGraph(profile, "[0:a]", "[clean]");
+  return /acrossover=split=150\|1200\|6000/.test(graph) &&
+    /amix=inputs=4:normalize=0/.test(graph) &&
+    (graph.match(/afftdn=/g) ?? []).length === 4 &&
+    (graph.match(/compand=/g) ?? []).length === 4;
+})());
+
+if (noisyBuild.status === 0 && availableAudioFilters().has("acrossover")) {
+  // A hiss-heavy take: low sine + loud white noise. The air band is where the damage lives; the
+  // body band is mostly the tone. Multiband should quiet the air floor without collapsing the body.
+  const hissy = join(restoreDir, "hissy.wav");
+  const hissBuild = spawnSync(mediaBin("ffmpeg"), [
+    "-y", "-v", "error",
+    "-f", "lavfi", "-i", "sine=frequency=220:duration=3",
+    "-f", "lavfi", "-i", "anoisesrc=d=3:c=white:a=0.05",
+    "-filter_complex", "[0]volume=0.4[t];[t][1]amix=inputs=2:normalize=0",
+    "-ar", "48000", hissy,
+  ], { encoding: "utf8" });
+  if (hissBuild.status === 0) {
+    const before = learnNoiseProfile(hissy);
+    const multi = restoreVoice(hissy, join(restoreDir, "multi.wav"), { dehum: false, multiband: true });
+    ok("multiband restoreVoice writes a file and reports the measured bands",
+      multi.ok && existsSync(multi.outPath) && (multi.bands?.length ?? 0) >= 4, multi.error ?? "");
+    const after = multi.ok ? learnNoiseProfile(multi.outPath) : null;
+    const airBefore = before?.bands.find((b) => b.lo === 6000)?.floorDb ?? 0;
+    const airAfter = after?.bands.find((b) => b.lo === 6000)?.floorDb ?? 0;
+    const bodyBefore = before?.bands.find((b) => b.lo === 150)?.floorDb ?? 0;
+    const bodyAfter = after?.bands.find((b) => b.lo === 150)?.floorDb ?? 0;
+    ok("multiband restoration drops the air-band noise floor",
+      airAfter < airBefore - 2, `air ${airBefore.toFixed(1)} -> ${airAfter.toFixed(1)} dB`);
+    ok("multiband restoration does not collapse the body band with the air band",
+      (bodyAfter - bodyBefore) > (airAfter - airBefore),
+      `body Δ ${(bodyAfter - bodyBefore).toFixed(1)} vs air Δ ${(airAfter - airBefore).toFixed(1)}`);
+  } else {
+    ok("multiband restoreVoice writes a file and reports the measured bands", false, "could not synthesise hissy take");
+    ok("multiband restoration drops the air-band noise floor", false, "skipped");
+    ok("multiband restoration does not collapse the body band with the air band", false, "skipped");
+  }
+} else {
+  ok("multiband restoreVoice writes a file and reports the measured bands", true, "acrossover unavailable — skipped");
+  ok("multiband restoration drops the air-band noise floor", true, "acrossover unavailable — skipped");
+  ok("multiband restoration does not collapse the body band with the air band", true, "acrossover unavailable — skipped");
+}
+
+// The compositor has to honour the new IR, so render one for real.
+const matteDir = join(process.cwd(), "out", "verify-matte");
+rmSync(matteDir, { recursive: true, force: true });
+mkdirSync(matteDir, { recursive: true });
+const plateMp4 = join(matteDir, "plate.mp4");
+const matteMp4 = join(matteDir, "matte.mp4");
+const plateBuild = spawnSync(mediaBin("ffmpeg"), ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=12:duration=2", "-pix_fmt", "yuv420p", plateMp4], { encoding: "utf8" });
+const matteBuild = spawnSync(mediaBin("ffmpeg"), ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=12:duration=2", "-vf", "format=gray,boxblur=10", "-pix_fmt", "yuv420p", matteMp4], { encoding: "utf8" });
+if (plateBuild.status === 0 && matteBuild.status === 0) {
+  const mattedTimeline: Timeline = {
+    version: "1.1",
+    composition: { width: 320, height: 180, fps: 12, durationSec: 2, background: "#101014" },
+    tracks: [{
+      id: "v1",
+      type: "video",
+      clips: [{
+        id: "plate",
+        type: "video",
+        startSec: 0,
+        durationSec: 2,
+        source: { kind: "video", path: plateMp4 },
+        matte: { path: matteMp4, kind: "luma", featherPx: 2, opacity: 0.9 },
+        mask: { shape: "polygon", points: [{ x: 40, y: 20 }, { x: 280, y: 30 }, { x: 260, y: 160 }, { x: 60, y: 150 }], feather: 4 },
+      }],
+    }],
+  } as unknown as Timeline;
+  const mattedOut = compositeTimeline(mattedTimeline, join(matteDir, "composited.mp4"));
+  const mattedDuration = probeDuration(mattedOut);
+  ok("the compositor renders an external matte plus a polygon mask to a real MP4",
+    existsSync(mattedOut) && Math.abs(mattedDuration - 2) < 0.35, `duration ${mattedDuration}`);
+} else {
+  ok("the compositor renders an external matte plus a polygon mask to a real MP4", false, "could not synthesise test media");
+}
+
+// Vision entry points must degrade honestly when a model or runtime is absent.
+const missingClip = join(matteDir, "definitely-missing.mp4");
+const missingMatte = removeBackground(missingClip, { outMattePath: join(matteDir, "x.mp4"), download: "never" });
+ok("matting reports unavailable for a missing input instead of throwing",
+  !missingMatte.ok && missingMatte.reason.length > 0);
+const starvedRig: HardwareProfile = { ...laptop, ramMb: 1024 };
+ok("a machine too small for any variant is flagged unavailable rather than made to download",
+  removeBackground(plateMp4, { outMattePath: join(matteDir, "x.mp4"), hardware: starvedRig }).unavailable);
+ok("segmentation refuses to run without a prompt",
+  !segmentObject(missingClip, { outMattePath: join(matteDir, "y.mp4"), download: "never" }).ok);
+const closedGate = autoMatte(missingClip, { outMattePath: join(matteDir, "z.mp4"), download: "never" });
+ok("autoMatte records every strategy it tried before giving up",
+  !closedGate.ok && closedGate.strategy === "none" && closedGate.attempts.length >= 2,
+  closedGate.attempts.map((a) => a.strategy).join(", "));
+
+// ---------------------------------------------------------------------------
+// Keyframes, text depth, and the runtime device reconcile.
+//
+// The IR has always carried keyframes and the slideshow check counted them as motion, so
+// a timeline could pass QA while rendering as a still. These cases pin the compiled
+// behaviour: the expression holds outside its range, text obeys z, and a GPU the
+// interpreter cannot reach does not get to pick the variant.
+
+const holdExpr = keyframeExpr([{ atSec: 1, value: 100 }, { atSec: 3, value: 300 }], 0);
+ok("a keyframe track compiles to an expression that holds before the first key",
+  holdExpr.includes("if(lt(t,1),100"), holdExpr.slice(0, 40));
+ok("a keyframe track interpolates between keys over t",
+  holdExpr.includes("(t-1)/2") && holdExpr.includes("300"), holdExpr.slice(-60));
+ok("a single keyframe compiles to a constant",
+  keyframeExpr([{ atSec: 2, value: 42 }], 0) === "42");
+ok("an empty keyframe track falls back to the static value",
+  keyframeExpr([], 17) === "17");
+ok("easing shapes the interpolation rather than being ignored",
+  keyframeExpr([{ atSec: 0, value: 0 }, { atSec: 1, value: 10, easing: "ease-in-out" }], 0).includes("3-2*"));
+ok("hasAnimation only reports clips the ffmpeg engine can actually move",
+  hasAnimation({ id: "a", type: "text", startSec: 0, durationSec: 1, text: "x", keyframes: { y: [{ atSec: 0, value: 0 }, { atSec: 1, value: 9 }] } } as unknown as Clip)
+  && !hasAnimation({ id: "b", type: "text", startSec: 0, durationSec: 1, text: "x", keyframes: { rotateDeg: [{ atSec: 0, value: 0 }, { atSec: 1, value: 9 }] } } as unknown as Clip));
+
+/** Brightest luma in one frame — enough to tell "white text visible" from "covered". */
+function peakLuma(path: string, atSec: number, crop = ""): number {
+  const vf = [crop, "signalstats", "metadata=print:file=-"].filter(Boolean).join(",");
+  const probe = spawnSync(mediaBin("ffmpeg"), [
+    "-v", "error", "-ss", String(atSec), "-i", path, "-frames:v", "1", "-vf", vf, "-f", "null", "-",
+  ], { encoding: "utf8", maxBuffer: 1 << 24 });
+  const values = [...`${probe.stdout ?? ""}${probe.stderr ?? ""}`.matchAll(/YMAX=(\d+)/g)].map((m) => Number(m[1]));
+  return values.length ? Math.max(...values) : -1;
+}
+
+function depthTimeline(textZ: number, keyframed: boolean): Timeline {
+  return {
+    version: "1.1",
+    composition: { width: 320, height: 180, fps: 10, durationSec: 2, background: "000000" },
+    tracks: [
+      {
+        id: "v1",
+        type: "video",
+        clips: [{
+          id: "cover",
+          type: "video",
+          startSec: 0,
+          durationSec: 2,
+          z: 20,
+          source: { kind: "solid", color: "303030" },
+          box: { wFrac: 1, hFrac: 1 },
+        }],
+      },
+      {
+        id: "t1",
+        type: "text",
+        clips: [{
+          id: "title",
+          type: "text",
+          startSec: 0,
+          durationSec: 2,
+          z: textZ,
+          text: "MONTARA",
+          style: { fontSize: 40, color: "ffffff", shadow: false },
+          transform: { x: 160, y: 90 },
+          ...(keyframed ? { keyframes: { y: [{ atSec: 0, value: 30 }, { atSec: 2, value: 150 }] } } : {}),
+        }],
+      },
+    ],
+  } as unknown as Timeline;
+}
+
+const depthDir = join(process.cwd(), "out", "verify-depth");
+rmSync(depthDir, { recursive: true, force: true });
+mkdirSync(depthDir, { recursive: true });
+try {
+  const behind = compositeTimeline(depthTimeline(10, false), join(depthDir, "behind.mp4"));
+  const front = compositeTimeline(depthTimeline(30, false), join(depthDir, "front.mp4"));
+  const behindPeak = peakLuma(behind, 1);
+  const frontPeak = peakLuma(front, 1);
+  // An opaque grey plate at z 20 must hide text at z 10 and must not hide text at z 30.
+  ok("text below a layer in z is composited behind it, not stapled on top",
+    behindPeak > 0 && behindPeak < 80, `peak luma ${behindPeak}`);
+  ok("text above a layer in z still renders in front",
+    frontPeak > 200, `peak luma ${frontPeak}`);
+} catch (error) {
+  ok("text below a layer in z is composited behind it, not stapled on top", false, (error as Error).message);
+  ok("text above a layer in z still renders in front", false, "render failed");
+}
+
+try {
+  const moving = compositeTimeline(depthTimeline(30, true), join(depthDir, "moving.mp4"));
+  // The title starts inside this band and keyframes out of it. A still render never leaves.
+  const band = "crop=320:40:0:20";
+  const early = peakLuma(moving, 0.1, band);
+  const late = peakLuma(moving, 1.9, band);
+  ok("a keyframed text clip actually moves in the rendered frames",
+    early > 200 && late < 80, `band luma ${early} -> ${late}`);
+} catch (error) {
+  ok("a keyframed text clip actually moves in the rendered frames", false, (error as Error).message);
+}
+
+// A montage is a sequence of clips that start at different times. Each layer's input is trimmed to
+// its own duration, so without an explicit shift the layer's clock and the canvas clock disagree
+// and every shot after the first renders as bare background.
+try {
+  const montage = {
+    version: "1.1",
+    composition: { width: 320, height: 180, fps: 10, durationSec: 3, background: "000000" },
+    tracks: [{
+      id: "v1",
+      type: "video",
+      clips: [
+        { id: "a", type: "video", startSec: 0, durationSec: 1.5, z: 1, source: { kind: "solid", color: "101010" }, box: { wFrac: 1, hFrac: 1 } },
+        { id: "b", type: "video", startSec: 1.5, durationSec: 1.5, z: 2, source: { kind: "solid", color: "f0f0f0" }, box: { wFrac: 1, hFrac: 1 } },
+      ],
+    }],
+  } as unknown as Timeline;
+  const montagePath = compositeTimeline(montage, join(depthDir, "montage.mp4"));
+  const shotOne = peakLuma(montagePath, 0.5);
+  const shotTwo = peakLuma(montagePath, 2.2);
+  ok("a clip that starts after t=0 renders its own frames instead of the background",
+    shotOne < 60 && shotTwo > 200, `luma ${shotOne} -> ${shotTwo}`);
+} catch (error) {
+  ok("a clip that starts after t=0 renders its own frames instead of the background", false, (error as Error).message);
+}
+
+// Titles are authored per delivery frame, so their size has to come from the string rather than
+// from a fraction of the width: the same fraction that flatters "DEPTH" runs "SAN FRANCISCO" off
+// both edges of a 9:16 cut.
+try {
+  const wide = measureTextWidth("MMMMMMMMMM", 100);
+  const narrow = measureTextWidth("IIIIIIIIII", 100);
+  ok("text measurement distinguishes wide glyphs from narrow ones at the same size",
+    wide > narrow * 2, `M-run ${Math.round(wide)}px vs I-run ${Math.round(narrow)}px`);
+
+  const half = measureTextWidth("SAN FRANCISCO", 50);
+  const full = measureTextWidth("SAN FRANCISCO", 100);
+  ok("measured width scales linearly with font size",
+    Math.abs(full / 2 - half) <= 2, `${Math.round(half)}px vs ${Math.round(full)}/2px`);
+
+  const fitted = fitFontSize("SAN FRANCISCO", 900, { max: 200 });
+  ok("fitFontSize shrinks a title that would overflow the frame",
+    fitted < 200 && measureTextWidth("SAN FRANCISCO", fitted) <= 900,
+    `size ${fitted} -> ${Math.round(measureTextWidth("SAN FRANCISCO", fitted))}px of 900px`);
+
+  const kept = fitFontSize("OK", 900, { max: 200 });
+  ok("fitFontSize leaves a title that already fits at its designed size", kept === 200, `size ${kept}`);
+} catch (error) {
+  ok("text measurement distinguishes wide glyphs from narrow ones at the same size", false, (error as Error).message);
+  ok("measured width scales linearly with font size", false, "measurement failed");
+  ok("fitFontSize shrinks a title that would overflow the frame", false, "measurement failed");
+  ok("fitFontSize leaves a title that already fits at its designed size", false, "measurement failed");
+}
+
+// The machine probe and the runtime probe answer different questions; the gate needs both.
+const cudaBox: HardwareProfile = {
+  ...laptop,
+  accelerator: { kind: "cuda", name: "Test GPU", vramMb: 24000, detected: true },
+};
+const cpuOnlyTorch = reconcileHardware("rvm", { ...cudaBox, accelerator: { kind: "cpu", name: "CPU", vramMb: 0, detected: true } });
+ok("a CPU-only machine needs no runtime probe to select against",
+  cpuOnlyTorch.hardware.accelerator.kind === "cpu" && !cpuOnlyTorch.forceCpu);
+const reconciled = reconcileHardware("rvm", cudaBox);
+ok("a GPU the interpreter cannot drive is not allowed to pick the variant",
+  reconciled.forceCpu
+    ? reconciled.hardware.accelerator.kind === "cpu" && reconciled.hardware.notes.some((n) => n.includes("cannot use"))
+    : reconciled.hardware.accelerator.kind === "cuda",
+  reconciled.forceCpu ? "downgraded to CPU" : "runtime confirmed the accelerator");
 
 console.log(`\n== RESULT: ${pass} passed, ${fail} failed ==`);
 process.exit(fail === 0 ? 0 : 1);

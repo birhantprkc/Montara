@@ -33,6 +33,13 @@ montara plan "<idea>"          # just produce the EditPlan (inspect before rende
 montara render <ir.json>       # compile an IR to MP4 (pick --engine ffmpeg|revideo|three|...)
 montara hear <audio>           # voice/music analysis (loudness, warmth, pace) → scores JSON
 montara understand <video>     # frame/scene signalstats + optional local CLIP vision → understanding JSON
+montara models [plan|list|hardware] # what vision models THIS machine can run; refuses to fetch the rest
+montara matte <video>          # background removal, no green screen (RVM → YOLO+SAM 2 → chromakey)
+montara replace-bg <video> <backdrop> # matte + composite in one step; --text puts a title BEHIND the subject
+montara segment <video> --auto # promptable tracked masks via SAM 2 (--box | --point | --auto)
+montara detect <video>         # YOLO detection for mask prompts and auto-framing
+montara enhance <audio>        # noise reduction + voice enhancement (--master to land -14 LUFS)
+montara cut <ir.json> <op>     # split/ripple/roll/slip/slide/jcut/lcut/crossfade on the IR
 montara runtimes inventory     # configured external model/cache paths; no downloads or scans
 montara serve                  # local web GUI
 montara export <ir.json> --to otio|fcpxml|edl   # bridge to Premiere/DaVinci/Final Cut

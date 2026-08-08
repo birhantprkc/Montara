@@ -133,19 +133,39 @@ function findHyperframesRoot(start: string = process.cwd()): string | null {
   return null;
 }
 
-/** Honest, never-throwing probe of the HyperFrames toolchain (Stage 2.4). */
+// Resolving the CLI costs an `npx` spawn of a few seconds, and the probe is called from both the
+// status shape and the boolean wrapper. Left uncached, two calls a moment apart can disagree — on a
+// loaded machine one spawn returns inside the timeout and the next does not, so the same toolchain
+// reads as present and absent in the same run. Memoising makes the answer a property of the machine
+// rather than of how busy it was when you asked.
+const hyperframesProbeCache = new Map<string, HyperframesStatus>();
+
+/** Forget the cached probe — call after installing or removing the CLI within a process. */
+export function resetHyperframesProbe(): void {
+  hyperframesProbeCache.clear();
+}
+
+/** Honest, never-throwing probe of the HyperFrames toolchain (Stage 2.4). Cached per start path. */
 export function probeHyperframes(start: string = process.cwd()): HyperframesStatus {
-  if (findHyperframesRoot(start)) {
-    return { available: true, version: null, source: "node_modules", hint: "HyperFrames found in node_modules; run `npx hyperframes doctor` for details." };
-  }
-  try {
-    const probe = spawnSync("npx", ["--no-install", "hyperframes", "--version"], { encoding: "utf8", shell: true, timeout: 8000 });
-    if (probe.status === 0) {
-      const version = (probe.stdout || "").trim().split(/\s+/)[0] || null;
-      return { available: true, version, source: "npx", hint: "HyperFrames CLI resolved via npx." };
+  const cached = hyperframesProbeCache.get(start);
+  if (cached) return cached;
+
+  const status = ((): HyperframesStatus => {
+    if (findHyperframesRoot(start)) {
+      return { available: true, version: null, source: "node_modules", hint: "HyperFrames found in node_modules; run `npx hyperframes doctor` for details." };
     }
-  } catch { /* probe failure = not available */ }
-  return { available: false, version: null, source: "absent", hint: "HyperFrames not installed; run `npx --yes hyperframes doctor` to verify and cache-warm before native kinetic renders." };
+    try {
+      const probe = spawnSync("npx", ["--no-install", "hyperframes", "--version"], { encoding: "utf8", shell: true, timeout: 8000 });
+      if (probe.status === 0) {
+        const version = (probe.stdout || "").trim().split(/\s+/)[0] || null;
+        return { available: true, version, source: "npx", hint: "HyperFrames CLI resolved via npx." };
+      }
+    } catch { /* probe failure = not available */ }
+    return { available: false, version: null, source: "absent", hint: "HyperFrames not installed; run `npx --yes hyperframes doctor` to verify and cache-warm before native kinetic renders." };
+  })();
+
+  hyperframesProbeCache.set(start, status);
+  return status;
 }
 
 /** Boolean convenience wrapper around {@link probeHyperframes}. */

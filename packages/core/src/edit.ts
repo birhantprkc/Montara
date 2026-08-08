@@ -4,7 +4,18 @@
 // so the result stays valid. This is the moat the source engine lacks: a timeline a human
 // (or a GUI, or an agent) can edit between build and render, then re-render the diff.
 
-import { normalizeHex, round3, type Clip, type Crop, type Effect, type Mask, type Timeline, type Transform } from "./types";
+import {
+  isMediaClip,
+  normalizeHex,
+  round3,
+  type Clip,
+  type Crop,
+  type Effect,
+  type Mask,
+  type Matte,
+  type Timeline,
+  type Transform,
+} from "./types";
 
 /** End time (start + duration) of a clip, rounded to ms. */
 export function clipEnd(clip: Clip): number {
@@ -108,6 +119,22 @@ export function setMask(timeline: Timeline, clipId: string, mask: Mask | null): 
   });
 }
 
+/**
+ * Set (or clear with null) a clip's external alpha matte.
+ *
+ * This is how a background-removal pass reaches the renderer: `montara matte` writes the
+ * matte media, then this op points the clip at it. The clip's own shape mask still applies
+ * on top, so you can roto a region out of an already-keyed subject.
+ */
+export function setMatte(timeline: Timeline, clipId: string, matte: Matte | null): Timeline {
+  return mapClip(timeline, clipId, (clip) => {
+    const next = { ...clip };
+    if (matte) next.matte = matte;
+    else delete next.matte;
+    return next;
+  });
+}
+
 /** Append a visual effect to a clip's effect chain. */
 export function addEffect(timeline: Timeline, clipId: string, effect: Effect): Timeline {
   return mapClip(timeline, clipId, (clip) => ({ ...clip, effects: [...(clip.effects ?? []), effect] }));
@@ -134,6 +161,10 @@ export function splitClip(timeline: Timeline, clipId: string, atSec: number): Ti
 
   const left = { ...clip, id: `${clip.id}-a`, durationSec: round3(atSec - start) } as Clip;
   const right = { ...clip, id: `${clip.id}-b`, startSec: round3(atSec), durationSec: round3(end - atSec) } as Clip;
+  // The right half must resume further into the source, or it replays the same footage.
+  if (isMediaClip(clip) && clip.source.kind === "video" && isMediaClip(right)) {
+    right.sourceInSec = round3((clip.sourceInSec ?? 0) + (atSec - start));
+  }
   const tracks = timeline.tracks.map((track) => ({
     ...track,
     clips: track.clips.flatMap((c) => (c.id === clipId ? [left, right] : [c])),

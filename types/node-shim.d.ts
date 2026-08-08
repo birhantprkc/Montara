@@ -1,5 +1,6 @@
 declare const process: {
   argv: string[];
+  arch: string;
   cwd(): string;
   env: Record<string, string | undefined>;
   exit(code?: number): never;
@@ -83,12 +84,28 @@ declare module "node:fs" {
   export function readdirSync(path: string, options: { withFileTypes: true }): Dirent[];
   export function readdirSync(path: string): string[];
   export function rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void;
+  export interface StatsFs {
+    /** Free blocks available to an unprivileged user. */
+    bavail: number | bigint;
+    bfree: number | bigint;
+    blocks: number | bigint;
+    bsize: number | bigint;
+  }
+
   export function statSync(path: string): Stats;
+  export function statfsSync(path: string): StatsFs;
   export function writeFileSync(path: string, data: string | Uint8Array): void;
 }
 
 declare module "node:os" {
+  export interface CpuInfo {
+    model: string;
+    speed: number;
+  }
+
+  export function cpus(): CpuInfo[];
   export function tmpdir(): string;
+  export function totalmem(): number;
 }
 
 declare module "node:path" {

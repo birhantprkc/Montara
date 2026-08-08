@@ -7,12 +7,51 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
-export type RuntimeId = "comfyui" | "a1111" | "piper" | "faster-whisper" | "transformersjs";
+export type RuntimeId =
+  | "comfyui"
+  | "a1111"
+  | "piper"
+  | "faster-whisper"
+  | "transformersjs"
+  | "rvm"
+  | "sam2"
+  | "yolo";
 export type RuntimeStatus = "reachable" | "configured" | "not-configured" | "unreachable";
 export type RuntimePlanMode = "install" | "launch";
 export type RuntimePlatform = string;
 export type RuntimeProbeKind = "http" | "command" | "python-package" | "node-package";
-export type RuntimeKind = "image-video" | "image" | "audio-tts" | "transcription" | "vision-models";
+export type RuntimeKind =
+  | "image-video"
+  | "image"
+  | "audio-tts"
+  | "transcription"
+  | "vision-models"
+  | "matting"
+  | "segmentation"
+  | "detection";
+
+export {
+  probeHardware,
+  describeHardware,
+  type AcceleratorInfo,
+  type AcceleratorKind,
+  type HardwareProbeOptions,
+  type HardwareProfile,
+} from "./hardware";
+export {
+  VISION_MODELS,
+  getVisionModel,
+  listVisionModels,
+  planVisionModels,
+  selectVisionModel,
+  type RejectedVariant,
+  type VisionDevice,
+  type VisionModelFamily,
+  type VisionModelPlan,
+  type VisionModelSelectOptions,
+  type VisionModelSelection,
+  type VisionModelVariant,
+} from "./visionModels";
 
 export interface RuntimeDefinition {
   id: RuntimeId;
@@ -227,6 +266,81 @@ export const RUNTIMES: RuntimeDefinition[] = [
     packageName: "@huggingface/transformers",
     command: "node",
   },
+  {
+    id: "rvm",
+    name: "Robust Video Matting",
+    kind: "matting",
+    probeKind: "python-package",
+    defaultUrl: "python:torch",
+    envVar: "MONTARA_RVM_PYTHON",
+    providerEnv: "MONTARA_RVM_PYTHON",
+    healthPath: "",
+    licenseBoundary: "External Python package and GPL-3.0 weights. Do not commit RVM source or checkpoints.",
+    unlocks: [
+      "green-screen-free background removal",
+      "alpha mattes the compositor can key, replace, or blur behind",
+    ],
+    installSteps: [
+      "Create a Python environment outside the Montara repo.",
+      "Install torch and torchvision matching your accelerator (CUDA, ROCm, MPS, or CPU).",
+      "Run montara models plan to confirm a variant fits before fetching weights.",
+      "Set MONTARA_RVM_PYTHON to that interpreter when it is not the default python.",
+    ],
+    repoUrl: "https://github.com/PeterL1n/RobustVideoMatting.git",
+    defaultPort: 0,
+    packageName: "torch",
+    command: "python",
+  },
+  {
+    id: "sam2",
+    name: "Segment Anything 2",
+    kind: "segmentation",
+    probeKind: "python-package",
+    defaultUrl: "python:sam2",
+    envVar: "MONTARA_SAM2_PYTHON",
+    providerEnv: "MONTARA_SAM2_PYTHON",
+    healthPath: "",
+    licenseBoundary: "External Apache-2.0 package with separately licensed checkpoints. Keep both outside this repo.",
+    unlocks: [
+      "promptable object masks from a click, box, or detection",
+      "mask tracking across a shot for professional rotoscoping",
+    ],
+    installSteps: [
+      "Create a Python environment outside the Montara repo.",
+      "Install torch for your accelerator, then install the sam2 package.",
+      "Run montara models plan to see which SAM 2 tier this machine can run.",
+      "Set MONTARA_SAM2_PYTHON to that interpreter when it is not the default python.",
+    ],
+    repoUrl: "https://github.com/facebookresearch/sam2.git",
+    defaultPort: 0,
+    packageName: "sam2",
+    command: "python",
+  },
+  {
+    id: "yolo",
+    name: "YOLO11 Detection",
+    kind: "detection",
+    probeKind: "python-package",
+    defaultUrl: "python:ultralytics",
+    envVar: "MONTARA_YOLO_PYTHON",
+    providerEnv: "MONTARA_YOLO_PYTHON",
+    healthPath: "",
+    licenseBoundary: "External Python package. Ultralytics is AGPL-3.0: commercial use needs a licence from them, and weights stay outside this repo.",
+    unlocks: [
+      "subject and object detection to seed SAM 2 prompts",
+      "auto-framing and shot-safe cropping driven by real detections",
+    ],
+    installSteps: [
+      "Create a Python environment outside the Montara repo.",
+      "Install ultralytics into that environment.",
+      "Run montara models plan to pick a tier that fits this machine.",
+      "Review the AGPL-3.0 terms before any commercial use.",
+    ],
+    repoUrl: "https://github.com/ultralytics/ultralytics.git",
+    defaultPort: 0,
+    packageName: "ultralytics",
+    command: "python",
+  },
 ];
 
 export function listRuntimes(): RuntimeDefinition[] {
@@ -282,17 +396,36 @@ function shLine(cmd: RuntimeCommand): string {
   return [cmd.command, ...cmd.args].map(shQuote).join(" ");
 }
 
+/** Runtimes installed into their own venv/npm dir rather than cloned from a repo. */
+const SELF_CONTAINED_RUNTIMES: RuntimeId[] = [
+  "piper",
+  "faster-whisper",
+  "transformersjs",
+  "rvm",
+  "sam2",
+  "yolo",
+];
+
+/** pip requirements per venv-installed runtime, in install order. */
+const PIP_PACKAGES: Partial<Record<RuntimeId, string[]>> = {
+  piper: ["piper-tts"],
+  "faster-whisper": ["faster-whisper"],
+  rvm: ["torch", "torchvision", "av"],
+  sam2: ["torch", "torchvision", "sam2"],
+  yolo: ["ultralytics"],
+};
+
+function isSelfContained(id: RuntimeId): boolean {
+  return SELF_CONTAINED_RUNTIMES.includes(id);
+}
+
 function installCommands(runtime: RuntimeDefinition, runtimeDir: string, platform: RuntimePlatform): RuntimeCommand[] {
   const py = pythonBin(runtimeDir, platform);
   const commands: RuntimeCommand[] = [];
-  if (runtime.id === "piper") {
+  const pip = PIP_PACKAGES[runtime.id];
+  if (pip) {
     commands.push(shellCommand("python", ["-m", "venv", ".venv"], runtimeDir));
-    commands.push(shellCommand(py, ["-m", "pip", "install", "piper-tts"], runtimeDir));
-    return commands;
-  }
-  if (runtime.id === "faster-whisper") {
-    commands.push(shellCommand("python", ["-m", "venv", ".venv"], runtimeDir));
-    commands.push(shellCommand(py, ["-m", "pip", "install", "faster-whisper"], runtimeDir));
+    commands.push(shellCommand(py, ["-m", "pip", "install", ...pip], runtimeDir));
     return commands;
   }
   if (runtime.id === "transformersjs") {
@@ -394,7 +527,7 @@ export function writeRuntimeEnv(plan: ManagedRuntimePlan, outPath: string): stri
 export function writeRuntimeScript(plan: ManagedRuntimePlan, outPath: string): string {
   mkdirSync(dirname(outPath), { recursive: true });
   const isPs1 = /\.ps1$/i.test(outPath);
-  const needsRuntimeDir = plan.id === "piper" || plan.id === "faster-whisper" || plan.id === "transformersjs";
+  const needsRuntimeDir = isSelfContained(plan.id);
   const lines = isPs1
     ? [
         "$ErrorActionPreference = 'Stop'",
@@ -428,7 +561,7 @@ export function installRuntime(id: RuntimeId, opts: RuntimeManagerOptions = {}):
   const plan = managedRuntimePlan(id, "install", opts);
   if (!opts.execute) return { ok: true, plan, executed: false };
   mkdirSync(plan.rootDir, { recursive: true });
-  if (plan.id === "piper" || plan.id === "faster-whisper" || plan.id === "transformersjs") {
+  if (isSelfContained(plan.id)) {
     mkdirSync(plan.runtimeDir, { recursive: true });
   }
   for (const command of plan.commands) {
@@ -583,6 +716,30 @@ export function runtimeModelInventory(env: Record<string, string | undefined> = 
         envVar: "HF_HOME",
         purpose: "Transformers.js CLIP/BLIP model cache for model-aware source understanding.",
         installHint: "Set HF_HOME or TRANSFORMERS_CACHE to an external cache path before enabling MONTARA_VISION_MODELS=1.",
+      }),
+      inventoryItem(env, {
+        id: "rvm-checkpoint",
+        runtimeId: "rvm",
+        kind: "model-file",
+        envVar: "MONTARA_RVM_CHECKPOINT",
+        purpose: "Robust Video Matting checkpoint used for green-screen-free background removal.",
+        installHint: "Run montara models plan first; only fetch the approved variant and keep the GPL-3.0 weights outside git.",
+      }),
+      inventoryItem(env, {
+        id: "sam2-checkpoint",
+        runtimeId: "sam2",
+        kind: "model-file",
+        envVar: "MONTARA_SAM2_CHECKPOINT",
+        purpose: "SAM 2 checkpoint used for promptable masks and tracked rotoscoping.",
+        installHint: "Run montara models plan to pick a tier this machine can run, then store the checkpoint outside the repo.",
+      }),
+      inventoryItem(env, {
+        id: "yolo-weights",
+        runtimeId: "yolo",
+        kind: "model-file",
+        envVar: "MONTARA_YOLO_WEIGHTS",
+        purpose: "YOLO11 weights used for subject detection and auto-framing.",
+        installHint: "AGPL-3.0 weights: keep them external and review Ultralytics licensing before commercial use.",
       }),
       inventoryItem(env, {
         id: "transformers-cache-legacy",

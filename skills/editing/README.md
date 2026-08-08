@@ -17,7 +17,9 @@ in z-order**, then burns text, then mixes audio. A clip becomes a *layer*; its `
 | --- | --- | --- |
 | Stack two videos / webcam corner | `transform` + tracks | [transforms-and-pip.md](transforms-and-pip.md) |
 | Grid of clips | `box` per tile | [collage.md](collage.md) |
-| Circle / rounded crop | `mask` | [masks.md](masks.md) |
+| Circle / rounded / hand-cut crop | `mask` | [masks.md](masks.md) |
+| Cut a person out with no green screen | `matte` | [subject-matting-effects.md](subject-matting-effects.md) |
+| Ripple, roll, slip, slide, J/L cuts | `@montara/core` cut ops | [cutting.md](cutting.md) |
 | Blur, B&W, colour, chromakey | `effects[]` | [effects.md](effects.md) |
 | Multiple stacked layers | tracks + `z` | [layers-and-tracks.md](layers-and-tracks.md) |
 | Pick the best renderer | auto engine picker | [render-engines.md](render-engines.md) |
@@ -39,6 +41,9 @@ compositeTimeline(tl, "out.mp4");
 montara fx pip   <base> <inset> [out.mp4] [--corner br|tl|tr|bl] [--scale 0.3] [--ellipse] [--seconds N]
 montara fx collage <out.mp4> <clip1> <clip2> [clip3 ...] [--cols N] [--seconds N]
 montara fx composite <timeline.json> [out.mp4]
+montara matte <video> [out.mp4] [--apply-to timeline.json --clip id]
+montara segment <video> [out.mp4] (--auto | --box x1,y1,x2,y2 | --point x,y)
+montara cut <timeline.json> <split|ripple|roll|slip|slide|jcut|lcut|crossfade|gaps|close> [args]
 ```
 
 ## Rules

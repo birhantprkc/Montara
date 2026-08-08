@@ -8,6 +8,8 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { mediaBin } from "../../render-ffmpeg/src/index";
 
+export { matchVoice, measureVoiceQuality, type VoiceMatch, type VoiceQuality } from "./voiceQuality";
+
 const VOICE_ID_SCRIPT = join("tools", "audio", "voice_id.py");
 const TRANSCRIBE_SCRIPT = join("tools", "audio", "transcribe_local.py");
 

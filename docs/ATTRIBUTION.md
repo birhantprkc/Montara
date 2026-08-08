@@ -41,6 +41,9 @@ commercial deployment.
 | Piper | Local/offline TTS | Optional local runtime. |
 | Whisper / WhisperX / speech-to-text providers | Transcription | Optional; check model/provider terms. |
 | Resemblyzer / SpeechBrain / pyannote.audio | Speaker and diarization intelligence | Optional; respect consent and provider/model terms. |
+| Robust Video Matting (RVM) | Green-screen-free background matting | GPL-3.0 project; checkpoints are fetched at runtime under their own model card and never committed. |
+| SAM 2 (Segment Anything 2) | Promptable, tracked object masks | Apache-2.0 code with separately licensed checkpoints; both stay outside this repo. |
+| Ultralytics YOLO | Subject/object detection that seeds masks and framing | **AGPL-3.0 — commercial use requires a licence from Ultralytics.** Weights are fetched at runtime. |
 | OpenAI, Google, ElevenLabs, Runway, BFL, Recraft, xAI, Kling, MiniMax, HeyGen, Suno | BYOK cloud providers | Request builders are not a substitute for live executor audits. See `docs/PROVIDER-AUDIT.md`. |
 
 ## Skill Packs

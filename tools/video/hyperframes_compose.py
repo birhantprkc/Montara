@@ -566,10 +566,13 @@ class HyperFramesCompose(BaseTool):
             data["stdout_tail"] = (proc.stdout or "")[-4000:]
         data["stderr_tail"] = (proc.stderr or "")[-2000:]
         ok = proc.returncode == 0
+        fault = None if ok else self._toolchain_fault(proc)
+        if fault:
+            data["toolchain_fault"] = fault
         return ToolResult(
             success=ok,
             data=data,
-            error=None if ok else f"hyperframes lint exit {proc.returncode}",
+            error=None if ok else (fault or f"hyperframes lint exit {proc.returncode}"),
         )
 
     def _validate(self, inputs: dict[str, Any]) -> ToolResult:
@@ -591,10 +594,13 @@ class HyperFramesCompose(BaseTool):
             data["stdout_tail"] = (proc.stdout or "")[-4000:]
         data["stderr_tail"] = (proc.stderr or "")[-2000:]
         ok = proc.returncode == 0
+        fault = None if ok else self._toolchain_fault(proc)
+        if fault:
+            data["toolchain_fault"] = fault
         return ToolResult(
             success=ok,
             data=data,
-            error=None if ok else f"hyperframes validate exit {proc.returncode}",
+            error=None if ok else (fault or f"hyperframes validate exit {proc.returncode}"),
         )
 
     def _add_block(self, inputs: dict[str, Any]) -> ToolResult:
@@ -695,13 +701,16 @@ class HyperFramesCompose(BaseTool):
         )
         steps["validate"] = validate.data
         if not validate.success:
+            broken_toolchain = bool((validate.data or {}).get("toolchain_fault"))
             return ToolResult(
                 success=False,
                 error=(
-                    f"Validate failed: {validate.error}. HyperFrames render "
+                    f"HyperFrames render is blocked: {validate.error}"
+                    if broken_toolchain
+                    else f"Validate failed: {validate.error}. HyperFrames render "
                     f"is blocked — fix the composition and re-run."
                 ),
-                data={"steps": steps},
+                data={"steps": steps, "toolchain_fault": broken_toolchain},
             )
 
         # 4. Render.
@@ -1191,6 +1200,39 @@ class HyperFramesCompose(BaseTool):
                 stdout=e.stdout or "",
                 stderr=(e.stderr or "") + f"\n[timeout after {timeout}s]",
             )
+
+    # Node crashes that mean "the CLI install is broken", not "your composition is wrong".
+    # A half-extracted npx cache is the common one and produces ERR_MODULE_NOT_FOUND
+    # against a dependency path the user has never heard of.
+    _TOOLCHAIN_FAULTS = (
+        "ERR_MODULE_NOT_FOUND",
+        "MODULE_NOT_FOUND",
+        "Cannot find module",
+        "Cannot find package",
+        "ERR_DLOPEN_FAILED",
+    )
+
+    @classmethod
+    def _toolchain_fault(cls, proc: subprocess.CompletedProcess) -> Optional[str]:
+        """The reason the HyperFrames CLI itself failed to start, if that's what happened.
+
+        Distinguishing this from a composition error matters: the remedy is clearing a
+        cache, and blaming the composition sends the user editing a file that is fine.
+        """
+        blob = f"{proc.stderr or ''}\n{proc.stdout or ''}"
+        for signature in cls._TOOLCHAIN_FAULTS:
+            if signature in blob:
+                detail = next(
+                    (line.strip() for line in blob.splitlines() if signature in line),
+                    signature,
+                )
+                return (
+                    f"the hyperframes CLI could not start ({detail[:200]}). "
+                    "Its npx install is incomplete — clear the npx cache "
+                    "(`npx clear-npx-cache`, or delete the _npx folder in your npm cache) "
+                    "and re-run. The composition was never evaluated."
+                )
+        return None
 
     @staticmethod
     def _parse_json_output(stdout: str) -> Optional[Any]:

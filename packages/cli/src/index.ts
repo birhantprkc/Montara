@@ -16,7 +16,18 @@ import { listEngines, engineReallyAvailable, recommendEngine, autoRenderScene, s
 import { listStyles, listOutputProfiles } from "../../style/src/index";
 import { writePipelineManifests, writeSchemas, writeAssistantConfigs, SKILLS_ENTRY, listSkills, findSkills } from "../../agent/src/index";
 import { runDoctor } from "./doctor";
+import { loadDotEnv } from "./dotenv";
 import { runStartCommand } from "./start";
+import { runReplaceBackgroundCommand } from "./backdropCommand";
+import {
+  runCutCommand,
+  runDetectCommand,
+  runEnhanceCommand,
+  runHearCommand,
+  runMatteCommand,
+  runModelsCommand,
+  runSegmentCommand,
+} from "./visionCommands";
 import { buildStage1AuditReport, printStage1AuditReport } from "./stage1Audit";
 import { engineReady, engineVerify, engineComposition, engineCompositionNames, engineCompositionToTimeline, renderBridged, engineProviders, engineSelfcheck, engineCompliance, findPython as findEnginePython } from "../../engine/src/index";
 import { blenderAvailable, renderBlenderScene } from "../../render-blender/src/index";
@@ -2267,6 +2278,15 @@ Commands:
   review <mp4>                    post-render self-review report for an MP4
   analyze <url|mp4>               URL reference preflight or local video analysis + concept variants
   understand <mp4>                write model-aware source understanding JSON (--vision off|auto|require)
+  models [plan|list|hardware]     what vision models this machine can run; refuses downloads it can't
+  matte <video> [out.mp4]         background removal with no green screen (RVM -> YOLO+SAM 2 -> chromakey)
+  replace-bg <video> <backdrop> [out.mp4]
+                                  matte the subject onto a new backdrop; --text puts a title BEHIND them
+  segment <video> [out.mp4]       promptable tracked masks via SAM 2 (--box | --point | --auto)
+  detect <video> [out.json]       YOLO subject/object detection for masking prompts and auto-framing
+  enhance <audio> [out.wav]       noise reduction + voice enhancement; --master to hit -14 LUFS
+  hear <audio>                    voice/music analysis (pace, warmth, loudness) -> scores JSON
+  cut <ir.json> <op> [args]       editorial ops on the IR: split/ripple/roll/slip/slide/jcut/lcut/crossfade
   capture [--url URL] [out.mp4]    record/recommend/pick screen captures; Playwright auth via capture login
   compose <edit-decisions.json> [out.mp4]
                                   run Python video_compose; pass --assets for high-level render artifacts
@@ -2288,6 +2308,7 @@ Options (plan/make):
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<number> {
+  loadDotEnv();
   const [command, ...rest] = argv;
   try {
     if (!command || command === "help" || command === "--help" || command === "-h") {
@@ -2308,6 +2329,14 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     if (command === "project") return runProjectCommand(rest);
     if (command === "resume") return runResumeCommand(rest);
     if (command === "understand") return runUnderstandCommand(rest);
+    if (command === "models") return runModelsCommand(rest);
+    if (command === "matte") return runMatteCommand(rest);
+    if (command === "segment") return runSegmentCommand(rest);
+    if (command === "detect") return runDetectCommand(rest);
+    if (command === "enhance") return runEnhanceCommand(rest);
+    if (command === "hear") return runHearCommand(rest);
+    if (command === "cut") return runCutCommand(rest);
+    if (command === "replace-bg") return runReplaceBackgroundCommand(rest);
 
     if (command === "voiceid") {
       const sub = rest[0];

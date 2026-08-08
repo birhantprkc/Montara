@@ -14,8 +14,34 @@ import { drawtextFont } from "./font";
 
 export { mediaBin };
 export { drawtextFont, resolveFontFile, type DrawtextFontOptions } from "./font";
-export { compositeTimeline } from "./composite";
+export { fitFontSize, measureTextWidth } from "./measure";
+export { ANIMATABLE, compositeTimeline, hasAnimation, hasCameraMove, keyframeExpr } from "./composite";
 export { masterAudio, measureLoudness, type LoudnessStats, type MasterOptions, type MasterResult } from "./master";
+export {
+  availableAudioFilters,
+  cleanupChain,
+  resetFilterCache,
+  restoreVoice,
+  shapingChain,
+  supportedFilters,
+  voiceFilterChain,
+  type DenoiseLevel,
+  type VoiceRestoreOptions,
+  type VoiceRestoreResult,
+} from "./restore";
+export {
+  SPEECH_CROSSOVERS,
+  bandEdges,
+  denoiseStrengthFor,
+  describeProfile,
+  expanderFor,
+  learnNoiseProfile,
+  multibandGraph,
+  noiseFloorOf,
+  type BandFloor,
+  type MultibandOptions,
+  type NoiseProfile,
+} from "./multiband";
 export { generateThumbnails, cutShort, cutShorts, type ThumbConcept, type ShortCut } from "./craft";
 export { buildReel, type Caption, type ReelBeat, type ReelOptions, type ReelResult, type ReelTimingOptions, type ReelVisualStyle } from "./reel";
 
