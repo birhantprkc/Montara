@@ -1,65 +1,113 @@
 <p align="center">
-  <a href="https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4">
-    <img src="demos/previews/01-engine-matrix-preview.gif" alt="Montara engine matrix demo preview" width="920" />
+  <a href="https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/11-bg-compare.mp4">
+    <img src="demos/posters/11-bg-compare-poster.jpg" alt="Montara background removal: raw phone clip on the left, matted and re-staged on a San Francisco street on the right" width="920" />
   </a>
-  <br/>
-  <a href="https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4">Watch/download the full engine matrix MP4</a>
+</p>
+
+<p align="center">
+  <em>Shot on a phone. No green screen, no rotoscoping, no cloud.<br/>
+  Left is the source file. Right is what Montara rendered from it — including the title passing <strong>behind</strong> him.</em>
 </p>
 
 <h1 align="center">Montara</h1>
 
 <p align="center">
-  <strong>Local-first video studio OS.</strong><br/>
-  One Timeline IR. Many renderers. Real MP4s. Honest provider and runtime gates.
+  <strong>The local-first video engine you can read, edit, and script.</strong><br/>
+  One editable Timeline IR → any renderer, any aspect ratio, any editor.<br/>
+  No cloud lock-in. No API key required to make a real video.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="AGPL-3.0" />
+  <img src="https://img.shields.io/badge/gates-403%20verify%20%C2%B7%20102%20validate-brightgreen" alt="gates green" />
+  <img src="https://img.shields.io/badge/API%20keys-not%20required-success" alt="no API keys required" />
+  <img src="https://img.shields.io/badge/stack-TypeScript%20%2B%20Python%20%2B%20FFmpeg-lightgrey" alt="stack" />
 </p>
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> |
-  <a href="#what-montara-is">What It Is</a> |
+  <a href="#why-montara">Why Montara</a> |
+  <a href="#public-demo-gallery">Demos</a> |
   <a href="#what-is-tested-today">Tested Today</a> |
   <a href="#provider-surface">Providers</a> |
-  <a href="#repository-layout">Layout</a> |
   <a href="#roadmap">Roadmap</a> |
   <a href="docs/ARCHITECTURE.md">Architecture</a>
 </p>
 
 ---
 
-Montara is an open, agent-ready video production system for making explainers,
-reels, software demos, documentaries, trailers, motion graphics, and eventually
-long-form films from one editable source of truth: the **Timeline IR**.
+## Sixty seconds in
 
-The idea is simple and very large:
+```bash
+pnpm run montara make --seconds 20 "Explain why the sky is blue"
+```
 
-> Give creators and AI agents a local-first video engine that can plan, assemble,
-> render, QA, revise, and hand off video projects without locking the project
-> inside one cloud tool.
+A real 1920×1080 H.264 MP4 lands in `out/` in **under three seconds** — no API key, no sign-up,
+no network call. Then Montara grades its own work and tells you the truth about it:
 
-Today Montara already renders real local MP4s, exports editor files, runs a
-Python media engine, verifies many provider request shapes, and ships public demo
-artifacts. The larger ambition is to scale the same IR and pipeline system from
-30-second shorts to 12-minute documentaries and hour-long films. That long-form
-ambition is a roadmap item, not a claim that every feature-length workflow is
-fully production-tested today.
+```text
+warn: slideshow risk medium (0.69): 100% of visuals have no motion or transitions;
+      2 static holds longer than 5s; no audio track (silent slideshow)
+```
 
-## What Montara Is
+**That verdict is the product.** The floor always renders something valid; the gates tell you when
+the floor isn't good enough yet. Everything else in Montara exists to answer that warning — and it
+all operates on the same JSON timeline the first command just wrote:
 
-Montara is built around a few hard choices:
+```bash
+montara cut out/timeline.json split shot-2 4.5                  # editorial ops on the IR
+montara fx pip screen.mp4 webcam.mp4 --ellipse                  # layered composition, masks, collage
+montara matte walk.mp4 out/matte.mp4                            # subject cutout, no green screen
+montara hear stems interview.mp4 out/stems --two-stems vocals   # pull the voice out of the music
+montara reel source.mp4 out/short.mp4 --style cinematic         # captions, hook, −14 LUFS master
+montara export out/timeline.json --to otio out/edit.otio        # finish in Resolve or Premiere
+```
 
-| Principle | What it means |
+The films at the top of this page are what that toolchain produces. Nothing in this repo renders a
+demo it cannot also render for you.
+
+## Why Montara
+
+Most video tools give you a timeline you cannot address and a render you cannot explain.
+Montara's bet is the opposite: **the project is a JSON file, and every capability is a
+function over it.**
+
+| | What that buys you |
 | --- | --- |
-| **One Timeline IR** | Scene plans, edit decisions, imported editor cuts, and generated assets resolve into one JSON timeline. |
-| **Local-first** | With zero API keys, Montara still creates watchable MP4s using FFmpeg, caption cards, local/system voice paths, and deterministic fallbacks. |
-| **Provider-pluggable** | Cloud providers are BYOK. Montara builds and audits request specs, but live paid calls require explicit opt-in. |
-| **Renderer-honest** | FFmpeg is the universal floor. Remotion, HyperFrames, Blender, Three.js, Manim, Motion Canvas, Revideo, Playwright, and local model runtimes are used only when available. |
-| **Agent-ready** | Humans, Codex, Cursor, local models, or Montara's own orchestrator read the same `skills/`, operate through the same CLI, and leave verifiable artifacts. |
-| **Editor-friendly** | Renders can export EDL, OTIO, and FCPXML so work can continue in Premiere, Resolve, or Final Cut. |
-| **Documentary-grade honesty** | Claims, maps, music cues, transcript cut points, and source footage are treated as quality gates, not vibes. |
+| **One IR, every output** | The same timeline renders 16:9, 9:16, 4:5, and 1:1 — *reframed, not letterboxed* — and exports to EDL, OTIO, and FCPXML. [See the same edit at two aspects ↓](#craft-reel-timeline-ir--compositor) |
+| **Works with zero keys** | FFmpeg floor, system TTS, local models. Cloud providers are BYOK and opt-in — Montara never quietly spends your money. |
+| **Never fakes a render** | If Blender or Manim isn't installed, Montara says so and degrades to a path that still produces a real MP4. The engine-matrix demo exists to prove this in public. |
+| **Agent-native, not agent-bolted-on** | Humans, Claude, Codex, or a local Ollama model read the same `skills/` and drive the same CLI, leaving inspectable artifacts at every stage. |
+| **Real models, honestly gated** | RVM / SAM 2.1 / YOLO11 for matting and tracking, Demucs for stem separation, faster-whisper for captions — each probed at runtime, never vendored, never assumed. |
+| **Proof, not adjectives** | 403 offline assertions, 102 gates that render real MP4s and re-probe them, and 12 checked-in demo films you can play before reading a line of code. |
 
-## What It Can Aim To Make
+Montara is built for explainers, reels, software demos, documentaries, trailers, and motion
+graphics today — and is architected to scale the same IR toward long-form work. That last part
+is a roadmap, and this README marks it as one.
 
-Montara is designed as a general video production substrate, not a single-format
-demo app.
+## Everything below is a file in this repo
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4">
+    <img src="demos/previews/01-engine-matrix-preview.gif" alt="Every render engine, reported honestly" width="760" />
+  </a>
+</p>
+
+<p align="center">
+  <img src="demos/posters/03-relight-poster.jpg" alt="Matte and re-stage" width="252" />
+  <img src="demos/posters/07-audio-poster.jpg" alt="Multiband voice restoration" width="252" />
+  <img src="demos/posters/09-linkedin-poster.jpg" alt="Product film, 4:5" width="196" />
+</p>
+
+<p align="center">
+  <sub><strong>Play them before you read any code.</strong> 12 films, all rendered by this repo, all
+  checked in — <a href="#public-demo-gallery">the full gallery is below</a>.</sub>
+</p>
+
+## What you can make with it
+
+Montara is a general video production substrate, not a single-format demo app.
+Each row states its **current** truth, not its ambition.
 
 | Format | Current truth |
 | --- | --- |
