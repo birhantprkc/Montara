@@ -30,6 +30,7 @@ Sources are `demos/01-relight.mjs` … `demos/05-audio.mjs`; run them with `node
 | Cut | Word-locked cuts driven by voice timing | cut planner + FFmpeg | `$0` | `demos/05-cut.mp4` |
 | Depth | Layered text + subject depth composite | matte + compositor layers | `$0` | `demos/06-depth.mp4` |
 | Audio | Multiband voice restore A/B vs broadband enhance, −14 LUFS master | two-pass FFmpeg `loudnorm`, mix graph | `$0` | `demos/07-audio.mp4` |
+| Background removal, before / after | Raw phone clip vs re-staged shot, side by side and time-aligned; each pane a complete uncropped frame | Timeline IR half-frame `box` panes, FFmpeg compositor | `$0` | `demos/11-bg-compare.mp4` |
 
 ### Product / SaaS films (authored in Montara)
 

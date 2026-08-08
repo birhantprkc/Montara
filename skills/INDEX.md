@@ -132,6 +132,7 @@ building PiP / collage / masks / effects.
 | Diagram Gen Usage | `creative/diagram-gen-usage.md` | Complexity limits, progressive building, themes | `beautiful-mermaid` |
 | Music Gen Usage | `creative/music-gen-usage.md` | BPM selection, prompt engineering, duration matching | `music`, `elevenlabs` |
 | Music Intelligence | `creative/music-intelligence.md` | Deep audio analysis, scene-mapped scoring, mastering gates | `music`, `sound-effects` |
+| Source Separation | `creative/source-separation.md` | Demucs stem split — pull a voice out of a baked-in music bed (vs multiband enhance, which polishes one take) | `music` |
 | Speaker / Voice Intelligence | `creative/speaker-voice-intelligence.md` | Speaker matching, dialogue corpus search, voice-ID governance | `speech-to-text` |
 | Background Removal | `creative/bg-remove-usage.md` | Model selection, alpha matting, compositing workflows | â€" |
 | Upscaling | `creative/upscale-usage.md` | Scale factor, model selection, face-aware upscaling | â€" |

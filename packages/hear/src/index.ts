@@ -12,6 +12,7 @@ export { matchVoice, measureVoiceQuality, type VoiceMatch, type VoiceQuality } f
 
 const VOICE_ID_SCRIPT = join("tools", "audio", "voice_id.py");
 const TRANSCRIBE_SCRIPT = join("tools", "audio", "transcribe_local.py");
+const DEMUCS_SCRIPT = join("tools", "audio", "demucs_separate.py");
 
 function findPython(): string | null {
   for (const cand of ["python", "python3", "py"]) {
@@ -208,6 +209,56 @@ export function localTranscribe(media: string, opts: { model?: string; language?
   try {
     const j = JSON.parse(res.stdout ?? "null") as Transcript & { error?: string };
     if (!j || j.error || !Array.isArray(j.segments)) return null;
+    return j;
+  } catch {
+    return null;
+  }
+}
+
+// ---- Source separation (Demucs): unmix a mix into stems ----
+//
+// Multiband enhance polishes ONE signal by splitting it into frequency bands. This splits by
+// CONTENT into separate tracks, which is what you need when the voice and the music are already
+// baked into the same file: isolate the VO, swap the bed, or duck only the drums.
+
+export interface StemSeparation {
+  ok: boolean;
+  model: string;
+  samplerate: number;
+  /** Stem name -> written .wav path, e.g. { vocals, drums, bass, other } or { vocals, no_vocals }. */
+  stems: Record<string, string>;
+}
+
+/** Whether Demucs can run: Python + the script + demucs installed (probe never imports torch). */
+export function separateStemsAvailable(root: string = hearRoot()): boolean {
+  const py = findPython();
+  if (!py || !existsSync(join(root, DEMUCS_SCRIPT))) return false;
+  const chk = spawnSync(py, ["-c", "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('demucs') else 1)"], { encoding: "utf8", env: pythonEnv(root) });
+  return chk.status === 0;
+}
+
+/**
+ * Split a mixed audio/video file into stems with Demucs.
+ *
+ * `twoStems: "vocals"` collapses the backing tracks into one `no_vocals` bed — the common
+ * documentary/podcast case where you only care about voice vs everything else.
+ */
+export function separateStems(
+  media: string,
+  outDir: string,
+  opts: { model?: string; twoStems?: string } = {},
+  root: string = hearRoot(),
+): StemSeparation | null {
+  const py = findPython();
+  if (!py) return null;
+  const args = [join(root, DEMUCS_SCRIPT), media, outDir, opts.model ?? "htdemucs"];
+  if (opts.twoStems) args.push(opts.twoStems);
+  // Separation is minutes on CPU for long files; the model download on first run is slower still.
+  const res = spawnSync(py, args, { cwd: root, encoding: "utf8", env: pythonEnv(root), timeout: 1_800_000, maxBuffer: 1 << 26 });
+  if (res.status !== 0) return null;
+  try {
+    const j = JSON.parse(res.stdout ?? "null") as StemSeparation & { error?: string };
+    if (!j || j.error || !j.stems) return null;
     return j;
   } catch {
     return null;

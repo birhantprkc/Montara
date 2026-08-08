@@ -164,6 +164,7 @@ Sources: `demos/01-relight.mjs` … `demos/05-audio.mjs`. Run with `node demos/r
 | --- | --- | --- |
 | Relight / matte | RVM (or YOLO→SAM 2) subject matte, ground plate, text reveal behind the subject | 16:9 [03-relight.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/03-relight.mp4) · [poster](demos/posters/03-relight-poster.jpg) |
 | Relight / matte, 4:5 | The **same Timeline IR** delivered at a second aspect — reframed, not letterboxed | 4:5 [03-relight-4x5.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/03-relight-4x5.mp4) · [poster](demos/posters/03-relight-4x5-poster.jpg) |
+| Background removal, before / after | The receipt for the matte: raw phone clip vs re-staged shot, side by side and time-aligned | [11-bg-compare.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/11-bg-compare.mp4) · [poster](demos/posters/11-bg-compare-poster.jpg) |
 | Camera | Ken Burns / drone-style `zoom`+`pan` on stills | [04-camera.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/04-camera.mp4) · [poster](demos/posters/04-camera-poster.jpg) |
 | Cut | Word-locked cuts driven by voice timing | [05-cut.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/05-cut.mp4) · [poster](demos/posters/05-cut-poster.jpg) |
 | Depth | Layered text + subject depth composite | [06-depth.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/06-depth.mp4) · [poster](demos/posters/06-depth-poster.jpg) |
@@ -195,6 +196,8 @@ CapCut-style UI tours recorded with Playwright (`demos/saas/`), then cut in Mont
   <br/>
   <img src="demos/posters/03-relight-4x5-poster.jpg" alt="Relight craft demo, 4:5 delivery" width="300" />
   <br/>
+  <img src="demos/posters/11-bg-compare-poster.jpg" alt="Background removal before/after comparison" width="760" />
+  <br/>
   <img src="demos/posters/09-linkedin-poster.jpg" alt="LinkedIn product demo poster" width="380" />
   <img src="demos/posters/10-x-poster.jpg" alt="X product demo poster" width="380" />
 </p>
@@ -219,6 +222,28 @@ Background removal is **not** a single fixed checkpoint — `montara matte` /
 
 Order for `autoMatte`: **RVM → YOLO+SAM 2 → optional chromakey → opaque**. Weights stay outside the repo; `montara models plan` / hardware gates refuse downloads the machine cannot run. Licenses: RVM GPL-3.0 (weights on their model card), SAM 2 Apache-2.0, YOLO11 AGPL-3.0 (Ultralytics).
 
+### Audio models (source separation)
+
+Vision separates picture layers; **Demucs** separates audio layers. Reach for it when the voice and
+the music are already baked into one file — an EQ cannot unmix a mix.
+
+| | **Multiband enhance** (`montara enhance`) | **Source separation** (`montara hear stems`) |
+| --- | --- | --- |
+| Input | one dirty voice take | a full mix (VO + music + room) |
+| Splits by | **frequency bands** — clean each band's noise | **content** — into separate tracks |
+| Output | still **one** cleaned waveform | **multiple** files you can mute, duck, or rebalance |
+| Needs | FFmpeg only | Python + Demucs weights (RAM/VRAM gated, like RVM) |
+
+```bash
+montara hear stems mix.wav out/stems --two-stems vocals   # vocals + no_vocals
+```
+
+Verified end-to-end on Montara's own demo mix: separating narration-over-music and transcribing each
+stem returns the full 25-word VO from `vocals.wav` and **silence** from `no_vocals.wav`. Runtime-gated
+like every model path — without `pip install demucs`, `montara enhance` remains the always-available
+floor and the separation command says so instead of failing. See
+[`skills/creative/source-separation.md`](skills/creative/source-separation.md).
+
 Regenerate engine-gallery demos:
 
 ```bash
@@ -242,8 +267,8 @@ Local gate snapshot, measured 2026-08-08 on Windows 11 / Node 22 / Python 3.13:
 | Gate | Result |
 | --- | --- |
 | `pnpm typecheck` | 0 errors |
-| `pnpm verify` | 400 passed, 0 failed |
-| `pnpm validate` | 101 passed, 0 failed |
+| `pnpm verify` | 403 passed, 0 failed |
+| `pnpm validate` | 102 passed, 0 failed |
 | `pnpm run montara doctor` | ready to render |
 | `pnpm run montara stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
 | `python -m pytest tests` | not rerun on this pass — the local Python 3.13 interpreter has no `pytest`; last recorded Stage 4 gate was 399 passed, 8 skipped |
@@ -295,6 +320,7 @@ Current registry surface:
 | TTS | system voice, Piper, ElevenLabs, Google TTS, OpenAI TTS, Doubao Speech in Python tools | system/local fallbacks tested; cloud request builders and tools require keys |
 | Music/SFX | tone-score fallback, Suno, ElevenLabs Music, ElevenLabs SFX | fallback tested; cloud paths BYOK/live-audit gated |
 | STT/captions | Groq Whisper when key exists, faster-whisper when installed | Groq path is implemented; local faster-whisper remains runtime-gated |
+| Source separation | Demucs (`htdemucs`, `htdemucs_ft`, `mdx_extra`) | local-only, no key; runtime-gated on `pip install demucs`, weights fetched on first run |
 
 Before spending money, run:
 
@@ -335,6 +361,7 @@ pnpm run montara import out/edit.fcpxml
 pnpm run montara export out/timeline.json --to otio out/edit.otio
 pnpm run montara analyze https://example.com/reference-video
 pnpm run montara understand source.mp4 --vision auto
+pnpm run montara hear stems mix.wav out/stems --two-stems vocals
 pnpm run montara reel source.mp4 out/short.mp4 --style cinematic
 pnpm run montara capture login --url https://example.com
 pnpm run montara capture --url https://example.com out/browser-capture.mp4

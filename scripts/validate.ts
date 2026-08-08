@@ -7,7 +7,7 @@ import type { ScenePlan } from "../packages/core/src/index";
 import { secondsToFrames, validateTimeline, pictureInPicture, collage } from "../packages/core/src/index";
 import { composeScenePlan, renderComposedTimeline, renderComposedTimelineWithReport, remotionNativeAvailable, renderNativeRemotionSmoke, timelineToRemotionProps } from "../packages/render-remotion/src/index";
 import { probeDuration, compositeTimeline, mediaBin, masterAudio, generateThumbnails, cutShort, buildReel } from "../packages/render-ffmpeg/src/index";
-import { qaPlayback } from "../packages/hear/src/index";
+import { qaPlayback, separateStems, separateStemsAvailable } from "../packages/hear/src/index";
 import { threeAvailable, renderThreeScene } from "../packages/render-three/src/index";
 import { renderBridgedTimeline, engineRemotionAvailable, findPython } from "../packages/engine/src/index";
 import {
@@ -1181,6 +1181,21 @@ if (threeAvailable()) {
   ok("render-three produces a real MP4 or graceful fallback", tr.ok && (tr.renderer === "three-webgl" || tr.renderer === "ffmpeg-fallback") && threeRes === "320x180", `renderer=${tr.renderer} frames=${tr.frames} res=${threeRes} err=${tr.error ?? ""}`);
 } else {
   ok("render-three reports unavailable honestly when no browser/three", threeAvailable() === false);
+}
+
+// Source separation (Demucs): unmix a real mix into stems, or skip honestly when not installed.
+if (separateStemsAvailable()) {
+  const mixWav = join(outDir, "vc-stems-mix.wav");
+  spawnSync(ff, ["-y", "-f", "lavfi", "-i", "sine=frequency=220:duration=2", "-f", "lavfi", "-i", "anoisesrc=d=2:c=pink:a=0.2",
+    "-filter_complex", "[0:a][1:a]amix=inputs=2:normalize=0[a]", "-map", "[a]", "-ar", "44100", mixWav], { encoding: "utf8" });
+  const stemsDir = join(outDir, "validate-stems");
+  const sep = separateStems(mixWav, stemsDir, { twoStems: "vocals" });
+  const wrote = sep ? Object.values(sep.stems).filter((p) => existsSync(p)) : [];
+  ok("Demucs splits a mix into stems on disk (two-stem: vocals / no_vocals)",
+    Boolean(sep?.ok) && wrote.length === 2 && Boolean(sep?.stems.vocals) && Boolean(sep?.stems.no_vocals),
+    `stems=${sep ? Object.keys(sep.stems).join(",") : "none"} written=${wrote.length}`);
+} else {
+  ok("source separation reports unavailable honestly when demucs is absent", separateStemsAvailable() === false);
 }
 
 // Reel builder (capstone): burns a hook + caption + end card onto a vertical clip, keeps audio, masters.

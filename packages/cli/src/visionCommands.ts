@@ -14,7 +14,7 @@ import {
 } from "../../runtimes/src/index";
 import { autoMatte, detectObjects, segmentObject, type DetectionBox } from "../../vision/src/index";
 import { masterAudio, restoreVoice, type DenoiseLevel } from "../../render-ffmpeg/src/index";
-import { analyzeMusic, measureVoiceQuality } from "../../hear/src/index";
+import { analyzeMusic, measureVoiceQuality, separateStems, separateStemsAvailable } from "../../hear/src/index";
 import {
   closeGaps,
   crossfade,
@@ -302,9 +302,12 @@ export function runEnhanceCommand(args: string[]): number {
 
 /** `montara hear` — the documented voice/music analysis entry point. */
 export function runHearCommand(args: string[]): number {
+  if (args[0] === "stems") return runStemsCommand(args.slice(1));
+
   const input = args[0];
   if (!input || !existsSync(input)) {
     console.error("usage: montara hear <audio|video> [out.json] [--json]");
+    console.error("       montara hear stems <audio|video> [outDir] [--two-stems vocals] [--model htdemucs]");
     return 1;
   }
   const out = outPath(args[1], join(process.cwd(), "out", "hear-scores.json"));
@@ -319,6 +322,38 @@ export function runHearCommand(args: string[]): number {
   console.log(`  ${music.durationSec.toFixed(2)}s  mean ${music.loudness.meanDb ?? "?"} dB  peak ${music.loudness.peakDb ?? "?"} dB  ~${music.loudness.approximateLufs ?? "?"} LUFS`);
   console.log(`  voice: pace ${voice.onsetsPerSec.toFixed(2)} onsets/s  warmth ${voice.warmth.toFixed(2)}  ${voice.notes.join("; ")}`);
   for (const gate of music.qualityGates) console.log(`  ${gate.ok ? "ok" : "warn"} ${gate.id}: ${gate.detail}`);
+  return 0;
+}
+
+/**
+ * `montara hear stems` — Demucs source separation.
+ *
+ * The audio counterpart to `montara matte`: matte splits a picture into subject and background,
+ * this splits a mix into vocals / drums / bass / other. Use it when the voice and the bed are
+ * already one file — `montara enhance` can only clean a single signal, it cannot unmix one.
+ */
+function runStemsCommand(args: string[]): number {
+  const input = args[0];
+  if (!input || !existsSync(input)) {
+    console.error("usage: montara hear stems <audio|video> [outDir] [--two-stems vocals] [--model htdemucs]");
+    return 1;
+  }
+  if (!separateStemsAvailable()) {
+    console.error("source separation unavailable (pip install demucs). `montara enhance` still cleans a single take.");
+    return 1;
+  }
+  const dir = outPath(args[1], join(process.cwd(), "out", "stems"));
+  const twoStems = flag(args, "--two-stems");
+  const model = flag(args, "--model") ?? "htdemucs";
+
+  console.log(`separating with ${model}${twoStems ? ` (two-stem: ${twoStems})` : ""} — CPU separation takes a few minutes, and the first run downloads weights…`);
+  const result = separateStems(input, dir, { model, twoStems });
+  if (!result) { console.error("separation failed"); return 1; }
+
+  const names = Object.keys(result.stems);
+  console.log(`stems -> ${dir}  (${names.length}: ${names.join(", ")} @ ${result.samplerate} Hz)`);
+  for (const [name, path] of Object.entries(result.stems)) console.log(`  ${name.padEnd(10)} ${path}`);
+  if (has(args, "--json")) console.log(JSON.stringify(result, null, 2));
   return 0;
 }
 

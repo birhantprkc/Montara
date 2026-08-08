@@ -144,6 +144,23 @@
       "technologies": ["Playwright", "Timeline IR", "FFmpeg"],
       "aspect": "1:1",
       "poster": "demos/posters/10-x-poster.jpg"
+    },
+    {
+      "id": "11-bg-compare",
+      "title": "Background removal — before / after",
+      "video": "demos/11-bg-compare.mp4",
+      "source": "demos/09-bg-compare.mjs",
+      "renderer": "Timeline IR half-frame panes + FFmpeg compositor",
+      "technologies": ["RVM", "Timeline IR", "box layout", "FFmpeg"],
+      "aspect": "16:9",
+      "truth": [
+        "Left pane is the untouched phone clip; right pane is demos/03-relight.mp4 itself, not a re-render",
+        "Both panes are 960x540 so each side shows a complete uncropped 16:9 frame",
+        "Panes are time-aligned (source in-point 0.3s) so the two sides show the same moment"
+      ],
+      "poster": "demos/posters/11-bg-compare-poster.jpg",
+      "durationSec": 9.37,
+      "videoProbe": "h264,1920,1080"
     }
   ]
 }

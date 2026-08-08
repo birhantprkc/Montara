@@ -206,7 +206,7 @@ import {
 } from "../packages/tools/src/index";
 import { engineInfo, engineVerify, engineComposition, engineCompositionToTimeline, timelineToEngineComposition, engineProviders, engineSelfcheck, engineCompliance } from "../packages/engine/src/index";
 import { blenderAvailable, blenderBin } from "../packages/render-blender/src/index";
-import { analyzeMusic, findDialogueByVoice, planSceneMappedMusic, speakerIntelligenceStatus, voiceIdAvailable } from "../packages/hear/src/index";
+import { analyzeMusic, findDialogueByVoice, planSceneMappedMusic, speakerIntelligenceStatus, voiceIdAvailable, separateStems, separateStemsAvailable } from "../packages/hear/src/index";
 import { installRuntime, launchRuntime, listRuntimes, managedRuntimePlan, runtimeEnvHints, runtimeInstallPlan, runtimeModelInventory, runtimeStatusReport, writeRuntimeEnv, writeRuntimeScript } from "../packages/runtimes/src/index";
 import {
   renderPipelineManifest,
@@ -1260,6 +1260,15 @@ ok("speaker intelligence reports Resemblyzer/SpeechBrain/pyannote availability a
   typeof speakerStatus.resemblyzer === "boolean" &&
   typeof speakerStatus.speechbrainEcapa === "boolean" &&
   typeof speakerStatus.pyannote === "boolean");
+
+console.log("\n== Source separation (Demucs) ==");
+ok("separation availability is a boolean (degrade-friendly), never throws", typeof separateStemsAvailable() === "boolean");
+ok("demucs_separate.py stem-splitter ships in the audio tools folder", existsSync(join(process.cwd(), "tools", "audio", "demucs_separate.py")));
+ok("separation degrades honestly rather than throwing when demucs is absent", (() => {
+  // A missing input must return null, never crash a pipeline mid-run.
+  const missing = separateStems(join(process.cwd(), "out", "definitely-not-here.wav"), join(process.cwd(), "out", "stems-nope"));
+  return missing === null;
+})());
 const dialogueMatches = findDialogueByVoice({
   queryAudioPath: join(process.cwd(), "out", "missing-query.wav"),
   requestedLine: "picture abhi baaki hai mere dost",
