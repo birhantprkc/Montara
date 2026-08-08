@@ -18,6 +18,28 @@ FFmpeg and Remotion are demonstrated as local render/mux paths; runtime-gated
 engines are shown with their adapter/probe status instead of being mislabelled as
 native renders.
 
+### Craft reel (Timeline IR + compositor)
+
+Sources are `demos/01-relight.mjs` … `demos/05-audio.mjs`; run them with `node demos/run.mjs`.
+
+| Demo | What it proves | Tools and runtime | Cost | Artifact |
+| --- | --- | --- | --- | --- |
+| Relight / matte | A title composited *behind* a moving subject, on a ground plate | RVM (YOLO+SAM 2 / chromakey fallbacks), Timeline IR, FFmpeg | `$0` | `demos/03-relight.mp4` (1920×1080) |
+| Relight / matte, 4:5 | The same 9.37s IR re-resolved to a second aspect — reframed, not letterboxed, matte still holding | RVM, Timeline IR, FFmpeg | `$0` | `demos/03-relight-4x5.mp4` (1080×1350) |
+| Camera | Ken Burns / drone-style `zoom`+`pan` keyframes on stills | FFmpeg `zoompan` driven by Timeline IR | `$0` | `demos/04-camera.mp4` |
+| Cut | Word-locked cuts driven by voice timing | cut planner + FFmpeg | `$0` | `demos/05-cut.mp4` |
+| Depth | Layered text + subject depth composite | matte + compositor layers | `$0` | `demos/06-depth.mp4` |
+| Audio | Multiband voice restore A/B vs broadband enhance, −14 LUFS master | two-pass FFmpeg `loudnorm`, mix graph | `$0` | `demos/07-audio.mp4` |
+
+### Product / SaaS films (authored in Montara)
+
+| Demo | Aspect | Tools and runtime | Cost | Artifact |
+| --- | --- | --- | --- | --- |
+| Montara Studio tour | 16:9 | Playwright UI capture (`demos/saas/`), cut in Montara | `$0` | `demos/08-montara-studio.mp4` |
+| LinkedIn product film | 4:5 | Playwright capture + Montara cut | `$0` | `demos/09-linkedin.mp4` |
+| X product film | 1:1 | Playwright capture + Montara cut | `$0` | `demos/10-x.mp4` |
+
+Every craft and product demo has a matching poster under `demos/posters/`.
 Demo metadata lives in `demos/manifest.json`.
 
 ## Validate-Generated Proofs

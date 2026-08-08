@@ -34,6 +34,18 @@ declare module "node:child_process" {
     error?: Error;
   }
 
+  /** Shape when no `encoding` is passed: Node hands back raw byte buffers, not decoded text. */
+  export interface SpawnSyncRawResult {
+    status: number | null;
+    stdout?: Uint8Array;
+    stderr?: Uint8Array;
+    error?: Error;
+  }
+
+  // An `encoding` makes Node decode to strings; without one the streams stay bytes. Callers that
+  // rasterise (e.g. text measurement) rely on the raw form, so the two cases are typed apart.
+  export function spawnSync(command: string, args: string[] | undefined, options: { encoding: string } & Record<string, unknown>): SpawnSyncResult;
+  export function spawnSync(command: string, args: string[] | undefined, options: { encoding?: undefined } & Record<string, unknown>): SpawnSyncRawResult;
   export function spawnSync(command: string, args?: string[], options?: Record<string, unknown>): SpawnSyncResult;
 }
 

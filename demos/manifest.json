@@ -66,6 +66,21 @@
       "poster": "demos/posters/03-relight-poster.jpg"
     },
     {
+      "id": "03-relight-4x5",
+      "title": "Relight / matte craft, 4:5 delivery",
+      "video": "demos/03-relight-4x5.mp4",
+      "source": "demos/01-relight.mjs",
+      "renderer": "FFmpeg Timeline IR + RVM/SAM matte path",
+      "technologies": ["RVM", "Timeline IR", "TextReveal", "FFmpeg", "multi-aspect delivery"],
+      "truth": [
+        "Same 9.37s Timeline IR as 03-relight, re-resolved for 1080x1350 rather than letterboxed",
+        "The matte still holds the title behind the subject at the reframed aspect"
+      ],
+      "poster": "demos/posters/03-relight-4x5-poster.jpg",
+      "durationSec": 9.37,
+      "videoProbe": "h264,1080,1350"
+    },
+    {
       "id": "04-camera",
       "title": "Camera / Ken Burns craft",
       "video": "demos/04-camera.mp4",

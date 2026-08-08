@@ -162,11 +162,17 @@ Sources: `demos/01-relight.mjs` … `demos/05-audio.mjs`. Run with `node demos/r
 
 | Demo | What it proves | MP4 |
 | --- | --- | --- |
-| Relight / matte | RVM (or YOLO→SAM 2) subject matte, ground plate, text reveal behind the subject | [03-relight.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/03-relight.mp4) · [poster](demos/posters/03-relight-poster.jpg) |
+| Relight / matte | RVM (or YOLO→SAM 2) subject matte, ground plate, text reveal behind the subject | 16:9 [03-relight.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/03-relight.mp4) · [poster](demos/posters/03-relight-poster.jpg) |
+| Relight / matte, 4:5 | The **same Timeline IR** delivered at a second aspect — reframed, not letterboxed | 4:5 [03-relight-4x5.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/03-relight-4x5.mp4) · [poster](demos/posters/03-relight-4x5-poster.jpg) |
 | Camera | Ken Burns / drone-style `zoom`+`pan` on stills | [04-camera.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/04-camera.mp4) · [poster](demos/posters/04-camera-poster.jpg) |
 | Cut | Word-locked cuts driven by voice timing | [05-cut.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/05-cut.mp4) · [poster](demos/posters/05-cut-poster.jpg) |
 | Depth | Layered text + subject depth composite | [06-depth.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/06-depth.mp4) · [poster](demos/posters/06-depth-poster.jpg) |
 | Audio | Multiband voice restore A/B vs broadband enhance, −14 LUFS master | [07-audio.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/07-audio.mp4) · [poster](demos/posters/07-audio-poster.jpg) |
+
+The relight pair is the clearest statement of the core bet: **one Timeline IR, many
+deliveries.** `03-relight.mp4` (1920×1080) and `03-relight-4x5.mp4` (1080×1350) are the
+same 9.37s edit re-resolved per aspect — the subject stays framed and the matte still
+holds the title behind him. Neither is a letterboxed crop of the other.
 
 ### Product / SaaS films (authored in Montara)
 
@@ -184,6 +190,10 @@ CapCut-style UI tours recorded with Playwright (`demos/saas/`), then cut in Mont
   </a>
   <br/>
   <img src="demos/posters/03-relight-poster.jpg" alt="Relight craft demo poster" width="760" />
+  <br/>
+  <em>Same edit, two aspects — the title stays behind the subject in both.</em>
+  <br/>
+  <img src="demos/posters/03-relight-4x5-poster.jpg" alt="Relight craft demo, 4:5 delivery" width="300" />
   <br/>
   <img src="demos/posters/09-linkedin-poster.jpg" alt="LinkedIn product demo poster" width="380" />
   <img src="demos/posters/10-x-poster.jpg" alt="X product demo poster" width="380" />
@@ -227,15 +237,19 @@ voice/music APIs; `MONTARA_TTS_PROVIDER=system` is the default demo voice path.
 
 ## What Is Tested Today
 
-Latest local gate snapshot from the current public-polish branch:
+Local gate snapshot, measured 2026-08-08 on Windows 11 / Node 22 / Python 3.13:
 
 | Gate | Result |
 | --- | --- |
-| `pnpm typecheck` | passed on this public-polish pass |
-| `pnpm verify` | 324 passed, 0 failed on this public-polish pass |
-| `pnpm validate` | 101 passed, 0 failed on this public-polish pass |
-| `pnpm run montara stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks on this public-polish pass |
-| `python -m pytest tests` | not rerun here because the available Python 3.13 interpreter does not have `pytest`; last recorded Stage 4 gate was 399 passed, 8 skipped |
+| `pnpm typecheck` | 0 errors |
+| `pnpm verify` | 400 passed, 0 failed |
+| `pnpm validate` | 101 passed, 0 failed |
+| `pnpm run montara doctor` | ready to render |
+| `pnpm run montara stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
+| `python -m pytest tests` | not rerun on this pass — the local Python 3.13 interpreter has no `pytest`; last recorded Stage 4 gate was 399 passed, 8 skipped |
+
+`verify` is pure/offline assertions; `validate` renders real MP4s and re-probes them,
+so it is the slower gate and the one that catches a broken encoder path.
 
 These tests cover:
 
@@ -431,6 +445,7 @@ Ignored on purpose:
 - [docs/DEMOS.md](docs/DEMOS.md): proof ledger
 - [docs/PROMPT_GALLERY.md](docs/PROMPT_GALLERY.md): prompts that exercise real paths
 - [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md): architecture conventions
+
 ## Acknowledgements
 
 Conceptual thanks to `calesthio/OpenMontage` and the Claude video-skills

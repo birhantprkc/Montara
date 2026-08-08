@@ -56,7 +56,8 @@ export function measureTextWidth(text: string, fontSize: number, options: Drawte
       for (let y = 0; y < canvasH; y += 1) {
         const row = y * canvasW;
         for (let x = 0; x < canvasW; x += 1) {
-          if (raster[row + x] > INK_THRESHOLD) {
+          // Bounds are guaranteed by the length check above, so skip the per-pixel undefined test.
+          if (raster[row + x]! > INK_THRESHOLD) {
             if (x < min) min = x;
             if (x > max) max = x;
           }
