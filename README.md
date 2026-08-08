@@ -145,23 +145,48 @@ pnpm run montara start --non-interactive create \
 
 ## Public Demo Gallery
 
-The repo includes a tighter public demo set under `demos/`. These are the demos
-to show first. The old low-motion text-card clips were removed from the public
-gallery because they did not represent the ambition of the engine.
+Committed MP4s live under `demos/*.mp4` (allowlisted in `.gitignore`). Working
+renders and caches stay under `out/` and are not committed. The old low-motion
+text-card clips were removed from the public gallery.
 
-| Demo | What it proves | API used for checked artifact | Preview |
-| --- | --- | --- | --- |
-| Full engine matrix | One polished chaptered video covering FFmpeg, Remotion, HyperFrames, Blender, Three.js, Manim, Revideo, Motion Canvas, and Playwright, with status labels for runtime-gated engines | none | [preview GIF](demos/previews/01-engine-matrix-preview.gif) / [raw MP4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4) / [poster](demos/posters/01-engine-matrix-poster.jpg) |
-| Documentary studio proof | Remotion documentary UI, d3-geo map motion, source chips, cinematic evidence framing, and FFmpeg mux/probe/poster output | none | [raw MP4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/02-documentary-studio.mp4) / [poster](demos/posters/02-documentary-studio-poster.jpg) |
+### Engine proofs
+
+| Demo | What it proves | Preview |
+| --- | --- | --- |
+| Full engine matrix | Chaptered FFmpeg / Remotion / HyperFrames / Blender / Three.js / Manim / Revideo / Motion Canvas / Playwright status | [GIF](demos/previews/01-engine-matrix-preview.gif) · [MP4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4) · [poster](demos/posters/01-engine-matrix-poster.jpg) |
+| Documentary studio | Remotion documentary UI, d3-geo map motion, evidence framing, FFmpeg mux | [MP4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/02-documentary-studio.mp4) · [poster](demos/posters/02-documentary-studio-poster.jpg) |
+
+### Craft reel (Timeline IR + compositor)
+
+Sources: `demos/01-relight.mjs` … `demos/05-audio.mjs`. Run with `node demos/run.mjs`.
+
+| Demo | What it proves | MP4 |
+| --- | --- | --- |
+| Relight / matte | RVM (or YOLO→SAM 2) subject matte, ground plate, text reveal behind the subject | [03-relight.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/03-relight.mp4) · [poster](demos/posters/03-relight-poster.jpg) |
+| Camera | Ken Burns / drone-style `zoom`+`pan` on stills | [04-camera.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/04-camera.mp4) · [poster](demos/posters/04-camera-poster.jpg) |
+| Cut | Word-locked cuts driven by voice timing | [05-cut.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/05-cut.mp4) · [poster](demos/posters/05-cut-poster.jpg) |
+| Depth | Layered text + subject depth composite | [06-depth.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/06-depth.mp4) · [poster](demos/posters/06-depth-poster.jpg) |
+| Audio | Multiband voice restore A/B vs broadband enhance, −14 LUFS master | [07-audio.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/07-audio.mp4) · [poster](demos/posters/07-audio-poster.jpg) |
+
+### Product / SaaS films (authored in Montara)
+
+CapCut-style UI tours recorded with Playwright (`demos/saas/`), then cut in Montara.
+
+| Demo | Aspect | MP4 |
+| --- | --- | --- |
+| Montara Studio tour | 16:9 | [08-montara-studio.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/08-montara-studio.mp4) · [poster](demos/posters/08-montara-studio-poster.jpg) |
+| LinkedIn product film | 4:5 | [09-linkedin.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/09-linkedin.mp4) · [poster](demos/posters/09-linkedin-poster.jpg) |
+| X product film | 1:1 | [10-x.mp4](https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/10-x.mp4) · [poster](demos/posters/10-x-poster.jpg) |
 
 <p align="center">
   <a href="https://raw.githubusercontent.com/abhinavshrivastava950/Montara/main/demos/01-engine-matrix.mp4">
     <img src="demos/previews/01-engine-matrix-preview.gif" alt="Full engine matrix animated preview" width="760" />
   </a>
   <br/>
-  <img src="demos/posters/01-engine-matrix-poster.jpg" alt="Full engine matrix poster" width="760" />
+  <img src="demos/posters/03-relight-poster.jpg" alt="Relight craft demo poster" width="760" />
   <br/>
-  <img src="demos/posters/02-documentary-studio-poster.jpg" alt="Documentary studio poster" width="760" />
+  <img src="demos/posters/09-linkedin-poster.jpg" alt="LinkedIn product demo poster" width="380" />
+  <img src="demos/posters/10-x-poster.jpg" alt="X product demo poster" width="380" />
 </p>
 
 The engine matrix is deliberately honest: it demonstrates FFmpeg and Remotion as
@@ -170,13 +195,34 @@ Motion Canvas, and Playwright with their actual shipped adapter/probe/runtime
 status. It does not fake a native Blender, Manim, Revideo, or Motion Canvas
 render when that runtime is not installed.
 
-Regenerate the public demos:
+### Vision models (background removal and friends)
+
+Background removal is **not** a single fixed checkpoint — `montara matte` /
+`autoMatte` pick the best path the machine can run:
+
+| Family | Role | Variants | Why / when |
+| --- | --- | --- | --- |
+| **RVM** (Robust Video Matting) | Primary **background removal** for video | `rvm-mobilenetv3` (CPU-friendly default), `rvm-resnet50` (higher edge/hair fidelity, needs GPU) | Purpose-built for **temporally stable** video mattes without a green screen. Preferred over still-image removers that flicker frame-to-frame. |
+| **SAM 2.1** | Promptable / tracked masks (roto), not first-line BG removal | `sam2.1-hiera-tiny` → `small` → `base-plus` → `large` | Click/box/auto masks with video tracking (`montara segment`). Also used as **YOLO-seeded fallback** when RVM is unavailable. |
+| **YOLO11** | Detection + auto-framing prompts | `yolo11n` → `s` → `m` → `x` | Finds subjects to seed SAM 2 or drive framing (`montara detect`). Not a matting model by itself. |
+| **Chromakey** | Last-resort fallback | FFmpeg `chromakey` | Real green/blue screen only; no learned weights. |
+
+Order for `autoMatte`: **RVM → YOLO+SAM 2 → optional chromakey → opaque**. Weights stay outside the repo; `montara models plan` / hardware gates refuse downloads the machine cannot run. Licenses: RVM GPL-3.0 (weights on their model card), SAM 2 Apache-2.0, YOLO11 AGPL-3.0 (Ultralytics).
+
+Regenerate engine-gallery demos:
 
 ```bash
 pnpm demos:generate
 ```
 
-The generator uses only keys present in `.env`. It does not require paid
+Regenerate the craft / SaaS reel (needs FFmpeg; optional ElevenLabs / Pexels keys in `.env`):
+
+```bash
+node demos/run.mjs
+# or one film: node demos/07-linkedin.mjs
+```
+
+The gallery generator uses only keys present in `.env`. It does not require paid
 voice/music APIs; `MONTARA_TTS_PROVIDER=system` is the default demo voice path.
 
 ## What Is Tested Today

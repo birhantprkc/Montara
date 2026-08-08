@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-07-06T21:28:55.427Z",
-  "generator": "scripts/generate-github-demos.mjs",
+  "generatedAt": "2026-08-08T00:00:00.000Z",
+  "generator": "demos/run.mjs + scripts/generate-github-demos.mjs",
   "apisUsed": [],
   "audio": {
-    "preference": "system TTS when available, silent AAC fallback otherwise",
-    "provider": "Windows System.Speech"
+    "preference": "system TTS when available; craft reel may use ElevenLabs when keyed",
+    "provider": "mixed"
   },
   "demos": [
     {
@@ -52,6 +52,83 @@
       "poster": "demos/posters/02-documentary-studio-poster.jpg",
       "durationSec": 22.1,
       "videoProbe": "h264,1920,1080"
+    },
+    {
+      "id": "03-relight",
+      "title": "Relight / matte craft",
+      "video": "demos/03-relight.mp4",
+      "source": "demos/01-relight.mjs",
+      "renderer": "FFmpeg Timeline IR + RVM/SAM matte path",
+      "technologies": ["RVM", "Timeline IR", "TextReveal", "FFmpeg"],
+      "truth": [
+        "Background removal prefers Robust Video Matting; YOLO+SAM 2 and chromakey are fallbacks"
+      ],
+      "poster": "demos/posters/03-relight-poster.jpg"
+    },
+    {
+      "id": "04-camera",
+      "title": "Camera / Ken Burns craft",
+      "video": "demos/04-camera.mp4",
+      "source": "demos/02-camera.mjs",
+      "renderer": "FFmpeg zoompan from Timeline IR zoom/pan keyframes",
+      "technologies": ["zoom", "panX", "panY", "FFmpeg"],
+      "poster": "demos/posters/04-camera-poster.jpg"
+    },
+    {
+      "id": "05-cut",
+      "title": "Word-locked cut craft",
+      "video": "demos/05-cut.mp4",
+      "source": "demos/03-cut.mjs",
+      "renderer": "FFmpeg Timeline IR cuts aligned to voice timing",
+      "technologies": ["hear", "cut ops", "FFmpeg"],
+      "poster": "demos/posters/05-cut-poster.jpg"
+    },
+    {
+      "id": "06-depth",
+      "title": "Depth / layered text craft",
+      "video": "demos/06-depth.mp4",
+      "source": "demos/04-depth.mjs",
+      "renderer": "FFmpeg layered composite with matte subject over text",
+      "technologies": ["matte", "TextReveal", "FFmpeg"],
+      "poster": "demos/posters/06-depth-poster.jpg"
+    },
+    {
+      "id": "07-audio",
+      "title": "Multiband audio restore craft",
+      "video": "demos/07-audio.mp4",
+      "source": "demos/05-audio.mjs",
+      "renderer": "FFmpeg picture + multiband enhance master to −14 LUFS",
+      "technologies": ["multiband restore", "loudnorm", "FFmpeg"],
+      "poster": "demos/posters/07-audio-poster.jpg"
+    },
+    {
+      "id": "08-montara-studio",
+      "title": "Montara Studio SaaS tour",
+      "video": "demos/08-montara-studio.mp4",
+      "source": "demos/06-saas.mjs",
+      "renderer": "Playwright UI capture + Montara Timeline IR cut",
+      "technologies": ["Playwright", "Timeline IR", "FFmpeg"],
+      "poster": "demos/posters/08-montara-studio-poster.jpg"
+    },
+    {
+      "id": "09-linkedin",
+      "title": "LinkedIn product film (4:5)",
+      "video": "demos/09-linkedin.mp4",
+      "source": "demos/07-linkedin.mjs",
+      "renderer": "Playwright LinkedIn mock UI + Montara cut",
+      "technologies": ["Playwright", "Timeline IR", "FFmpeg"],
+      "aspect": "4:5",
+      "poster": "demos/posters/09-linkedin-poster.jpg"
+    },
+    {
+      "id": "10-x",
+      "title": "X product film (1:1)",
+      "video": "demos/10-x.mp4",
+      "source": "demos/08-x.mjs",
+      "renderer": "Playwright X mock UI + Montara cut",
+      "technologies": ["Playwright", "Timeline IR", "FFmpeg"],
+      "aspect": "1:1",
+      "poster": "demos/posters/10-x-poster.jpg"
     }
   ]
 }
