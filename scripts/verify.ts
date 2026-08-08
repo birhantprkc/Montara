@@ -151,6 +151,9 @@ import {
   scoreProvider,
   rankProviders,
   scoreSlideshowRisk,
+  scoreAudioRisk,
+  RenderTimingLedger,
+  ledgerFromRecords,
   checkSceneVariation,
   stepDuration,
   trace,
@@ -1260,6 +1263,42 @@ ok("speaker intelligence reports Resemblyzer/SpeechBrain/pyannote availability a
   typeof speakerStatus.resemblyzer === "boolean" &&
   typeof speakerStatus.speechbrainEcapa === "boolean" &&
   typeof speakerStatus.pyannote === "boolean");
+
+console.log("\n== Audio scored as a dimension (not just a presence check) ==");
+ok("audio risk fails a file that is not there, with an explicit absent dimension", (() => {
+  const r = scoreAudioRisk(join(process.cwd(), "out", "no-such-render.mp4"));
+  return r.verdict === "fail" && r.average === 5 && r.dimensions.absent?.score === 5;
+})());
+ok("audio risk reports the loudness target it judged against", (() => {
+  const r = scoreAudioRisk(join(process.cwd(), "out", "no-such-render.mp4"), { targetLufs: -16 });
+  return r.targetLufs === -16;
+})());
+
+console.log("\n== Render timing per renderer and scene type ==");
+const timingLedger = new RenderTimingLedger();
+timingLedger.record("three", "title-3d", 9000);
+timingLedger.record("three", "title-3d", 11000);
+timingLedger.record("ffmpeg", "assembly", 200);
+ok("timing ledger groups by renderer and scene type", (() => {
+  const s = timingLedger.summarize();
+  const three = s.byRendererAndScene.find((x) => x.renderer === "three" && x.sceneType === "title-3d");
+  return s.records === 3 && three?.samples === 2 && three.meanMs === 10000 && three.maxMs === 11000;
+})());
+ok("timing ledger ranks the expensive scene types first", (() => {
+  const s = timingLedger.summarize();
+  return s.slowest[0]?.renderer === "three" && (s.slowest[0]?.meanMs ?? 0) > (s.slowest[1]?.meanMs ?? 0);
+})());
+ok("timing ledger records a failed render and still times it", (() => {
+  const l = new RenderTimingLedger();
+  let threw = false;
+  try { l.time("manim", "math", () => { throw new Error("boom"); }); } catch { threw = true; }
+  const s = l.summarize();
+  return threw && s.records === 1 && s.byRendererAndScene[0]?.failures === 1;
+})());
+ok("timing ledger round-trips through persisted records", (() => {
+  const restored = ledgerFromRecords(timingLedger.all());
+  return restored.summarize().totalMs === timingLedger.summarize().totalMs;
+})());
 
 console.log("\n== Source separation (Demucs) ==");
 ok("separation availability is a boolean (degrade-friendly), never throws", typeof separateStemsAvailable() === "boolean");

@@ -222,31 +222,42 @@ export interface AutoSceneResult {
   path: string;
   frames?: number;
   error?: string;
+  /**
+   * Wall-clock render cost in milliseconds.
+   *
+   * Knowing *which* renderer ran explains a render; knowing what it cost lets you plan one — the
+   * same engine can be seconds or minutes per scene depending on the scene type. Feed this to a
+   * `RenderTimingLedger` to build a per-(renderer, scene type) profile.
+   */
+  renderMs: number;
 }
 
 /** Pick the best installed renderer for the scene type and actually render a real clip. */
 export function autoRenderScene(req: AutoSceneRequest): AutoSceneResult {
+  const startedAt = Date.now();
   const rec = recommendEngine(req.sceneType);
   const width = req.width ?? 1280, height = req.height ?? 720, fps = req.fps ?? 24, seconds = req.seconds ?? 1.5;
 
+  const elapsed = (): number => Date.now() - startedAt;
+
   if (rec.engine === "three") {
     const r = renderThreeScene(req.outPath, { width, height, fps, seconds, title: req.title, background: req.background });
-    return { ok: r.ok, engine: "three", native: true, path: r.path, frames: r.frames, error: r.error };
+    return { ok: r.ok, engine: "three", native: true, path: r.path, frames: r.frames, error: r.error, renderMs: elapsed() };
   }
   if (rec.engine === "blender") {
     const script = req.blenderScript ?? join(process.cwd(), "blender", "montara_intro.py");
     const r = renderBlenderScene(script, req.outPath, { fps });
-    return { ok: r.ok, engine: "blender", native: true, path: r.path ?? req.outPath, frames: r.frames, error: r.error };
+    return { ok: r.ok, engine: "blender", native: true, path: r.path ?? req.outPath, frames: r.frames, error: r.error, renderMs: elapsed() };
   }
   if (rec.engine === "manim") {
     const r = renderManimScene(req.outPath, { quality: "l" });
-    return { ok: r.ok, engine: "manim", native: true, path: r.path, error: r.error };
+    return { ok: r.ok, engine: "manim", native: true, path: r.path, error: r.error, renderMs: elapsed() };
   }
   // ffmpeg fallback: a single titled scene
   try {
     renderScenePlan({ width, height, fps, scenes: [{ id: "auto", title: req.title ?? "", durationSec: seconds, background: req.background ?? "0a0a0a" }] }, req.outPath);
-    return { ok: true, engine: "ffmpeg", native: false, path: req.outPath };
+    return { ok: true, engine: "ffmpeg", native: false, path: req.outPath, renderMs: elapsed() };
   } catch (e) {
-    return { ok: false, engine: "ffmpeg", native: false, path: req.outPath, error: String((e as Error).message ?? e) };
+    return { ok: false, engine: "ffmpeg", native: false, path: req.outPath, error: String((e as Error).message ?? e), renderMs: elapsed() };
   }
 }

@@ -15,6 +15,8 @@ export * from "./configLoader";
 export * from "./selfreview";
 export * from "./budget";
 export * from "./voiceDirector";
+export * from "./audioRisk";
+export * from "./renderTiming";
 export * from "./reelPlanner";
 export * from "./reelArtifacts";
 export * from "./documentaryEvidence";

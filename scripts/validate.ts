@@ -51,6 +51,7 @@ import {
   selectProviderTool,
   preComposeGate,
   postRenderSelfReview,
+  scoreAudioRisk,
   writeSelfReview,
   BudgetLedger,
   documentaryEvidenceGate,
@@ -60,7 +61,7 @@ import {
 import { runResearch, indexFootage, retrieveFootage } from "../packages/research/src/index";
 import { planVideo } from "../packages/ai/src/index";
 import { analyzeReferenceVideo, transcribe } from "../packages/understand/src/index";
-import { listEngines, preferredEngine, renderWithEngine } from "../packages/render-engines/src/index";
+import { listEngines, preferredEngine, renderWithEngine, autoRenderScene } from "../packages/render-engines/src/index";
 import { STYLE_PLAYBOOKS, OUTPUT_PROFILES, applyStyle, applyOutputProfile } from "../packages/style/src/index";
 import {
   createCheckpoint,
@@ -1182,6 +1183,43 @@ if (threeAvailable()) {
 } else {
   ok("render-three reports unavailable honestly when no browser/three", threeAvailable() === false);
 }
+
+// Audio scored as a dimension: real files, real measurement, verdicts that discriminate.
+const goodAudio = join(outDir, "vc-audio-good.mp4");
+spawnSync(ff, ["-y", "-f", "lavfi", "-i", "testsrc2=s=320x240:r=24:d=3", "-f", "lavfi", "-i", "sine=frequency=300:duration=3",
+  "-af", "loudnorm=I=-14:TP=-1", "-pix_fmt", "yuv420p", "-shortest", goodAudio], { encoding: "utf8" });
+const hotAudio = join(outDir, "vc-audio-hot.mp4");
+spawnSync(ff, ["-y", "-f", "lavfi", "-i", "testsrc2=s=320x240:r=24:d=3", "-f", "lavfi", "-i", "sine=frequency=300:duration=3",
+  "-af", "volume=25dB", "-pix_fmt", "yuv420p", "-shortest", hotAudio], { encoding: "utf8" });
+const muteAudio = join(outDir, "vc-audio-none.mp4");
+spawnSync(ff, ["-y", "-f", "lavfi", "-i", "testsrc2=s=320x240:r=24:d=3", "-pix_fmt", "yuv420p", muteAudio], { encoding: "utf8" });
+
+const goodScore = scoreAudioRisk(goodAudio);
+ok("audio scorer measures a mastered file as on-target with headroom",
+  goodScore.measured.hasAudio && goodScore.dimensions.loudness_offtarget?.score === 0 && goodScore.dimensions.clipping?.score === 0,
+  `avg=${goodScore.average} lufs=${goodScore.measured.lufs} peak=${goodScore.measured.peakVolumeDb}`);
+
+const hotScore = scoreAudioRisk(hotAudio);
+ok("audio scorer catches clipping and refuses to call it acceptable",
+  hotScore.dimensions.clipping!.score >= 3.5 && (hotScore.verdict === "revise" || hotScore.verdict === "fail"),
+  `verdict=${hotScore.verdict} clipping=${hotScore.dimensions.clipping?.score} peak=${hotScore.measured.peakVolumeDb}`);
+
+const muteScore = scoreAudioRisk(muteAudio);
+ok("audio scorer fails a render with no audio track",
+  muteScore.verdict === "fail" && muteScore.dimensions.absent?.score === 5, `verdict=${muteScore.verdict}`);
+
+const reviewedAudio = postRenderSelfReview(goodAudio, {});
+ok("self-review carries the scored audio dimensions, not just pass/warn checks",
+  Boolean(reviewedAudio.audio) && typeof reviewedAudio.audio?.average === "number" &&
+  reviewedAudio.checks.some((c) => c.name === "audio risk score"),
+  `audio=${reviewedAudio.audio?.verdict}`);
+
+// Render timing: the picker now reports what a scene actually cost, not just which engine ran.
+const timedOut = join(outDir, "validate-timed-scene.mp4");
+const timed = autoRenderScene({ sceneType: "assembly", outPath: timedOut, title: "TIMED", seconds: 0.6 });
+ok("autoRenderScene reports wall-clock render cost per scene",
+  timed.ok && typeof timed.renderMs === "number" && timed.renderMs > 0,
+  `engine=${timed.engine} renderMs=${timed.renderMs}`);
 
 // Source separation (Demucs): unmix a real mix into stems, or skip honestly when not installed.
 if (separateStemsAvailable()) {

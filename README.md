@@ -19,7 +19,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-blue" alt="AGPL-3.0" />
-  <img src="https://img.shields.io/badge/gates-403%20verify%20%C2%B7%20102%20validate-brightgreen" alt="gates green" />
+  <img src="https://img.shields.io/badge/gates-409%20verify%20%C2%B7%20107%20validate-brightgreen" alt="gates green" />
   <img src="https://img.shields.io/badge/API%20keys-not%20required-success" alt="no API keys required" />
   <img src="https://img.shields.io/badge/stack-TypeScript%20%2B%20Python%20%2B%20FFmpeg-lightgrey" alt="stack" />
 </p>
@@ -79,7 +79,7 @@ function over it.**
 | **Never fakes a render** | If Blender or Manim isn't installed, Montara says so and degrades to a path that still produces a real MP4. The engine-matrix demo exists to prove this in public. |
 | **Agent-native, not agent-bolted-on** | Humans, Claude, Codex, or a local Ollama model read the same `skills/` and drive the same CLI, leaving inspectable artifacts at every stage. |
 | **Real models, honestly gated** | RVM / SAM 2.1 / YOLO11 for matting and tracking, Demucs for stem separation, faster-whisper for captions — each probed at runtime, never vendored, never assumed. |
-| **Proof, not adjectives** | 403 offline assertions, 102 gates that render real MP4s and re-probe them, and 12 checked-in demo films you can play before reading a line of code. |
+| **Proof, not adjectives** | 409 offline assertions, 107 gates that render real MP4s and re-probe them, and 12 checked-in demo films you can play before reading a line of code. |
 
 Montara is built for explainers, reels, software demos, documentaries, trailers, and motion
 graphics today — and is architected to scale the same IR toward long-form work. That last part
@@ -315,8 +315,8 @@ Local gate snapshot, measured 2026-08-08 on Windows 11 / Node 22 / Python 3.13:
 | Gate | Result |
 | --- | --- |
 | `pnpm typecheck` | 0 errors |
-| `pnpm verify` | 403 passed, 0 failed |
-| `pnpm validate` | 102 passed, 0 failed |
+| `pnpm verify` | 409 passed, 0 failed |
+| `pnpm validate` | 107 passed, 0 failed |
 | `pnpm run montara doctor` | ready to render |
 | `pnpm run montara stage1-audit --json --out out/stage1-audit.json` | 4/4 sections, 21/21 checks |
 | `python -m pytest tests` | not rerun on this pass — the local Python 3.13 interpreter has no `pytest`; last recorded Stage 4 gate was 399 passed, 8 skipped |

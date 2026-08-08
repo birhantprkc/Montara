@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import type { Timeline } from "../../core/src/index";
 import { mediaBin } from "../../render-ffmpeg/src/index";
 import { DecisionTrail } from "./audit";
+import { scoreAudioRisk, type AudioRiskReport } from "./audioRisk";
 
 export type CheckStatus = "pass" | "warn" | "fail";
 
@@ -36,6 +37,13 @@ export interface SelfReviewReport {
   ok: boolean;
   checks: ReviewCheck[];
   probe: SelfReviewProbe;
+  /**
+   * Scored audio dimensions on the same 0..5 scale the picture is scored on.
+   *
+   * The pass/warn checks below remain for continuity; this is what makes audio a *scored*
+   * dimension rather than a presence test. Omitted when `scoreAudio` is false.
+   */
+  audio?: AudioRiskReport;
 }
 
 export interface SelfReviewOptions {
@@ -44,6 +52,10 @@ export interface SelfReviewOptions {
   durationTolSec?: number;
   subtitlePath?: string;
   trail?: DecisionTrail;
+  /** Score audio risk. Costs one loudnorm analysis pass on files that have audio. Default true. */
+  scoreAudio?: boolean;
+  /** Delivery loudness target the audio score is judged against. Default -14 LUFS. */
+  targetLufs?: number;
 }
 
 interface ProbeBase {
@@ -157,6 +169,22 @@ export function postRenderSelfReview(mp4Path: string, opts: SelfReviewOptions = 
     checks.push({ name: "subtitle present", status: okSub ? "pass" : "warn", detail: opts.subtitlePath });
   }
 
+  // Audio scored the way picture is scored. Kept non-fatal for the same reason the presence check
+  // is: Stage-1 fallbacks legitimately ship silent, so a weak mix warns rather than blocks.
+  let audio: AudioRiskReport | undefined;
+  if (present && opts.scoreAudio !== false) {
+    audio = scoreAudioRisk(mp4Path, { targetLufs: opts.targetLufs });
+    const worst = Object.entries(audio.dimensions)
+      .filter(([, d]) => d.score >= 3)
+      .map(([name, d]) => `${name} ${d.score}`)
+      .join(", ");
+    checks.push({
+      name: "audio risk score",
+      status: audio.verdict === "strong" || audio.verdict === "acceptable" ? "pass" : "warn",
+      detail: `${audio.average}/5 ${audio.verdict}${worst ? ` — ${worst}` : ""}`,
+    });
+  }
+
   const ok = checks.every((c) => c.status !== "fail");
   opts.trail?.record({
     kind: "post-render-self-review",
@@ -165,7 +193,7 @@ export function postRenderSelfReview(mp4Path: string, opts: SelfReviewOptions = 
     rationale: checks.filter((c) => c.status !== "pass").map((c) => `${c.name}:${c.status}`).join("; ") || "all checks passed",
     alternatives: checks.filter((c) => c.status === "fail").map((c) => ({ label: c.name })),
   });
-  return { mp4Path, ok, checks, probe };
+  return { mp4Path, ok, checks, probe, ...(audio ? { audio } : {}) };
 }
 
 export function writeSelfReview(report: SelfReviewReport, path: string): string {

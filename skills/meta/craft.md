@@ -39,10 +39,35 @@ The rules below are universal.
 | --- | --- |
 | voice selection by emotion+music | `quality/voice-director` + TTS selector + `hear` |
 | master to -14 LUFS | `render-ffmpeg/master.ts` (`masterAudio`, `measureLoudness`) |
+| **audio scored, not just present** | `quality/audioRisk.ts` (`scoreAudioRisk`), surfaced in `postRenderSelfReview` |
+| picture scored | `quality/slideshowRisk.ts` (6 dimensions) + `quality/variationChecker.ts` |
 | QA playback | `hear/qaPlayback` |
+| render cost per scene type | `quality/renderTiming.ts` + `autoRenderScene().renderMs` |
 | thumbnails / Shorts | `render-ffmpeg/craft.ts` |
 | layered composition / text | `render-ffmpeg/composite.ts` + `skills/editing/` |
 | scene distinctness / caption dedup | reviewer gates (`skills/meta/reviewer.md`) |
+
+### Audio is a scored dimension
+
+Picture has been scored across six dimensions for a while; audio was only ever a *presence* check
+("is there a track, is it silent, is it clipping"). That let a technically-present but unusable mix
+pass a gate that would have rejected the same weakness in the picture. `scoreAudioRisk` closes it,
+on the same 0..5 scale and the same verdict thresholds:
+
+`absent` · `silence` · `loudness_offtarget` · `clipping` · `dynamics` · `coverage`
+
+One rule differs from the picture scorer, deliberately: **audio defects do not average away.** A
+clipped master scores 5.0 on `clipping` and would still land in "acceptable" once five healthy
+dimensions dilute it, so any *critical* dimension (absent, silence, clipping, coverage) at 4.0+
+floors the verdict at `revise`. `dynamics` and `loudness_offtarget` are excluded from that floor
+because both are correctable by re-running a mastering pass.
+
+### Render cost is measured, not assumed
+
+`render_runtime` recorded *which* renderer ran and never what it cost. `autoRenderScene` now returns
+`renderMs`, and `RenderTimingLedger` aggregates it per (renderer, scene type) — mean, median, max,
+and the slowest pairs. "Use three.js for the 3D title" is a different decision at 2s a scene than at
+90s a scene, and now that is a number rather than a guess.
 
 ## Final review (ask before "done")
 
